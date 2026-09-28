@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0b0d" />
+  <title>Intellirity - AI Security Infrastructure</title>
+  <meta name="description" content="For everyday AI users, businesses integrating AI, and automated agent workflows. Intellirity monitors, analyzes, and neutralizes AI threats in real time." />
+  <meta property="og:title" content="Intellirity - AI Security Infrastructure" />
+  <meta property="og:description" content="Securing AI. Empowering innovation. Real-time threat detection for AI systems at scale." />
+  <meta property="og:image" content="assets/media/logo-wordmark.png" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="assets/media/logo-wordmark.png" />
+
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/media/favicon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/media/favicon.png" />
+  <link rel="apple-touch-icon" href="assets/media/favicon.png" />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="assets/css/reset.css?v=12" />
+  <link rel="stylesheet" href="assets/css/tokens.css?v=12" />
+  <link rel="stylesheet" href="assets/css/base.css?v=12" />
+  <link rel="stylesheet" href="assets/css/components.css?v=12" />
+  <link rel="stylesheet" href="assets/css/sections.css?v=12" />
+  <link rel="stylesheet" href="assets/css/dashboard.css?v=12" />
+  <link rel="stylesheet" href="assets/css/modals.css?v=12" />
+  <link rel="stylesheet" href="assets/css/responsive.css?v=12" />
+  <link rel="stylesheet" href="cookie.css?v=12" />
+  <link rel="stylesheet" href="assets/css/motion.css?v=12" />
+</head>
+<body>
+  <!-- Page load -->
+  <div class="curtain" id="curtain" aria-hidden="true">
+    <img class="curtain__logo" src="assets/media/logo-wordmark.png" alt="Intellirity" />
+  </div>
+
+  <!-- Backgrounds -->
+  <canvas class="bg-canvas" id="bgField" aria-hidden="true"></canvas>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <!-- ====== NAV ====== -->
+  <header class="nav" id="nav">
+    <a class="nav__logo" href="#top" aria-label="Intellirity home">
+      <img class="mark" src="assets/media/favicon.png" alt="Intellirity" />
+      <span>Intellirity</span>
+    </a>
+
+    <nav class="nav__center" aria-label="Primary">
+      <a class="nav__link" href="#platform" data-nav>Platform</a>
+      <a class="nav__link" href="#scanner" data-nav>Scanner</a>
+      <a class="nav__link" href="#how" data-nav>How it works</a>
+      <a class="nav__link" href="#pricing" data-nav>Pricing</a>
+      <a class="nav__link" href="#docs" data-open-app data-page="docs">Docs</a>
+    </nav>
+
+    <div class="nav__right">
+      
+      <span class="nav__divider"></span>
+      <a class="btn btn--secondary btn--sm" href="#signin" data-open="auth">Sign in</a>
+      <button class="btn btn--primary btn--sm" data-open="trial">Start free trial</button>
+      <button class="nav__burger" id="navBurger" aria-label="Menu" aria-expanded="false">
+        <span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile menu -->
+  <div class="mobile-menu" id="mobileMenu" aria-hidden="true">
+    <a href="#platform">Platform</a>
+    <a href="#scanner">Scanner</a>
+    <a href="#how">How it works</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#dashboard" data-open-app>Dashboard</a>
+    <button class="btn btn--primary" data-open="trial">Start free trial</button>
+  </div>
+
+  <main id="top">
+
+    <!-- ====== HERO ====== -->
+    <!-- Hero discipline: max 4 text elements (kicker, headline, sub, CTAs). No trust strip. -->
+    <section class="hero" data-section="hero">
+      <div class="hero__inner">
+        <div class="hero__copy">
+          <div class="hero__kicker"><span><b>v4.2</b> · Released this week</span></div>
+          <h1 class="hero__title">
+            <span class="row"><span>Intelligent</span></span>
+            <span class="row"><span><em>threats</em> demand</span></span>
+            <span class="row"><span>intelligent security.</span></span>
+          </h1>
+          <p class="hero__lede">
+            If you're someone who uses AI for everyday work, a business weaving AI into its products, or a power user who has automated everything through agents. Intellirity is built for you.
+          </p>
+          <div class="hero__cta">
+            <button class="btn btn--primary btn--lg" data-open="trial" data-burst>
+              Start free trial
+              <svg class="arr" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="btn btn--secondary btn--lg" data-open-app data-burst>Open dashboard</button>
+          </div>
+        </div>
+
+        <div class="hero__stage" id="heroStage">
+          <canvas id="heroShield"></canvas>
+          <div class="hero__hud hero__hud--tl"><span class="hud"><span class="dot dot--ok"></span> Engine · <b>Online</b></span></div>
+          <div class="hero__hud hero__hud--tr"><span class="hud">Latency · <b id="hudLatency">38ms</b></span></div>
+          <div class="hero__hud hero__hud--bl"><span class="hud">Threats / 24h · <b id="hudThreats">1,284</b></span></div>
+          <div class="hero__hud hero__hud--br"><span class="hud">Models · <b>142</b></span></div>
+        </div>
+      </div>
+
+      <div class="hero__footer" aria-hidden="true"></div>
+    </section>
+
+    <div class="ticker" id="threatTicker" hidden>
+      <div class="ticker__track" id="tickerTrack"></div>
+    </div>
+
+    <!-- ====== AUDIENCE STRIP: who this is for, BELOW the hero ====== -->
+    <section class="trust">
+      <div class="trust__inner">
+        <span class="trust__label">Built for</span>
+        <div class="trust__list">
+          <span>Everyday AI users</span>
+          <span>Businesses integrating AI</span>
+          <span>Automated agent workflows</span>
+          <span>Security teams</span>
+          <span>Platform engineers</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== PLATFORM ====== -->
+    <section class="platform" id="platform" data-section="platform">
+      <header class="section-head">
+        <div>
+          <div class="section-head__num"><b>01</b> Platform</div>
+          <h2 class="section-head__title">Every layer of your AI stack, <em>defended.</em></h2>
+        </div>
+        <p class="section-head__lede">
+          From model inference to API gateway, Intellirity instruments every point of exposure across your production AI infrastructure: ten focused modules, each built for a specific class of AI risk.
+        </p>
+      </header>
+
+      <div class="platform__pin" id="platformPin">
+        <div class="platform__track" id="platformTrack"></div>
+      </div>
+      <div class="platform__progress" aria-hidden="true"><div class="platform__progress-bar" id="platformProgress"></div></div>
+    </section>
+
+    <!-- ====== SCANNER ====== -->
+    <section class="scanner" id="scanner" data-section="scanner">
+      <header class="section-head">
+        <div>
+          <div class="section-head__num"><b>02</b> Scanner</div>
+          <h2 class="section-head__title">Scan any AI endpoint. <em>In under six seconds.</em></h2>
+        </div>
+        <p class="section-head__lede">
+          Run an adversarial scan against any public API endpoint or model ID. Real modules, real findings, no marketing theatre.
+        </p>
+      </header>
+
+      <div class="scanner__layout">
+        <div class="terminal" id="terminal">
+          <div class="terminal__chrome">
+            <div class="terminal__dots"><span></span><span></span><span></span></div>
+            <div class="terminal__title">intellirity · adversarial-scanner</div>
+            <div class="terminal__ver">v4.2 · sha 9c1e</div>
+          </div>
+          <div class="terminal__body">
+            <div class="terminal__line">
+              <span class="ps">intellirity ~$</span>
+              <span class="cmd" id="cmdLine">scan --adversarial --full-report</span>
+              <span class="caret"></span>
+            </div>
+            <div class="terminal__input">
+              <span class="ps">></span>
+              <input id="scanInput" type="text" placeholder="https://api.example.com/v1/..." autocomplete="off" spellcheck="false" />
+            </div>
+            <div class="terminal__actions">
+              <button class="btn btn--primary btn--sm" id="runScanBtn" data-burst>
+                Run scan
+                <svg class="arr" viewBox="0 0 14 14" fill="none" aria-hidden="true" style="width:10px;height:10px"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <span class="terminal__status"><span class="dot dot--idle"></span><span id="scanStatus">IDLE</span></span>
+            </div>
+            <div class="terminal__bar">
+              <div class="terminal__bar-fill" id="scanBar"></div>
+              <div class="terminal__bar-meta">
+                <b id="scanPct">0%</b>
+                <span>·</span>
+                <span>jailbreak · vibe code · data leakage</span>
+              </div>
+            </div>
+            <pre class="terminal__output" id="scanOutput" aria-live="polite">→ Enter an endpoint URL above and click <strong>Run Scan</strong> to begin.</pre>
+            <div class="terminal__bands">
+              <div class="band band--ok"><span class="band__k">Nominal</span><span class="band__v" id="bandNominal">-</span></div>
+              <div class="band band--warn"><span class="band__k">Caution</span><span class="band__v" id="bandCaution">-</span></div>
+              <div class="band band--crit"><span class="band__k">Elevated</span><span class="band__v" id="bandElevated">-</span></div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="scanner__side">
+          <div class="stat"><div class="stat__k">Avg. scan time</div><div class="stat__v">5.4<small>s</small></div></div>
+          <div class="stat"><div class="stat__k">Scans run</div><div class="stat__v" id="statScans">-</div></div>
+          <div class="stat"><div class="stat__k">High severity live</div><div class="stat__v" id="statHigh">-</div></div>
+          <div class="scanner__note">Default · <code>https://api.openai.com/v1/chat/completions</code></div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ====== HOW ====== -->
+    <section class="how" id="how" data-section="how">
+      <header class="section-head">
+        <div>
+          <div class="section-head__num"><b>03</b> How it works</div>
+          <h2 class="section-head__title">How Intellirity <em>protects your AI.</em></h2>
+        </div>
+        <p class="section-head__lede">
+          You don't need to be a security engineer to use Intellirity. Turn on the Jailbreak &amp; Prompt Injection Shield in three plain steps.
+        </p>
+      </header>
+
+      <div class="how__layout">
+        <ol class="how__steps">
+          <li class="how__step" data-step="1">
+            <div class="how__step__num"><b>01</b> Connect</div>
+            <h3>Point us at your AI.</h3>
+            <p>Point Intellirity at the model, chatbot, or endpoint you already run. No code changes required. We sit in front of your AI and watch every request and response.</p>
+          </li>
+          <li class="how__step" data-step="2">
+            <div class="how__step__num"><b>02</b> Configure</div>
+            <h3>Set your boundaries.</h3>
+            <p>Tell the system what is allowed. Our Jailbreak &amp; Prompt Injection Shield blocks attempts to override instructions, steal your system prompt, or trick the model into leaking data.</p>
+          </li>
+          <li class="how__step" data-step="3">
+            <div class="how__step__num"><b>03</b> Operate</div>
+            <h3>Watch it work.</h3>
+            <p>Every interaction is scored in real time. Suspicious activity returns a clear verdict: blocked, flagged, or safe, with a plain-language reason you can act on.</p>
+          </li>
+        </ol>
+
+        <div class="how__stage" id="howStage">
+          <canvas id="howCanvas"></canvas>
+          <div class="how__stage-overlay">
+            <span id="howStepLabel">STEP 01 / 03</span>
+            <span>CONNECT</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="how__footnote">
+        The same plain workflow applies to monitoring, policy enforcement, vibe code security, data protection, auditing, VPI, escrow, and anomaly detection, all available from your dashboard.
+      </p>
+    </section>
+
+    <!-- ====== METRICS ====== -->
+    <section class="metrics" id="metrics">
+      <div class="metrics__cell">
+        <div class="metrics__v" id="mBlocked" data-suffix="">0</div>
+        <div class="metrics__k">Threats blocked by engine</div>
+      </div>
+      <div class="metrics__cell">
+        <div class="metrics__v" id="mScans" data-suffix="">0</div>
+        <div class="metrics__k">Adversarial scans run</div>
+      </div>
+      <div class="metrics__cell">
+        <div class="metrics__v" id="mModels" data-suffix="">0</div>
+        <div class="metrics__k">Models monitored</div>
+      </div>
+      <div class="metrics__cell">
+        <div class="metrics__v" id="mScore" data-suffix="/100">0</div>
+        <div class="metrics__k">Live security score</div>
+      </div>
+    </section>
+
+    <!-- ====== PRICING ====== -->
+    <section class="pricing" id="pricing" data-section="pricing">
+      <header class="section-head">
+        <div>
+          <div class="section-head__num"><b>04</b> Pricing</div>
+          <h2 class="section-head__title">Transparent pricing. <em>No surprises.</em></h2>
+          <div class="pricing__toggle">
+            <div class="billing-toggle" data-billing="monthly" id="billingToggle">
+              <button class="billing-toggle__opt is-active" data-billing="monthly">Monthly</button>
+              <button class="billing-toggle__opt" data-billing="annual">Annual <small>−20%</small></button>
+              <span class="billing-toggle__pill" aria-hidden="true"></span>
+            </div>
+          </div>
+        </div>
+        <p class="section-head__lede">
+          Start with what you need. Add capabilities as your AI footprint grows. No setup fees, no per-seat charges.
+        </p>
+      </header>
+
+      <div class="pricing__grid" style="grid-template-columns:repeat(2,minmax(0,430px));justify-content:center">
+        <article class="plan">
+          <header class="plan__head">
+            <h3>Starter</h3>
+            <p>For individuals and teams starting to secure their AI.</p>
+          </header>
+          <div class="plan__price">
+            <span class="plan__amount" data-monthly="99" data-annual="79">₹99</span>
+            <span class="plan__per">/mo</span>
+          </div>
+          <ul class="plan__list">
+            <li>Adversarial endpoint scanner</li>
+            <li>Prompt injection &amp; jailbreak detection</li>
+            <li>Basic code security scan</li>
+            <li>Data leakage protection</li>
+            <li>Real-time threat monitoring</li>
+            <li>Live security dashboard</li>
+          </ul>
+          <button class="btn btn--secondary btn--full" data-open="trial" data-burst>Start free trial</button>
+        </article>
+
+        <article class="plan plan--featured">
+          <div class="plan__ribbon">Most popular</div>
+          <header class="plan__head">
+            <h3>Growth</h3>
+            <p>For teams running AI in production.</p>
+          </header>
+          <div class="plan__price">
+            <span class="plan__amount" data-monthly="3999" data-annual="3199">₹3,999</span>
+            <span class="plan__per">/mo</span>
+          </div>
+          <ul class="plan__list">
+            <li>Everything in Starter</li>
+            <li>Behavioral anomaly detection</li>
+            <li>AI action policy enforcement</li>
+            <li>Deep code scan (SQLi, XSS, command injection, SSRF, weak crypto, headers)</li>
+            <li>Data flow tracker</li>
+            <li>Black box audit ledger</li>
+            <li>Verifiable proof of intent</li>
+            <li>Autonomous escrow</li>
+            <li>Workflow anomaly detection</li>
+          </ul>
+          <button class="btn btn--primary btn--full" data-open="trial" data-burst>Start free trial</button>
+        </article>
+      </div>
+    </section>
+
+    <!-- ====== CTA ====== -->
+    <section class="cta" id="contact" data-section="cta">
+      <div class="cta__inner">
+        <h2 class="cta__title">Your AI stack is<br/><em>already a target.</em></h2>
+        <p class="cta__lede">Start your free trial. No credit card required. Full platform access, all features, from day one.</p>
+        <div class="cta__buttons cta__buttons--stack">
+          <div class="lm-wrap" id="trialLiquid">
+            <iframe class="lm-frame" title="Start trial" src="assets/fx/liquid-metal-button.html" scrolling="no" frameborder="0"></iframe>
+            <button class="btn btn--primary btn--lg lm-fallback" data-open="trial" data-burst>Start free trial</button>
+          </div>
+          <button class="btn btn--secondary btn--lg" data-open-app data-burst>Open dashboard</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== FOOTER ====== -->
+    <footer class="footer">
+      <div class="footer__top">
+        <div class="footer__brand">
+          <a class="nav__logo" href="#top">
+            <img class="mark" src="assets/media/favicon.png" alt="Intellirity" />
+            <span>Intellirity</span>
+          </a>
+          <p>AI security infrastructure for enterprises deploying language models and AI agents at scale.</p>
+          <div class="footer__badges">
+            <span class="tag">SOC 2</span>
+            <span class="tag">ISO 27001</span>
+            <span class="tag">GDPR</span>
+          </div>
+        </div>
+        <nav class="footer__col">
+          <h6>Product</h6>
+          <a href="#platform">Platform capabilities</a>
+          <a href="#scanner">Adversarial scanner</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#" data-open-app data-page="docs" data-doc="changelog">Changelog</a>
+        </nav>
+        <nav class="footer__col">
+          <h6>Security</h6>
+          <a href="#" data-open-app data-page="docs" data-doc="security">Security model</a>
+          <a href="#" data-open-app data-page="docs" data-doc="trust">Trust center</a>
+          <a href="#" data-open="contact">Vulnerability policy</a>
+          <a href="#" data-open="contact">Pen testing</a>
+        </nav>
+        <nav class="footer__col">
+          <h6>Company</h6>
+          <a href="#" data-toast="About: Intellirity is a small security team. Write to us via Contact us.">About</a>
+          <a href="#" data-toast="Blog: no posts yet. Product updates ship in the dashboard changelog.">Blog</a>
+          <a href="#" data-toast="Careers: no open roles right now. Send a note via Contact us.">Careers</a>
+          <button data-open="contact">Contact us</button>
+        </nav>
+        <nav class="footer__col">
+          <h6>Legal</h6>
+          <a href="privacy.html">Privacy policy</a>
+          <a href="terms-conditions.html">Terms &amp; conditions</a>
+          <a href="terms-of-use.html">Terms of use</a>
+          <a href="cookie-policy.html">Cookie policy</a>
+        </nav>
+      </div>
+      <div class="footer__bottom">
+        <span>© 2026 Intellirity, Inc.</span>
+        <span class="footer__status"><span class="dot dot--ok"></span> All systems operational</span>
+      </div>
+    </footer>
+
+  </main>
+
+  <!-- ========================================================
+       MODALS
+       ======================================================== -->
+
+  <div class="modal" id="modal-trial" aria-hidden="true">
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__panel" role="dialog" aria-labelledby="trialTitle">
+      <button class="modal__close" data-close aria-label="Close">×</button>
+      <div class="modal__inner" data-state="form">
+        <h3 id="trialTitle">Start free trial</h3>
+        <p class="modal__lede">14-day free trial · No credit card · Cancel anytime</p>
+        <form class="form" id="trialForm">
+          <label class="field"><span class="field__label">Full name</span><input class="input" type="text" placeholder="Jane Smith" required /></label>
+          <label class="field"><span class="field__label">Work email</span><input class="input" type="email" placeholder="jane@company.com" required /></label>
+          <label class="field"><span class="field__label">Company</span><input class="input" type="text" placeholder="Acme Corp" required /></label>
+          <button type="submit" class="btn btn--primary btn--full btn--lg" style="margin-top: 4px" data-burst>Create organization</button>
+        </form>
+      </div>
+      <div class="modal__inner modal__inner--success" data-state="success">
+        <div class="success-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Organization created</h3>
+        <p class="modal__lede" style="margin-top:6px">Check your email for setup instructions. Your 14-day trial starts now. Full platform access.</p>
+        <button class="btn btn--primary btn--full btn--lg" data-open-app>Open dashboard</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-contact" aria-hidden="true">
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__panel" role="dialog" aria-labelledby="contactTitle">
+      <button class="modal__close" data-close aria-label="Close">×</button>
+      <div class="modal__inner" data-state="form">
+        <h3 id="contactTitle">Contact Intellirity</h3>
+        <p class="modal__lede">We respond within four business hours.</p>
+        <form class="form" id="contactForm">
+          <label class="field"><span class="field__label">Name</span><input class="input" type="text" required /></label>
+          <label class="field"><span class="field__label">Email</span><input class="input" type="email" required /></label>
+          <label class="field"><span class="field__label">Subject</span><input class="input" type="text" required /></label>
+          <label class="field"><span class="field__label">Message</span><textarea class="textarea" placeholder="Describe your question or issue in detail..." required></textarea></label>
+          <button type="submit" class="btn btn--primary btn--full btn--lg" data-burst>Send message</button>
+        </form>
+      </div>
+      <div class="modal__inner modal__inner--success" data-state="success">
+        <div class="success-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Message received</h3>
+        <p class="modal__lede" style="margin-top:6px">Ticket created. We respond within four business hours.</p>
+        <button class="btn btn--secondary btn--full" data-close>Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-auth" aria-hidden="true">
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__panel modal__panel--auth" role="dialog" data-state="signin">
+      <a class="modal__back" href="#top" data-close>
+        <svg viewBox="0 0 16 16" fill="none" width="10" height="10"><path d="M10 4l-4 4 4 4M6 8h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Back to site
+      </a>
+      <div class="auth__brand">
+        <img class="mark" src="assets/media/favicon.png" alt="Intellirity" />
+        Intellirity
+      </div>
+
+      <div class="auth__switch" id="authSwitch">
+        <button class="is-active" data-auth-tab="signin">Sign in</button>
+        <button data-auth-tab="signup">Create account</button>
+      </div>
+
+      <div class="auth__head" data-auth-pane="signin">
+        <h3>Welcome back</h3>
+        <p>Sign in to your Intellirity workspace.</p>
+      </div>
+      <div class="auth__head" data-auth-pane="signup" hidden>
+        <h3>Create your account</h3>
+        <p>Start securing your AI in under five minutes.</p>
+      </div>
+
+      <div class="auth__sso">
+        <button class="btn btn--secondary" data-toast="Google sign-in is not connected in this build. Continue with email."><b style="font-weight:500">G</b> Google</button>
+        <button class="btn btn--secondary" data-toast="GitHub sign-in is not connected in this build. Continue with email."><b style="font-weight:500">⌬</b> GitHub</button>
+      </div>
+      <div class="auth__divider">or with email</div>
+
+      <form class="auth__form" data-auth-pane="signin" data-form="signin">
+        <label class="field"><span class="field__label">Email</span><input class="input" type="email" required /></label>
+        <label class="field"><span class="field__label">Password</span><input class="input" type="password" required /></label>
+        <div class="auth__row"><a href="#" data-toast="Reset link: check your email (demo)">Forgot password?</a></div>
+        <button type="submit" class="btn btn--primary btn--full btn--lg">Continue</button>
+        <p class="auth__alt">Need an account? <button type="button" data-auth-tab="signup">Create one</button></p>
+      </form>
+
+      <form class="auth__form" data-auth-pane="signup" data-form="signup" hidden>
+        <label class="field"><span class="field__label">Full name</span><input class="input" type="text" required /></label>
+        <label class="field"><span class="field__label">Work email</span><input class="input" type="email" required /></label>
+        <label class="field"><span class="field__label">Password</span><input class="input" type="password" required /></label>
+        <button type="submit" class="btn btn--primary btn--full btn--lg">Create account</button>
+        <p class="auth__alt">Already have an account? <button type="button" data-auth-tab="signin">Sign in</button></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       DASHBOARD
+       ======================================================== -->
+  <section class="dash" id="dashboard" hidden>
+    <header class="dash-top">
+      <a class="dash-top__brand" href="#top" data-back-site>
+        <img class="mark" src="assets/media/favicon.png" alt="Intellirity" />
+        Intellirity
+      </a>
+      <div class="dash-top__center">
+        <div class="dash-search">
+          <svg viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.2"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          <input type="text" id="dashSearch" placeholder="Search models, scans, policies…" />
+          <kbd>⌘ K</kbd>
+        </div>
+      </div>
+      <div class="dash-top__right">
+        <button class="dash-org" data-toast="Single demo workspace in this build. Rename it from Settings.">
+          <span class="dash-org__avatar">D</span>
+          <span class="dash-org__name">Demo workspace · Production</span>
+          <span class="dash-org__caret">▾</span>
+        </button>
+        <button class="dash-iconbtn" title="Notifications" aria-label="Notifications" data-open-app data-page="threats">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17 V11 C5 7.7 7.7 5 11 5 H13 C16.3 5 19 7.7 19 11 V17 L20.5 18.5 H3.5 Z"/><path d="M9.5 20.5 A2.5 2.5 0 0 0 14.5 20.5"/></svg>
+          <span class="badge"></span>
+        </button>
+        <button class="dash-iconbtn" title="Help" aria-label="Help" data-open-app data-page="docs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 9 A3 3 0 0 1 12 6 C13.7 6 15 7.3 15 9 C15 10.7 13 11 12 12"/><circle cx="12" cy="16" r=".6" fill="currentColor"/></svg>
+        </button>
+        <button class="dash-user" data-open="auth">
+          <span>Demo User</span>
+          <span class="dash-user__avatar">DU</span>
+        </button>
+      </div>
+    </header>
+
+    <aside class="dash-side">
+      <div class="dash-side__scroll" id="dashSide">
+        <div class="dash-nav-group">
+          <div class="dash-nav-label">Workspace</div>
+          <button class="dash-nav-item is-active" data-page="overview">
+            <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
+            <span class="label">Overview</span>
+          </button>
+          <button class="dash-nav-item" data-page="threats">
+            <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 L20 5 V12 C20 16.5 16.8 20 12 21.5 C7.2 20 4 16.5 4 12 V5 Z"/><path d="M12 8 V12.5"/><circle cx="12" cy="15.5" r=".6" fill="currentColor"/></svg></span>
+            <span class="label">Threats</span>
+            <span class="badge">3</span>
+          </button>
+          <button class="dash-nav-item" data-page="scans">
+            <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16 L20.5 20.5"/></svg></span>
+            <span class="label">Scans</span>
+          </button>
+          <button class="dash-nav-item" data-page="monitor">
+            <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12 H6 L9 4 L15 20 L18 12 H22"/></svg></span>
+            <span class="label">Live monitor</span>
+            <span class="badge badge--live">live</span>
+          </button>
+          <button class="dash-nav-item" data-page="models">
+            <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M12 3.5 V7 M12 17 V20.5 M3.5 12 H7 M17 12 H20.5"/></svg></span>
+            <span class="label">Models</span>
+          </button>
+          <button class="dash-nav-item" data-page="policies">
+            <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="1.5"/><path d="M3.5 9 H20.5 M8 3.5 V9"/></svg></span>
+            <span class="label">Policies</span>
+          </button>
+        </div>
+
+        <div class="dash-nav-group">
+          <div class="dash-nav-label">Security features</div>
+          <button class="dash-nav-item" data-page="feature-jailbreak">
+            <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 L20 5 V12 C20 16.5 16.8 20 12 21.5 C7.2 20 4 16.5 4 12 V5 Z"/><path d="M9 11 L12 14 L15 8"/><path d="M9 8 L7.5 9.5 M15 17 L16.5 15.5"/></svg></span>
+            <span class="label">Jailbreak shield</span>
+          </button>
+          <button class="dash-nav-item" data-page="feature-monitor">
+            <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="19" height="14" rx="1.5"/><path d="M2.5 9 H21.5"/><path d="M6 14 L9 11 L12 13 L15 9 L18 12"/><path d="M8 21 H16"/></svg></span>
+            <span class="label">Real-time monitoring</span>
+          </button>
+          <button class="dash-nav-item" data-page="feature-policy">
+            <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4 H19 V8 H5 Z"/><path d="M5 11 H19 V14 H5 Z"/><path d="M5 17 H14 V20 H5 Z"/></svg></span>
+            <span class="label">Policy enforcement</span>
+          </button>
+          <button class="dash-nav-item" data-page="feature-vibe">
+            <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7 L3.5 12 L8 17"/><path d="M16 7 L20.5 12 L16 17"/><path d="M14 5 L10 19"/></svg></span>
+            <span class="label">Vibe code security</span>
+          </button>
+          <button class="dash-nav-item" data-page="feature-leakage">
+            <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="1.5"/><path d="M7 10 V7 C7 4.2 9.2 2 12 2 C14.8 2 17 4.2 17 7 V10"/><circle cx="12" cy="15" r="1" fill="currentColor"/></svg></span>
+            <span class="label">Data leakage protection</span>
+          </button>
+          <button class="dash-nav-item" data-page="feature-flow">
+            <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="4" cy="4" r="1.8"/><circle cx="20" cy="4" r="1.8"/><circle cx="4" cy="20" r="1.8"/><circle cx="20" cy="20" r="1.8"/><path d="M5.5 4 H18.5 M4 5.5 V18.5 M20 5.5 V18.5 M5.5 20 H18.5"/></svg></span>
+            <span class="label">Data flow tracker</span>
+          </button>
+          <button class="dash-nav-item" data-page="feature-audit">
+            <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3 H15 L19 7 V21 H5 Z"/><path d="M15 3 V7 H19"/><path d="M8 11 H16 M8 14.5 H16 M8 18 H13"/></svg></span>
+            <span class="label">Model auditing</span>
+          </button>
+          <button class="dash-nav-item" data-page="feature-vpi">
+            <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="4"/><path d="M9 9 L11 11 L15 6"/><path d="M8 12.5 L7 21 L12 18 L17 21 L16 12.5"/></svg></span>
+            <span class="label">Proof of intent</span>
+          </button>
+          <button class="dash-nav-item" data-page="feature-escrow">
+            <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 6.5 V17.5 M7.5 9 H16.5 M7.5 15 H16.5"/></svg></span>
+            <span class="label">Autonomous escrow</span>
+          </button>
+          <button class="dash-nav-item" data-page="feature-anomaly">
+            <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6 C5 6 5 9 8 9 S11 6 14 6 S17 9 20 9"/><path d="M2 12 C5 12 5 15 8 15 S11 12 14 12 S17 15 20 15"/><path d="M2 18 C5 18 5 21 8 21 S11 18 14 18 S17 21 20 21"/><circle cx="20" cy="9" r="2" fill="currentColor" stroke="none"/></svg></span>
+            <span class="label">Anomaly detection</span>
+          </button>
+        </div>
+
+        <div class="dash-nav-group">
+          <div class="dash-nav-label">Settings</div>
+          <button class="dash-nav-item" data-page="settings">
+            <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.5"/><path d="M12 3 V5.5 M12 18.5 V21 M4.2 4.2 L6 6 M18 18 L19.8 19.8 M3 12 H5.5 M18.5 12 H21 M4.2 19.8 L6 18 M18 6 L19.8 4.2"/></svg></span>
+            <span class="label">Settings</span>
+          </button>
+          <button class="dash-nav-item" data-page="docs">
+            <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3 H14 L19 8 V21 H5 Z"/><path d="M14 3 V8 H19"/><path d="M8 12 H16 M8 15 H16 M8 18 H13"/></svg></span>
+            <span class="label">Documentation</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="dash-side__foot">
+        <a class="dash-side__back" href="#top" data-back-site>
+          <svg viewBox="0 0 16 16" fill="none" width="11" height="11"><path d="M10 4l-4 4 4 4M6 8h8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Back to site
+        </a>
+      </div>
+    </aside>
+
+    <div class="dash-main">
+      <div class="dash-main__inner" id="dashMain"></div>
+    </div>
+  </section>
+
+  <div id="toast" class="toast" aria-live="polite" aria-atomic="true"></div>
+  <style>
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--bg-2);border:1px solid var(--line-2);color:var(--fg-0);font-family:var(--f-mono);font-size:12px;padding:10px 14px;border-radius:6px;box-shadow:var(--shadow-2);opacity:0;pointer-events:none;transition:opacity 220ms var(--ease), transform 220ms var(--ease);z-index:9999;max-width:90vw;text-align:center}
+    .toast.is-show{opacity:1;transform:translateX(-50%) translateY(0)}
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script type="module" src="assets/js/main.js?v=12"></script>
+  <script src="cookie.js"></script>
+</body>
+</html>
+
+
+
+

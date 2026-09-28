@@ -1,0 +1,164 @@
+/* =========================================================
+   MODALS
+   ========================================================= */
+.modal {
+  position: fixed; inset: 0;
+  z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  pointer-events: none;
+}
+.modal[aria-hidden="false"] { pointer-events: auto; }
+.modal__backdrop {
+  position: absolute; inset: 0;
+  background: rgba(8, 9, 11, 0.75);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  transition: opacity 280ms var(--ease);
+}
+.modal[aria-hidden="false"] .modal__backdrop { opacity: 1; }
+
+.modal__panel {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  padding: 32px;
+  box-shadow: var(--shadow-3);
+  /* Default hidden state (for elements that exist in DOM but
+     are aria-hidden). The @starting-style is for elements that
+     mount fresh — both paths need the same initial state. */
+  opacity: 0;
+  transform: scale(0.96);
+  transition: transform 220ms var(--ease), opacity 220ms var(--ease);
+}
+.modal[aria-hidden="false"] .modal__panel { transform: none; opacity: 1; }
+
+.modal__close {
+  position: absolute;
+  top: 12px; right: 12px;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 4px;
+  color: var(--fg-3);
+  font-size: 18px;
+  transition: background 200ms var(--ease), color 200ms var(--ease);
+}
+.modal__close:hover { background: var(--bg-3); color: var(--fg-0); }
+
+.modal__inner h3 {
+  font-family: var(--f-display);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.018em;
+  margin-bottom: 6px;
+}
+.modal__lede {
+  font-size: 13px;
+  color: var(--fg-2);
+  margin-bottom: 22px;
+  line-height: 1.5;
+}
+
+.form { display: flex; flex-direction: column; gap: 14px; }
+.form .field { gap: 6px; }
+
+.modal__inner--success { display: none; text-align: center; padding: 16px 0; }
+.modal__panel[data-state="success"] .modal__inner[data-state="form"] { display: none; }
+.modal__panel[data-state="success"] .modal__inner[data-state="success"] { display: block; }
+.modal__panel[data-state="signup"] .auth__form[data-form="signin"] { display: none; }
+.modal__panel[data-state="signup"] .auth__form[data-form="signup"] { display: block; }
+.modal__panel[data-state="signin"] .auth__form[data-form="signup"] { display: none; }
+.modal__panel[data-state="signin"] .auth__form[data-form="signin"] { display: block; }
+
+.success-mark {
+  width: 56px; height: 56px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: var(--ok-bg);
+  border: 1px solid rgba(95,163,122,0.3);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ok-1);
+}
+.success-mark svg { width: 24px; height: 24px; }
+
+/* Auth modal */
+.modal__panel--auth { max-width: 400px; }
+.modal__back {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.04em;
+  color: var(--fg-3);
+  margin-bottom: 16px;
+  transition: color 200ms var(--ease);
+}
+.modal__back:hover { color: var(--fg-0); }
+
+.auth__brand {
+  display: inline-flex; align-items: center; gap: 8px;
+  color: var(--fg-0);
+  font-family: var(--f-display);
+  font-size: 15px;
+  font-weight: 500;
+  margin-bottom: 24px;
+}
+.auth__brand .mark { width: 20px; height: 20px; display: block; }
+
+.auth__head { margin-bottom: 24px; }
+.auth__head h3 { font-size: 22px; font-weight: 500; letter-spacing: -0.018em; margin-bottom: 4px; }
+.auth__head p { font-size: 13px; color: var(--fg-2); }
+
+.auth__form { display: flex; flex-direction: column; gap: 14px; }
+.auth__row {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12.5px;
+}
+.auth__row a { color: var(--accent-300); }
+.auth__row a:hover { text-decoration: underline; }
+.auth__alt {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--fg-3);
+}
+.auth__alt button { color: var(--fg-0); }
+.auth__alt button:hover { color: var(--accent-300); }
+
+.auth__divider {
+  display: flex; align-items: center; gap: 12px;
+  font-family: var(--f-mono); font-size: 10.5px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--fg-3);
+  margin: 20px 0;
+}
+.auth__divider::before, .auth__divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--line-2);
+}
+
+.auth__sso {
+  display: flex; gap: 8px;
+  margin-bottom: 20px;
+}
+.auth__sso .btn { flex: 1; }
+
+/* Modal tabs (for sign in / sign up switch) */
+.auth__switch {
+  display: flex;
+  border: 1px solid var(--line-2);
+  border-radius: 5px;
+  padding: 3px;
+  margin-bottom: 20px;
+  background: var(--bg-2);
+}
+.auth__switch button {
+  flex: 1; padding: 6px 12px;
+  font-size: 12.5px;
+  color: var(--fg-2);
+  border-radius: 3px;
+  transition: color 200ms var(--ease), background 200ms var(--ease);
+}
+.auth__switch button.is-active {
+  background: var(--bg-3);
+  color: var(--fg-0);
+}

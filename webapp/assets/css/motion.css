@@ -1,0 +1,554 @@
+/* =========================================================
+   motion.css: permanent motion + component polish system.
+   CTA shine sweeps, card lift, nav pill, stagger reveals,
+   dashboard controls, hero simulator. GPU-only properties.
+   Everything is inert under prefers-reduced-motion.
+   ========================================================= */
+
+/* ---------- CTA v2: shine sweep + arrow nudge + press ---------- */
+.btn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 40%;
+  border-radius: inherit;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+  transform: skewX(-18deg) translateX(0);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms var(--ease);
+}
+.btn:hover::after {
+  opacity: 1;
+  animation: mx-shine 700ms var(--ease) forwards;
+}
+@keyframes mx-shine {
+  from { transform: skewX(-18deg) translateX(0); }
+  to { transform: skewX(-18deg) translateX(550%); }
+}
+.btn .arr {
+  transition: transform 200ms var(--ease);
+}
+.btn:hover .arr {
+  transform: translateX(3px);
+}
+.btn:active {
+  transform: scale(0.98);
+}
+
+/* ---------- Card lift system (landing + dashboard) ---------- */
+.plan,
+.cap,
+.stat,
+.panel {
+  transition: transform 240ms var(--ease), border-color 240ms var(--ease), background 240ms var(--ease), box-shadow 240ms var(--ease);
+}
+.plan:hover,
+.cap:hover {
+  transform: translateY(-3px);
+  border-color: var(--line-3);
+}
+.stat:hover {
+  border-color: var(--line-3);
+}
+.tbl tbody tr {
+  transition: background 160ms var(--ease);
+}
+.tbl tbody tr:hover {
+  background: var(--bg-2);
+}
+
+/* ---------- Nav active pill ---------- */
+.nav__center {
+  position: relative;
+}
+.nav__pill {
+  position: absolute;
+  bottom: 4px;
+  height: 2px;
+  width: 0;
+  background: var(--accent-300);
+  border-radius: 2px;
+  opacity: 0;
+  transition: left 260ms var(--ease), width 260ms var(--ease), opacity 200ms var(--ease);
+  pointer-events: none;
+}
+.nav__pill.is-on {
+  opacity: 1;
+}
+
+/* ---------- Stagger reveals (JS adds .mx-in) ---------- */
+.mx-stagger > * {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 600ms var(--ease-out), transform 600ms var(--ease-out);
+}
+.mx-stagger.mx-in > *:nth-child(1) { transition-delay: 0ms; }
+.mx-stagger.mx-in > *:nth-child(2) { transition-delay: 70ms; }
+.mx-stagger.mx-in > *:nth-child(3) { transition-delay: 140ms; }
+.mx-stagger.mx-in > *:nth-child(4) { transition-delay: 210ms; }
+.mx-stagger.mx-in > *:nth-child(5) { transition-delay: 280ms; }
+.mx-stagger.mx-in > *:nth-child(6) { transition-delay: 350ms; }
+.mx-stagger.mx-in > *:nth-child(7) { transition-delay: 420ms; }
+.mx-stagger.mx-in > *:nth-child(8) { transition-delay: 490ms; }
+.mx-stagger.mx-in > * {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------- Dashboard controls ---------- */
+.dash-nav-item {
+  position: relative;
+  transition: background 180ms var(--ease), color 180ms var(--ease);
+}
+.dash-nav-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--accent-300);
+  opacity: 0;
+  transform: scaleY(0.4);
+  transition: opacity 200ms var(--ease), transform 200ms var(--ease);
+}
+.dash-nav-item.is-active::before,
+.dash-nav-item:hover::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+.chip-opt {
+  cursor: pointer;
+  user-select: none;
+  transition: background 180ms var(--ease), border-color 180ms var(--ease), color 180ms var(--ease), transform 120ms var(--ease);
+}
+.chip-opt:active {
+  transform: scale(0.95);
+}
+.tabs__item {
+  transition: color 180ms var(--ease), border-color 180ms var(--ease);
+}
+
+/* ---------- Hero simulator ---------- */
+.hero__stage canvas {
+  position: absolute;
+  inset: 0;
+}
+.sim-stage {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  z-index: 3;
+  padding: 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  background: rgba(15, 17, 20, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.sim-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.chip {
+  position: relative;
+  padding: 9px 4px;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg-1);
+  font-family: var(--f-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 180ms var(--ease), background 180ms var(--ease), transform 120ms var(--ease);
+}
+.chip::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--accent-300);
+}
+.chip[data-kind="injection"]::before { background: #c95a4f; }
+.chip[data-kind="jailbreak"]::before { background: #c89a4a; }
+.chip[data-kind="benign"]::before { background: #5fa37a; }
+.chip:hover {
+  border-color: var(--line-3);
+  background: var(--bg-2);
+}
+.chip:active {
+  transform: scale(0.96);
+}
+.chip.is-busy {
+  opacity: 0.45;
+  pointer-events: none;
+}
+.sim-verdict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  min-height: 22px;
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  color: var(--fg-3);
+}
+.sim-verdict b {
+  color: var(--fg-0);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.sim-verdict .sim-flash {
+  animation: mx-verdict-in 400ms var(--ease);
+}
+@keyframes mx-verdict-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------- Live dot (single semantic pulse per section) ---------- */
+@keyframes mx-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.dot--live {
+  animation: mx-pulse 2.4s var(--ease) infinite;
+}
+
+/* ---------- Sentinel watch (dashboard eye-tracker) ---------- */
+.sentinel {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 12px;
+  padding: 14px 18px;
+}
+.sentinel__eye svg {
+  width: 64px;
+  height: 40px;
+  display: block;
+  overflow: visible;
+}
+.sentinel__lid {
+  stroke: var(--fg-3);
+  transition: stroke 300ms var(--ease);
+}
+.sentinel.is-calm .sentinel__lid { stroke: #5fa37a; }
+.sentinel.is-watch .sentinel__lid { stroke: #c89a4a; }
+.sentinel.is-alert .sentinel__lid { stroke: #c95a4f; }
+.sentinel__iris {
+  fill: var(--accent-300);
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 300ms var(--ease), fill 300ms var(--ease);
+}
+.sentinel.is-alert .sentinel__iris { fill: #c95a4f; transform: scale(1.28); }
+.sentinel.is-watch .sentinel__iris { fill: #c89a4a; transform: scale(1.14); }
+.sentinel.is-calm .sentinel__iris { fill: #5fa37a; transform: scale(1); }
+.sentinel__glint {
+  fill: var(--bg-0);
+}
+#sentinelPupil {
+  transform-box: fill-box;
+  will-change: transform;
+}
+#sentinelSvg.blink {
+  animation: mx-blink 240ms var(--ease);
+}
+@keyframes mx-blink {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.08); }
+}
+.sentinel__body {
+  flex: 1;
+  min-width: 0;
+}
+.sentinel__label {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+.sentinel__status {
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--fg-0);
+}
+.sentinel__meta {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--fg-3);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.sentinel__meta .mono {
+  color: var(--fg-0);
+}
+.sentinel__meta .sep {
+  margin: 0 6px;
+  color: var(--fg-5);
+}
+@media (max-width: 640px) {
+  .sentinel {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+}
+
+/* ---------- 3D tilt (fine pointers only, JS-gated) ---------- */
+.mx-tilt {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* ---------- Success particles (Kokonut-style burst, native) ---------- */
+.mx-particle {
+  position: fixed;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent-300);
+  z-index: 9999;
+  pointer-events: none;
+}
+.mx-particle.is-ok {
+  background: #5fa37a;
+}
+
+/* ---------- Feature grid entrance (replays on every render) ---------- */
+.feature-grid > * {
+  animation: mx-card-in 520ms var(--ease) backwards;
+}
+.feature-grid > *:nth-child(2) {
+  animation-delay: 80ms;
+}
+@keyframes mx-card-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------- Liquid-metal CTA (genuine vendored artifact) ---------- */
+.cta__buttons--stack {
+  flex-direction: column;
+  align-items: center;
+}
+.lm-wrap {
+  position: relative;
+  display: inline-block;
+}
+.lm-frame {
+  width: 420px;
+  max-width: 88vw;
+  height: 240px;
+  border: 0;
+  border-radius: 14px;
+  background: #0e0f12;
+  display: block;
+}
+.lm-wrap .lm-fallback {
+  display: none;
+}
+.lm-wrap.lm-off .lm-frame {
+  display: none;
+}
+.lm-wrap.lm-off .lm-fallback {
+  display: inline-flex;
+}
+
+/* ---------- Press ripple (tactile CTA feedback) ---------- */
+.btn .mx-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+  transform: scale(0);
+  opacity: 0.8;
+  pointer-events: none;
+  animation: mx-ripple 550ms var(--ease) forwards;
+}
+@keyframes mx-ripple {
+  to { transform: scale(1); opacity: 0; }
+}
+
+/* ---------- Hero word morph (text-morph, native) ---------- */
+.hero__title em .mx-word {
+  display: inline-block;
+  will-change: transform, opacity, filter;
+}
+.hero__title em .mx-word.is-out {
+  animation: mx-word-out 260ms var(--ease) forwards;
+}
+.hero__title em .mx-word.is-in {
+  animation: mx-word-in 420ms var(--ease) forwards;
+}
+@keyframes mx-word-out {
+  to { opacity: 0; transform: translateY(-9px); filter: blur(5px); }
+}
+@keyframes mx-word-in {
+  from { opacity: 0; transform: translateY(9px); filter: blur(5px); }
+  to { opacity: 1; transform: none; filter: blur(0); }
+}
+
+/* ---------- Live threat ticker ---------- */
+.ticker {
+  border-top: 1px solid var(--line-1);
+  border-bottom: 1px solid var(--line-1);
+  background: rgba(255, 255, 255, 0.015);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.ticker__track {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  padding: 9px 0;
+  animation: mx-ticker 48s linear infinite;
+  will-change: transform;
+}
+.ticker:hover .ticker__track {
+  animation-play-state: paused;
+}
+.ticker__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 22px;
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+}
+.ticker__item b {
+  font-weight: 500;
+}
+.ticker__sep,
+.ticker__gap {
+  color: var(--fg-5);
+}
+@keyframes mx-ticker {
+  to { transform: translateX(-50%); }
+}
+
+/* ---------- Cursor spotlight ---------- */
+.spot {
+  position: relative;
+}
+.spot::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 50%), rgba(125, 138, 160, 0.14), transparent 70%);
+  opacity: 0;
+  transition: opacity 240ms var(--ease);
+  pointer-events: none;
+}
+.spot:hover::before {
+  opacity: 1;
+}
+
+/* ---------- Scroll progress ---------- */
+#mx-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent-300);
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  z-index: 120;
+}
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-0);
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2f36;
+  border-radius: 6px;
+  border: 2px solid var(--bg-0);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-300);
+}
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2f36 var(--bg-0);
+}
+
+/* ---------- Kinetic headline chars ---------- */
+.mx-ch {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+
+/* ---------- Reduced motion: everything inert ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .ticker__track {
+    animation: none;
+  }
+  .ticker {
+    overflow-x: auto;
+  }
+  .spot::before {
+    opacity: 0 !important;
+  }
+  .lm-frame {
+    display: none;
+  }
+  .lm-wrap .lm-fallback {
+    display: inline-flex;
+  }
+  .btn::after,
+  .mx-stagger > *,
+  .sim-verdict .sim-flash,
+  .dot--live,
+  .feature-grid > *,
+  .btn .mx-ripple,
+  .hero__title em .mx-word.is-out,
+  .hero__title em .mx-word.is-in {
+    animation: none !important;
+    transition: none !important;
+  }
+  .btn:hover::after {
+    opacity: 0;
+  }
+  .mx-stagger > * {
+    opacity: 1;
+    transform: none;
+  }
+  .btn:active,
+  .chip:active,
+  .chip-opt:active,
+  .plan:hover,
+  .cap:hover {
+    transform: none;
+  }
+}

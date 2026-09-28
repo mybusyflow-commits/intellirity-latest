@@ -1,0 +1,9 @@
+{
+  "buildCommand": null,
+  "outputDirectory": "webapp",
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 30
+    }
+  }
+}

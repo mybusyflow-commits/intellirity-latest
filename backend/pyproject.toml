@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "intellirity-backend"
+version = "0.1.0"
+description = "Intellirity AI Security Platform Backend"
+authors = ["Intellirity Team"]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.111.0"
+uvicorn = {extras = ["standard"], version = "^0.30.0"}
+sqlalchemy = {extras = ["asyncio"], version = "^2.0.30"}
+asyncpg = "^0.29.0"
+alembic = "^1.13.0"
+pydantic = "^2.7.0"
+pydantic-settings = "^2.3.0"
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+httpx = "^0.27.0"
+# clerk-backend-api removed — open mode (no Clerk)
+python-multipart = "^0.0.9"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.0"
+pytest-asyncio = "^0.23.0"
+ruff = "^0.5.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
