@@ -8,7 +8,7 @@ router = APIRouter()
 
 class ReasoningRequest(BaseModel):
     prompt: str
-    model: str = "Hy3(free)"
+    model: str = "space bunny (free)"
 
 
 @router.post("")
