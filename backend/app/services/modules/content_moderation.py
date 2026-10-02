@@ -30,11 +30,37 @@ HATE_PATTERNS = [
     r"(?:ethnic\s+cleansing|racial\s+purity|white\s+power)\b",
 ]
 
+SPAM_PATTERNS = [
+    r"(?:congratulations|congrats)[!.]?\s+you(?:'ve| have)\s+(?:won|been\s+selected)",
+    r"(?:free\s+(?:prize|gift|money|crypto|iphone)|claim\s+(?:your\s+)?(?:prize|reward|winnings?))",
+    r"(?:click\s+here|act\s+now|limited\s+(?:time\s+)?offer).{0,40}(?:claim|prize|winner|free)",
+    r"(?:double|triple)\s+your\s+(?:crypto|bitcoin|btc|eth|money)",
+    r"(?:verify|suspend|locked).{0,30}(?:account|payment|bank).{0,30}(?:immediately|within\s+24|urgent)",
+    r"(?:dear\s+beneficiary|inheritance|fund\s+release|wire\s+transfer).{0,30}(?:million|usd\s+[0-9])",
+]
+
+SEXUAL_PATTERNS = [
+    r"\b(?:porn|xxx|hentai|escort\s+service|sex\s+worker\s+directory)\b",
+    r"(?:explicit|graphic)\s+sexual\s+(?:content|description|instructions?)",
+]
+
+# Any sexual framing around a minor is an instant block.
+MINOR_SAFETY_PATTERNS = [
+    r"(?:child|minor|kid|teen|underage|young\s+(?:boy|girl))[^.]{0,60}(?:sex|sexual|nude|naked|explicit|porn)",
+    r"(?:sex|sexual|nude|naked|explicit|porn)[^.]{0,60}(?:child|minor|kid|teen|underage|young\s+(?:boy|girl))",
+]
+
+HARASSMENT_PATTERNS = [
+    r"you\s+(?:are|r)\s+(?:worthless|pathetic|a\s+loser|disgusting|a\s+failure|nothing)",
+    r"(?:nobody|no\s+one)\s+(?:likes|loves|cares\s+about)\s+you",
+    r"(?:shut\s+up|kill\s+yourself|kys|go\s+die)\b",
+]
+
 
 @register_feature(
     key="content_moderation",
     name="Content Moderation",
-    description="Screens prompts and responses for severe profanity, violent threats, self-harm encouragement, and hate targeting. Layered severity scoring keeps mild language unflagged.",
+    description="Screens prompts and responses across 7 categories: spam/scam, sexual content, minor safety, severe profanity, violent threats, self-harm, and hate/harassment. Layered severity scoring keeps mild language unflagged.",
     tier="professional",
 )
 def content_moderation(payload: dict) -> dict:
@@ -54,27 +80,52 @@ def content_moderation(payload: dict) -> dict:
     findings = []
     risk_score = 0.0
 
+    def hit(category: str, severity: str, detail: str, score: float):
+        findings.append({
+            "category": category,
+            "severity": severity,
+            "detail": detail,
+            "score": score,
+        })
+        return score
+
+    for pattern in MINOR_SAFETY_PATTERNS:
+        if re.search(pattern, lowered):
+            risk_score += hit("sexual", "critical", "Minor-safety: sexual framing around a minor", 1.0)
+            break
+
+    for pattern in SEXUAL_PATTERNS:
+        if re.search(pattern, lowered):
+            risk_score += hit("sexual", "high", "Severe sexual content detected", 0.7)
+            break
+
+    for pattern in SPAM_PATTERNS:
+        if re.search(pattern, lowered):
+            risk_score += hit("spam", "medium", "Spam/scam pattern detected", 0.5)
+            break
+
     profanity_hits = sorted({w for w in SEVERE_PROFANITY if re.search(rf"\b{re.escape(w)}\b", lowered)})
     if profanity_hits:
-        findings.append(f"Severe profanity detected: {', '.join(profanity_hits[:5])}")
-        risk_score += 0.2
+        risk_score += hit("abuse", "medium", f"Severe profanity detected: {', '.join(profanity_hits[:5])}", 0.2)
 
     for pattern in VIOLENT_THREAT_PATTERNS:
         if re.search(pattern, lowered):
-            findings.append(f"Violent threat pattern: {pattern[:60]}...")
-            risk_score += 0.7
+            risk_score += hit("violence", "high", "Violent threat pattern detected", 0.7)
             break
 
     for pattern in SELF_HARM_PATTERNS:
         if re.search(pattern, lowered):
-            findings.append("Self-harm encouragement pattern detected")
-            risk_score += 0.7
+            risk_score += hit("self-harm", "high", "Self-harm encouragement pattern detected", 0.7)
             break
 
     for pattern in HATE_PATTERNS:
         if re.search(pattern, lowered):
-            findings.append("Hate targeting pattern detected")
-            risk_score += 0.7
+            risk_score += hit("abuse", "high", "Hate targeting pattern detected", 0.7)
+            break
+
+    for pattern in HARASSMENT_PATTERNS:
+        if re.search(pattern, lowered):
+            risk_score += hit("abuse", "medium", "Targeted harassment detected", 0.5)
             break
 
     risk_score = min(risk_score, 1.0)

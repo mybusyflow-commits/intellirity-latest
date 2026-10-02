@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from itertools import count
 from uuid import uuid4
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
@@ -69,10 +70,14 @@ _INITIAL_THREATS = [
 
 _memory_threats: list[dict] = list(_INITIAL_THREATS)
 
+# Monotonic ID counter. IDs were previously derived from len(store),
+# which repeats once the store hits its size cap. A counter never repeats.
+_threat_id_seq = count(4822)
+
 
 def add_threat_event(threat_type: str, severity: str, source: str, description: str) -> dict:
     threat = {
-        "id": f"EVT-{len(_memory_threats) + 4822}",
+        "id": f"EVT-{next(_threat_id_seq)}",
         "threat_type": threat_type,
         "severity": severity,
         "source": source,

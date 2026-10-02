@@ -85,7 +85,8 @@ def behavioral_analysis_engine(payload: dict) -> dict:
         })
         risk_score += 0.4
 
-    sensitive_systems = {"database", "production", "payment", "hr", "finance", "legal", "admin"}
+    sensitive_systems = {"database", "production", "payment", "hr", "finance", "legal", "admin",
+                           "passwd", "shadow", "secret", "credential", ".env", ".ssh", "vault", "keychain", "token"}
     for h in session_history:
         target = h.get("target", "").lower()
         if any(sys_name in target for sys_name in sensitive_systems):
@@ -146,9 +147,16 @@ def behavioral_analysis_engine(payload: dict) -> dict:
     tier="enterprise",
 )
 def mcp_security_monitor(payload: dict) -> dict:
-    tool_calls = payload.get("tool_calls", [])
-    mcp_servers = payload.get("mcp_servers", [])
+    raw_calls = payload.get("tool_calls", [])
+    raw_servers = payload.get("mcp_servers", [])
     agent_permissions = payload.get("agent_permissions", [])
+
+    # Normalize: accept plain strings ("fs-local") as well as full dicts.
+    tool_calls = [c if isinstance(c, dict) else {"tool": str(c)} for c in raw_calls]
+    mcp_servers = [
+        s if isinstance(s, dict) else {"name": str(s), "tools": []}
+        for s in raw_servers
+    ]
 
     findings = []
     risk_score = 0.0

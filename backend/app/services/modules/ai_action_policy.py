@@ -128,7 +128,7 @@ def _detect_goal_hijacking(action: str) -> bool:
 
 def _detect_exfiltration(action: str, tool_calls: list) -> bool:
     patterns = [
-        r"(?:send|transmit|transfer|forward|post|push|upload|export|deliver|dispatch|route)\s+(?:the|all|every|each|user|customer|client|sensitive|confidential|private|secret)\s+(?:data|information|record|file|database|account|content)\s+(?:to|at|into|via|through|using)",
+        r"(?:send|transmit|transfer|forward|post|push|upload|export|deliver|dispatch|route)\s+(?:the|all|every|each|user|customer|client|sensitive|confidential|private|secret)(?:\s+\w+){0,3}\s+(?:data|information|records?|files?|database|account|content)\s+(?:to|at|into|via|through|using)",
         r"(?:exfiltrate|leak|extract|steal|smuggle)\s+(?:data|information|credentials|secrets|keys|tokens|passwords|records|files|database)",
         r"(?:webhook|callback|endpoint|server)\s*[:=]\s*[\"']?https?://(?!(?:localhost|127\.0\.0\.1|10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.))",
     ]

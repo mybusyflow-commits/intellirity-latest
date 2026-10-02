@@ -1,0 +1,86 @@
+.xbtn{ display:inline-block; line-height:0; }
+.xbtn button{ font:inherit; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+.xbtn button{ position:relative; display:inline-flex; align-items:center; justify-content:center; }
+.xbtn button svg{ pointer-events:none; }
+.xbtn button:focus-visible{ outline:2px solid #8b99ad; outline-offset:5px; }
+.soft-service{width:385px;height:104px;padding:0 12px 0 41px;border:0;border-radius:65px;background:linear-gradient(125deg,#dfe4e8,#d4dce2);box-shadow:11px 15px 17px #a9b2b886,-10px -10px 19px #f8fbfd8c,inset 1px 2px 4px #fff9;font-size:27px;font-weight:650;letter-spacing:-.8px;color:#8c979e;text-shadow:0 1px #eff4f8;justify-content:space-between!important}
+.soft-circle{width:82px;height:82px;display:grid;place-items:center;background:linear-gradient(135deg,#b6c3cb,#e2e9ed);border-radius:50%;box-shadow:inset 3px 4px 8px #83929b55,inset -3px -3px 6px #fff9,4px 5px 7px #9da6ab55,-2px -3px 5px #fff7;transition:box-shadow .2s,transform .2s}
+.soft-circle svg{width:33px;height:33px;stroke-width:3}
+.soft-service:is(:hover,:focus-visible) .soft-circle{transform:translateX(2px);box-shadow:inset 5px 6px 12px #83929b88,inset -3px -3px 6px #fff9}
+.soft-service[aria-pressed=true]{box-shadow:inset 8px 8px 16px #a9b2b866,inset -8px -8px 16px #f8fbfd80}
+.soft-service[aria-pressed=true] .soft-circle{transform:rotate(-45deg)}
+.day-toggle{width:314px;height:176px;border-radius:110px;border:0;background:linear-gradient(140deg,#d7e2ff,#e7edff);box-shadow:inset 0 5px 9px #fff,0 15px 35px #869fda44;padding:18px;justify-content:space-between!important;color:#536d9c}
+.day-toggle .toggle-knob{position:absolute;left:18px;top:18px;width:147px;height:139px;border-radius:90px;background:radial-gradient(circle at 60% 80%,#40c2ff,#0762f7 47%,#061baa 85%);box-shadow:inset 0 3px 8px #2235df,inset 0 -4px 8px #82daff,0 0 14px #2864ff6b,0 6px 9px #446fdb3d;transition:transform .55s cubic-bezier(.2,.8,.2,1),background .4s}
+.day-toggle svg{position:relative;width:41px;height:41px;margin:0 49px 0 51px;z-index:4}
+.day-toggle svg:first-of-type{color:white;filter:drop-shadow(0 0 12px #fff)}
+.day-toggle svg:last-child{margin:0 42px 0 0}
+.day-toggle[aria-checked=true]{background:linear-gradient(135deg,#191f32,#282e4a);box-shadow:inset 0 3px 9px #080b16,0 5px 15px #0002;color:#8cb2e3}
+.day-toggle[aria-checked=true] .toggle-knob{transform:translateX(133px);background:radial-gradient(circle at 65% 80%,#929dff,#5342c5 50%,#242f6d);box-shadow:inset 0 1px 7px #acb4ff,0 0 22px #6b70ff66}
+.day-toggle[aria-checked=true] svg:first-of-type{color:#72809e;filter:none}
+.day-toggle[aria-checked=true] svg:last-child{color:white;filter:drop-shadow(0 0 10px #dde6ff)}
+
+.soft-service{font-size:32px;letter-spacing:-.75px;color:#7b8691;background:linear-gradient(130deg,#f1f4f7,#e1e7ee);box-shadow:9px 13px 19px #a8b4c34f,-9px -9px 20px #fff,inset 1px 2px 4px #fff}
+.soft-circle{background:linear-gradient(135deg,#c5d0db,#f3f6fa)}
+.soft-service:is(:hover,:focus-visible){color:#677a8e;box-shadow:12px 16px 22px #a8b4c369,-9px -9px 22px #fff,inset 1px 2px 5px #fff}
+.day-toggle{box-shadow:inset 0 5px 9px #fff,0 8px 20px #8297ba2a}
+.day-toggle:is(:hover,:focus-visible){box-shadow:inset 0 5px 9px #fff,0 10px 30px #7896d046,0 0 0 3px #cdd9f150}
+.day-toggle[aria-checked=true]{background:linear-gradient(135deg,#20263d,#303a59);box-shadow:inset 0 3px 9px #080b1633,0 8px 20px #162d5926}
+.day-toggle[aria-checked=true] .toggle-knob{background:radial-gradient(circle at 60% 80%,#40c2ff,#0762f7 47%,#061baa 85%);box-shadow:inset 0 3px 8px #2235df,inset 0 -4px 8px #82daff,0 0 25px #2864ff70}
+.day-toggle[aria-checked=true]:is(:hover,:focus-visible){box-shadow:inset 0 3px 9px #080b1633,0 10px 30px #162d5940,0 0 0 3px #526eaf30}
+.day-toggle svg{width:50px;height:50px}
+
+
+/* A physical two-position rocker in a molded, recessed switch plate. */
+.day-toggle{width:314px;height:176px;border:0;border-radius:36px;padding:0;perspective:550px;background:linear-gradient(145deg,#f6f8f9 0%,#dde2e7 45%,#bfc8d1 100%);color:#55616f;box-shadow:inset 0 2px 2px #fff,inset 0 -3px 3px #8e9aa5,0 4px 0 #919da8,0 13px 18px #4b60733b;transform-style:preserve-3d;overflow:visible}
+.day-toggle:before{content:"";position:absolute;inset:17px;border-radius:26px;background:linear-gradient(90deg,#2a313a,#65717a 50%,#262f38);box-shadow:inset 0 7px 12px #091018b3,inset 0 -2px 2px #d4dde570,0 1px 0 #fff}
+.day-toggle .switch-rocker{position:absolute;left:26px;top:26px;width:262px;height:124px;border-radius:20px;background:linear-gradient(100deg,#c5ced7 0%,#f9fafb 53%,#e4e9ee 100%);box-shadow:inset 1px 2px 3px #fff,inset -1px -2px 3px #687987,9px 3px 5px #151f294f;transform:translateZ(32px) rotateY(-13deg);transform-origin:50% 50% -9px;transform-style:preserve-3d;transition:transform .38s cubic-bezier(.18,1.35,.42,1),background .32s,box-shadow .32s;pointer-events:none}
+.switch-rocker:before{content:"";position:absolute;inset:5px;border-radius:16px;background:radial-gradient(ellipse at 38% 0%,#fff9,transparent 68%);box-shadow:inset 0 1px 0 #ffffffb0;pointer-events:none}
+.switch-rocker:after{content:"";position:absolute;right:-7px;top:8px;bottom:8px;width:9px;border-radius:0 4px 4px 0;background:linear-gradient(#9aa8b5,#63717e);transform:rotateY(80deg);transform-origin:left center;pointer-events:none}
+.day-toggle .switch-symbol{position:absolute;top:38px;display:grid;place-items:center;width:48px;height:48px;z-index:2}
+.day-toggle .switch-day{left:45px}
+.day-toggle .switch-night{right:45px}
+.day-toggle .switch-symbol svg{position:static;width:44px;height:44px;margin:0;color:#53606c;filter:drop-shadow(0 1px 0 #fff);stroke-width:1.5}
+.day-toggle .switch-day svg{color:#1b577c;filter:drop-shadow(0 1px 0 #fff)}
+.day-toggle .switch-status{position:absolute;left:48px;bottom:17px;width:40px;height:5px;border-radius:6px;background:#42c5ef;box-shadow:0 0 6px #4ed4ff9c,inset 0 1px 1px #ccf7ff;transition:transform .32s,background .32s}
+.day-toggle[aria-checked=true]{background:linear-gradient(145deg,#f6f8f9,#d7dee5 55%,#b8c3cd);box-shadow:inset 0 2px 2px #fff,inset 0 -3px 3px #8e9aa5,0 4px 0 #919da8,0 13px 18px #4b60733b}
+.day-toggle[aria-checked=true] .switch-rocker{transform:translateZ(32px) rotateY(13deg);background:linear-gradient(80deg,#edf2f7,#f3f6f9 43%,#aab8c5);box-shadow:inset 1px 2px 3px #fff,inset -1px -2px 3px #697f91,-9px 3px 5px #151f2970}
+.day-toggle[aria-checked=true] .switch-day svg{color:#80909d;filter:drop-shadow(0 1px 0 #fff9)}
+.day-toggle[aria-checked=true] .switch-night svg{color:#246187;filter:drop-shadow(0 1px 0 #fff)}
+.day-toggle[aria-checked=true] .switch-status{transform:translateX(126px);background:#528dff;box-shadow:0 0 8px #599bff9c,inset 0 1px 1px #d3eaff}
+.day-toggle:is(:hover,:focus-visible),.day-toggle[aria-checked=true]:is(:hover,:focus-visible){box-shadow:inset 0 2px 2px #fff,inset 0 -3px 3px #8e9aa5,0 4px 0 #919da8,0 17px 21px #4b607345}
+.day-toggle:active .switch-rocker{transform:translateZ(29px) rotateY(-8deg)}
+.day-toggle[aria-checked=true]:active .switch-rocker{transform:translateZ(29px) rotateY(8deg)}
+
+/* 10: satin anodized aluminum, with a recessed arrow well. */
+
+[data-theme=dark] .soft-service{color:#c0cbd8;text-shadow:0 1px #0b1018;background:radial-gradient(ellipse at var(--pointer-x,35%) 0%,#3c4552,#252d39 65%,#1d242e);box-shadow:9px 13px 19px #0009,-5px -5px 15px #4a56602a,inset 1px 2px 3px #8d9fb13d,inset -1px -2px 3px #090f18}
+
+[data-theme=dark] .soft-service:is(:hover,:focus-visible){color:#e1e9f4;box-shadow:12px 16px 22px #000a,-5px -5px 18px #69768825,inset 1px 2px 4px #bdcad84a}
+
+[data-theme=dark] .soft-service[aria-pressed=true]{box-shadow:inset 7px 8px 12px #070d178c,inset -5px -5px 10px #61738a33}
+
+[data-theme=dark] .soft-circle{background:linear-gradient(135deg,#131c28,#465567);box-shadow:inset 3px 4px 8px #030912a0,inset -2px -2px 4px #9baec34d,3px 4px 6px #0008}
+
+[data-theme=dark] .soft-service:is(:hover,:focus-visible) .soft-circle{box-shadow:inset 5px 6px 12px #020814a0,inset -2px -2px 5px #a6bbd350}
+
+/* 14: both physical positions are authored in each housing material. */
+[data-theme=dark] .day-toggle,[data-theme=dark] .day-toggle[aria-checked=true]{background:linear-gradient(145deg,#4a5361,#303946 50%,#1d2632);box-shadow:inset 0 2px 2px #9fadc04d,inset 0 -3px 3px #050b15,0 4px 0 #030810,0 13px 18px #0008}
+
+[data-theme=dark] .day-toggle:before{background:linear-gradient(90deg,#060b12,#1f2a36 50%,#080c13);box-shadow:inset 0 7px 12px #000d,inset 0 -2px 2px #62758d45,0 1px 0 #a6bbd040}
+
+[data-theme=dark] .day-toggle .switch-rocker{background:linear-gradient(100deg,#252e3b,#505b6a 53%,#384452);box-shadow:inset 1px 2px 3px #c2cfdf5c,inset -1px -2px 3px #060d16,9px 3px 5px #0008}
+
+[data-theme=dark] .day-toggle[aria-checked=true] .switch-rocker{background:linear-gradient(80deg,#414e5e,#4a5668 43%,#1f2937);box-shadow:inset 1px 2px 3px #c2cfdf5c,inset -1px -2px 3px #040a12,-9px 3px 5px #000a}
+
+[data-theme=dark] .switch-rocker:before{background:radial-gradient(ellipse at 38% 0%,#d8eaff18,transparent 68%);box-shadow:inset 0 1px 0 #e3edfa38}
+[data-theme=dark] .switch-rocker:after{background:linear-gradient(#536073,#101924)}
+
+[data-theme=dark] .day-toggle .switch-symbol svg{color:#aebdcd;filter:drop-shadow(0 1px 1px #08101d)}
+[data-theme=dark] .day-toggle .switch-day svg{color:#e7dbba}
+[data-theme=dark] .day-toggle[aria-checked=true] .switch-day svg{color:#9faebe;filter:drop-shadow(0 1px 1px #08101d)}
+[data-theme=dark] .day-toggle[aria-checked=true] .switch-night svg{color:#c3e6ff;filter:drop-shadow(0 0 4px #73b7ff66)}
+
+[data-theme=dark] .day-toggle:is(:hover,:focus-visible),[data-theme=dark] .day-toggle[aria-checked=true]:is(:hover,:focus-visible){box-shadow:inset 0 2px 2px #aebed460,inset 0 -3px 3px #050b15,0 4px 0 #030810,0 17px 21px #0009}
+/* Halvorsen: keep the exact authored button, drop the showcase stage. */
+.halvorsen-bare .threeui-page-button-stage{min-height:0;height:auto;width:auto;background:transparent;}
+.halvorsen-bare .threeui-page-button-stage::before{display:none;}

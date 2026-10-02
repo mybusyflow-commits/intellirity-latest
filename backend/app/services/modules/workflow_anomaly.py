@@ -26,7 +26,8 @@ def workflow_anomaly_detector(payload: dict) -> dict:
         anomalies.append({"type": "excessive_iterations", "detail": f"{len(actions)} actions exceed limit of {max_iter}", "severity": "high"})
         risk_score += 0.6
 
-    action_types = [a.get("type", "") for a in actions]
+    # Accept both "type" (console/SDK) and "action_type" (agent traces) keys.
+    action_types = [a.get("type", "") or a.get("action_type", "") for a in actions]
     for size in range(3, min(20, len(action_types) // 2)):
         for i in range(len(action_types) - size * 2):
             window = tuple(action_types[i:i+size])
@@ -46,7 +47,10 @@ def workflow_anomaly_detector(payload: dict) -> dict:
         anomalies.append({"type": "timeout_exceeded", "detail": f"Duration {total_duration}s exceeds timeout {timeout}s", "severity": "medium"})
         risk_score += 0.4
 
-    external = [a for a in actions if a.get("type") in ["api_call", "http_request", "external_service", "webhook"]]
+    def _atype(a: dict) -> str:
+        return a.get("type", "") or a.get("action_type", "")
+
+    external = [a for a in actions if _atype(a) in ["api_call", "http_request", "external_service", "webhook"]]
     unique_targets = set(a.get("target", "") for a in external)
     if len(unique_targets) > 20:
         anomalies.append({"type": "excessive_external", "detail": f"Contacted {len(unique_targets)} unique external targets", "severity": "medium"})
@@ -63,8 +67,8 @@ def workflow_anomaly_detector(payload: dict) -> dict:
         anomalies.append({"type": "deep_chain", "detail": f"Chain depth {depth} exceeds maximum {max_chain_depth}", "severity": "medium"})
         risk_score += 0.3
 
-    destructive = [a for a in actions if a.get("type") in ["delete", "drop", "truncate", "remove", "destroy", "kill"]]
-    if len(destructive) > 5:
+    destructive = [a for a in actions if _atype(a) in ["delete", "drop", "truncate", "remove", "destroy", "kill"]]
+    if len(destructive) >= 3:
         anomalies.append({"type": "destructive_sequence", "detail": f"{len(destructive)} destructive actions in sequence", "severity": "high"})
         risk_score += 0.5
 
