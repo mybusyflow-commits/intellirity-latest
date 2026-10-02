@@ -238,6 +238,34 @@ def _detect_advanced_encoding(text: str) -> dict:
         findings.append({"type": "character_repetition", "description": "Suspicious character repetition pattern", "severity": "low"})
         risk_score += 0.1
 
+    # Homoglyph / mixed-script detection: Cyrillic, Greek, or full-width
+    # lookalikes hiding inside Latin text (e.g. "іgnore" with Cyrillic i).
+    _CONFUSABLES = {
+        "а": "a", "е": "e", "і": "i", "ї": "i", "о": "o", "р": "p",
+        "с": "c", "х": "x", "у": "y", "н": "h", "к": "k", "м": "m",
+        "т": "t", "в": "b", "ԁ": "d", "ԛ": "q", "ԝ": "w", "ⅼ": "l",
+        "α": "a", "ε": "e", "ι": "i", "ο": "o", "ρ": "p", "υ": "y",
+        "χ": "x", "κ": "k", "ν": "v", "μ": "m", "τ": "t", "ζ": "z",
+        "η": "n", "ο": "o", "ѕ": "s", "ԁ": "d",
+    }
+    latin_count = sum(1 for c in text if "a" <= c.lower() <= "z")
+    suspect_count = sum(
+        1 for c in text
+        if c in _CONFUSABLES or "\u0400" <= c <= "\u04ff"
+        or "\u0370" <= c <= "\u03ff" or "\uff00" <= c <= "\uffef"
+    )
+    if suspect_count > 0 and latin_count > 0:
+        findings.append({"type": "homoglyph_evasion", "description": f"Mixed-script lookalike characters detected ({suspect_count} suspect codepoints in Latin text)", "severity": "high"})
+        risk_score += 0.5
+        # Normalize and re-check: does the de-obfuscated text carry an override?
+        normalized = "".join(_CONFUSABLES.get(c, c) for c in text)
+        if normalized != text and re.search(
+            r"(?:ignore|disregard|forget|override|bypass)\s+(?:all\s+)?(?:previous|prior|system|safety)?\s*(?:instructions?|rules?|prompts?|filters?)",
+            normalized, re.IGNORECASE,
+        ):
+            findings.append({"type": "obfuscated_instruction_override", "description": "De-obfuscated text contains an instruction override", "severity": "critical"})
+            risk_score += 0.4
+
     return {"detected": len(findings) > 0, "findings": findings, "risk_score": min(risk_score, 0.8)}
 
 

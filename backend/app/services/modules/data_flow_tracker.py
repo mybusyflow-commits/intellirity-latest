@@ -22,7 +22,10 @@ def data_flow_tracker(payload: dict) -> dict:
     blocked = payload.get("blocked_domains", [])
 
     for stage in pipeline_stages:
-        dest = stage.get("destination", "")
+        if not isinstance(stage, dict):
+            stage = {"destination": str(stage)}
+        # Accept "destination" (API/SDK) and "domain" (console) key shapes.
+        dest = stage.get("destination", "") or stage.get("domain", "") or stage.get("host", "")
         name = stage.get("stage", "unknown")
         accessed = stage.get("data_accessed", [])
 

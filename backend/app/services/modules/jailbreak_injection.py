@@ -17,6 +17,8 @@ JAILBREAK_PATTERNS = {
         r"you\s+(are|must\s+be|should\s+be|will\s+now\s+be)\s+(no\s+longer|not)\s+(bound|restricted|limited|constrained|obligated|required)\s+(by|to)",
         r"stop\s+(following|obeying|adhering\s+to|enforcing|applying)\s+(your|the|any|all)\s+(instructions?|rules?|guidelines?|policies?|safety|restrictions?)",
         r"(?:allow|permit|enable)\s+anything\s*(?:goes)?",
+        r"ignore\s+(all\s+|your\s+|the\s+)?(rules|safety\s+(?:rules|filters|restrictions)|restrictions|filters|guidelines|policies)",
+        r"(?:no|without)\s+(?:more\s+)?(rules|restrictions|limits|limitations|safety\s+(?:rules|filters)|filters|guardrails)",
     ],
     "roleplay_persona": [
         r"you\s+(are|can\s+be|should\s+be|will\s+now\s+act\s+as|will\s+now\s+behave\s+as|will\s+now\s+pretend\s+to\s+be)\s+(?!a\s+helpful)",
@@ -387,13 +389,25 @@ def _detect_jailbreak_patterns(text: str) -> dict:
                     findings.append(f"[{category}] Pattern match: {pattern[:80]}...")
                 hits += 1
                 if category != "prompt_leaking":
-                    break
+                    # Keep scanning: distinct extra hits corroborate the attack.
+                    continue
+        # Explicit attack categories flag on their own first hit; softer
+        # framing categories need corroboration before reaching flag.
+        STRONG_CATEGORIES = {
+            "direct_override", "delimiter_injection", "authority_injection",
+            "prompt_leaking", "encoding_evasion",
+        }
         if hits:
-            risk_score += 0.15
+            # First hit +0.15, each additional distinct pattern +0.1 (cap 0.45/category).
+            risk_score += 0.15 + min(hits - 1, 3) * 0.1
+            if category in STRONG_CATEGORIES:
+                risk_score += 0.15
             if category == "prompt_leaking" and hits > 1:
                 extra = min(hits - 1, 2)
                 risk_score += 0.1 * extra
                 findings.append(f"[{category}] {extra} additional distinct leak probes corroborate ({hits} total)")
+            elif hits > 1:
+                findings.append(f"[{category}] {hits - 1} additional distinct patterns corroborate")
             if category not in categories_triggered:
                 categories_triggered.append(category)
 
