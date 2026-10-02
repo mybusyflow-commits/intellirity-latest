@@ -20,6 +20,7 @@ const PAGES: Entry[] = [
   { label: "Content guard", hint: "moderation", href: "/console/content", group: "Go to" },
   { label: "Agent behavior", hint: "sessions + mcp", href: "/console/behavior", group: "Go to" },
   { label: "Threat intel", hint: "feed + probes", href: "/console/intel", group: "Go to" },
+  { label: "Wallet guard", hint: "spend audit", href: "/console/wallet", group: "Go to" },
   { label: "Models & agents", hint: "coverage", href: "/console/models", group: "Go to" },
   { label: "Policies", hint: "guardrails", href: "/console/policies", group: "Go to" },
   { label: "Agent escrow", hint: "custody queue", href: "/console/escrow", group: "Go to" },

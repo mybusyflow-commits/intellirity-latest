@@ -19,6 +19,7 @@ const TITLES: Record<string, { title: string; sub: string }> = {
   "/console/content": { title: "Content guard", sub: "Harmful content scored across 7 categories" },
   "/console/behavior": { title: "Agent behavior", sub: "Session drift and MCP tool-use audits" },
   "/console/intel": { title: "Threat intel", sub: "Live attack patterns plus advanced probes" },
+  "/console/wallet": { title: "Wallet guard", sub: "Runaway AI spend stopped before it bills" },
   "/console/models": { title: "Models & agents", sub: "Coverage, latency, and policy pins" },
   "/console/policies": { title: "Policies", sub: "Guardrails as versioned code" },
   "/console/escrow": { title: "Agent escrow", sub: "Custody for autonomous value movement" },

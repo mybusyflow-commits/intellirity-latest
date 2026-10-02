@@ -44,6 +44,9 @@ async def reason(prompt: str, model: str = "Hy3(free)") -> str:
     if not prompt or not isinstance(prompt, str):
         return "[reasoning unavailable] Empty prompt provided."
 
+    if not API_KEY:
+        return "[reasoning unavailable] No API key configured. Set OPENCODEZEN_API_KEY to enable."
+
     target = _resolve_model(model)
     candidates = [target] + [m for m in FREE_MODELS if m != target]
 

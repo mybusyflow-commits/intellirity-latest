@@ -39,9 +39,14 @@ async def create_org(
 
 @router.get("/")
 async def list_organizations():
-    return {"message": "List organizations"}
+    return {"organizations": _memory_orgs}
 
 
-@router.get("/{org_id}")
+@router.get("/{org_id}", response_model=OrganizationResponse)
 async def get_organization(org_id: str):
-    return {"message": f"Get organization {org_id}"}
+    from fastapi import HTTPException
+
+    for o in _memory_orgs:
+        if o.id == org_id:
+            return o
+    raise HTTPException(status_code=404, detail=f"Organization {org_id} not found")

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Radar, ScrollText, Boxes, ShieldCheck, FileSearch, LifeBuoy,
-  DatabaseZap, AudioWaveform, Landmark, Fingerprint, Waypoints, ShieldAlert, Bot, Globe,
+  DatabaseZap, AudioWaveform, Landmark, Fingerprint, Waypoints, ShieldAlert, Bot, Globe, Wallet,
 } from "lucide-react";
 import { Logo } from "@/components/site/logo";
 import { cn } from "@/lib/utils";
@@ -32,6 +32,7 @@ const SECTIONS: Array<{
       { num: "12", href: "/console/content", label: "Content guard", icon: ShieldAlert },
       { num: "13", href: "/console/behavior", label: "Agent behavior", icon: Bot },
       { num: "14", href: "/console/intel", label: "Threat intel", icon: Globe, hint: "live" },
+      { num: "15", href: "/console/wallet", label: "Wallet guard", icon: Wallet },
     ],
   },
   {
