@@ -40,7 +40,9 @@ export default function Home() {
         <Platform />
         <Integrate />
         <KineticBreak />
-        <Scanner />
+        <section id="scanner" className="relative z-10 mx-auto max-w-[1240px] px-6 py-24 md:py-32">
+          <Scanner />
+        </section>
         <HowItWorks />
         <Metrics />
         <Pricing />
