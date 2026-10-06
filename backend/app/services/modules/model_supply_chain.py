@@ -29,7 +29,7 @@ def model_supply_chain_security(payload: dict) -> dict:
             risk_score += 1.0
 
     unsafe_formats = ["pickle", "pkl"]
-    if model_format in unsafe_formats:
+    if str(model_format).lower() in unsafe_formats:
         findings.append({"type": "unsafe_format", "detail": f"Format '{model_format}' can execute arbitrary code", "severity": "high"})
         risk_score += 0.7
 

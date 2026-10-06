@@ -190,6 +190,11 @@ def _detect_advanced_injection(text: str) -> dict:
             r"(?:what|show|tell|reveal|display|print|output|repeat|recite|provide|give|share|expose|disclose|leak|dump)\s+(?:me\s+)?(?:your|the)\s+(?:system|initial|original|hidden|secret|internal|first|full|complete|exact|verbatim)\s+(?:prompt|instruction|directives?|rules?|configuration|setup|message)",
             r"(?:repeat|print|output|say|tell\s+me|write|display)\s+(?:the|your)\s+(?:text|words|content|prompt|instructions?)\s+(?:above|before|prior|previous|preceding|at\s+the\s+(?:top|beginning|start))",
         ],
+        "known_persona": [
+            r"\bDAN\b.{0,40}(?:no\s+(?:rules|restrictions|limits)|unrestricted|without\s+rules|anything\s+now)",
+            r"(?:AIM|STAN|DUDE|KEVIN)\b.{0,40}(?:no\s+(?:ethics|refusals|restrictions)|amoral|without\s+refusal)",
+            r"(?:unrestricted|unfiltered|no\s+rules)\s+(?:persona|character|mode|assistant)\s+(?:named\s+)?\b[A-Z]{2,}",
+        ],
     }
 
     for category, pattern_list in patterns.items():

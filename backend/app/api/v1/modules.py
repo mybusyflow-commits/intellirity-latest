@@ -35,10 +35,25 @@ async def get_module(module_id: str):
     }
 
 
+# DoS guard: regex-heavy detection must never chew on megabytes in one request.
+MAX_SCAN_CHARS = 200_000
+
+
+def _reject_oversize(payload: dict) -> None:
+    for key in ("text", "code", "target", "instruction", "prompt", "action"):
+        val = payload.get(key, "")
+        if isinstance(val, str) and len(val) > MAX_SCAN_CHARS:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Field '{key}' exceeds {MAX_SCAN_CHARS} characters. Split the input and retry.",
+            )
+
+
 @router.post("/{module_id}/scan")
 async def run_module_scan(module_id: str, payload: dict):
     if module_id not in FEATURE_REGISTRY:
         raise HTTPException(status_code=404, detail=f"Module {module_id} not found")
+    _reject_oversize(payload)
 
     check_result = check_entitlement(module_id, get_customer_features())
     if not check_result["allowed"]:

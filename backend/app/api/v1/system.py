@@ -55,11 +55,18 @@ def generate_live_event() -> dict:
 
 async def live_event_loop():
     """Background task: inject a new threat event every few seconds."""
+    import logging
+    log = logging.getLogger("intellirity.live")
     while True:
         await asyncio.sleep(random.uniform(6, 11))
         if not _LIVE_MODE:
             continue
-        generate_live_event()
+        try:
+            generate_live_event()
+        except Exception as exc:
+            # One bad event must never kill the loop.
+            log.warning("live event failed: %s", exc)
+            continue
         # Auto-resolve oldest active events (simulates analyst clearing the queue)
         store = get_threats_store()
         active = [t for t in store if not t["is_resolved"]]

@@ -18,6 +18,7 @@ JAILBREAK_PATTERNS = {
         r"stop\s+(following|obeying|adhering\s+to|enforcing|applying)\s+(your|the|any|all)\s+(instructions?|rules?|guidelines?|policies?|safety|restrictions?)",
         r"(?:allow|permit|enable)\s+anything\s*(?:goes)?",
         r"ignore\s+(all\s+|your\s+|the\s+)?(rules|safety\s+(?:rules|filters|restrictions)|restrictions|filters|guidelines|policies)",
+        r"ignore\s+(?:all\s+|your\s+|the\s+)?(?:\w+\s+){1,2}(?:rules|instructions?|prompts?|directives?|guidelines?|policies?|filters?|restrictions?|safety)",
         r"(?:no|without)\s+(?:more\s+)?(rules|restrictions|limits|limitations|safety\s+(?:rules|filters)|filters|guardrails)",
     ],
     "roleplay_persona": [
@@ -410,6 +411,23 @@ def _detect_jailbreak_patterns(text: str) -> dict:
                 findings.append(f"[{category}] {hits - 1} additional distinct patterns corroborate")
             if category not in categories_triggered:
                 categories_triggered.append(category)
+
+    # Spaced-letter evasion ("i g n o r e ..."): strip all whitespace and look
+    # for the compacted override. Only when normal patterns missed it.
+    if "direct_override" not in categories_triggered:
+        nospace = re.sub(r"\s+", "", text.lower())
+        spaced_needles = [
+            "ignoreallpreviousinstructions",
+            "ignoreallinstructions",
+            "disregardallinstructions",
+            "bypassallsafety",
+            "disableallsafety",
+            "forgetallpreviousinstructions",
+        ]
+        if any(n in nospace for n in spaced_needles):
+            findings.append("[spaced_evasion] Instruction override hidden with inter-letter spacing")
+            risk_score += 0.5
+            categories_triggered.append("spaced_evasion")
 
     return {"findings": findings, "risk_score": min(risk_score, 0.9), "categories": categories_triggered}
 

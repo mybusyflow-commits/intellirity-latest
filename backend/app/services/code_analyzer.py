@@ -102,6 +102,11 @@ def _scan_code(code: str) -> list[dict]:
             continue
         for idx, line in enumerate(lines, start=1):
             if rx.search(line):
+                # FP guard: %s/? placeholders WITH a separate params argument
+                # (DB-API style) are proper parameterization, not formatting bugs.
+                if rule_id == "ics.sql.format" and re.search(r"%s|%\(", line):
+                    if re.search(r",\s*[\(\[\{]", line) and not re.search(r"\+|\.format\(|f['\"]", line):
+                        continue
                 findings.append({
                     "id": rule_id,
                     "title": title,

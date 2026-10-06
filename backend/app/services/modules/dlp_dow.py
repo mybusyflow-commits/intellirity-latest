@@ -180,8 +180,8 @@ def _detect_credentials(text: str) -> list:
         "google_api": r"AIza[a-zA-Z0-9_-]{35}",
         "slack_token": r"xox[pboa]-[a-zA-Z0-9-]{10,48}",
         "jwt": r"eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+",
-        "private_key": r"-----BEGIN\s+(?:RSA|DSA|EC|OPENSSH|PRIVATE)\s+KEY",
-        "password_assignment": r"(?:password|passwd|pwd|secret|token|api_key)\s*[:=]\s*[\"'][^\"']{4,}[\"']",
+        "private_key": r"-----BEGIN [A-Z ]*PRIVATE KEY-----|-----BEGIN (?:RSA|DSA|EC|OPENSSH) KEY-----",
+        "password_assignment": r"(?:password|passwd|pwd|secret|token|api_key)\s*[:=]\s*(?:[\"'][^\"']{4,}[\"']|(?!(?:none|null|empty|undefined|required|changeme|test|example)\b)[^\s\"',;]{6,})",
     }
 
     for cred_type, pattern in cred_patterns.items():

@@ -87,6 +87,9 @@ async def create_scan(
 @router.post("/run")
 async def run_full_scan(payload: dict):
     """Run an automated sweep across multiple security modules."""
+    from app.api.v1.modules import _reject_oversize
+
+    _reject_oversize(payload)
     text = payload.get("text", "")
     target = payload.get("target", "All AI Models")
     selected_modules = payload.get("modules", ["jailbreak_injection_protection", "vibe_code_security", "data_loss_prevention"])

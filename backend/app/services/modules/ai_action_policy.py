@@ -144,6 +144,7 @@ def _detect_exfiltration(action: str, tool_calls: list) -> bool:
 def _detect_privilege_escalation(action: str) -> bool:
     patterns = [
         r"(?:grant|give|assign|provide|add|set|elevate|promote|upgrade)\s+(?:me|the\s+user|this\s+session|my\s+account|the\s+agent)\s+(?:admin|administrator|root|superuser|owner|elevated|full|all|unrestricted|unlimited|privileged)\s+(?:access|permission|privilege|role|rights?|authority|level|status)",
+        r"(?:make|turn)\s+(?:me|my\s+account|this\s+account|the\s+account)\s+(?:root|admin|administrator|superuser)",
         r"(?:escalate|elevate|raise|increase|boost|upgrade)\s+(?:privilege|permission|role|level|access|authority|status)",
         r"(?:bypass|circumvent|skip|override|disable|deactivate|turn\s*off|ignore)\s+(?:the|any|all|role|permission|access|auth|security|verification|validation|check|restriction|control|policy|rule|guardrail)",
     ]
@@ -173,7 +174,7 @@ def _detect_credential_abuse(action: str, tool_calls: list) -> dict:
     risk_score = 0.0
 
     cred_patterns = [
-        r"(?:access|read|get|retrieve|fetch|obtain|extract|steal|exfiltrate|leak|copy|duplicate|harvest|scrape|collect|gather)\s+(?:the\s+)?(?:secret|token|key|password|credential|api[_-]?key|auth|bearer|jwt|session|oauth|access[_-]?token|refresh[_-]?token|private[_-]?key|ssh[_-]?key|certificate)",
+        r"(?:access|read|get|retrieve|fetch|obtain|extract|steal|exfiltrate|leak|copy|duplicate|harvest|scrape|collect|gather)\s+(?:the\s+)?(?:secret|token|key|password|credential|api[\s_-]?keys?|auth|bearer|jwt|session|oauth|access[_-]?token|refresh[_-]?token|private[_-]?key|ssh[_-]?key|certificate)",
         r"(?:use|leak|expose|share|transmit|send|forward|post|upload|export|dump|reveal|disclose)\s+(?:the\s+)?(?:secret|token|key|password|credential|api[_-]?key|auth|bearer|jwt|session|oauth)",
         r"(?:escalate|elevate|raise|increase)\s+(?:privilege|permission|role|scope|access|rights?|authority|level|status)\s+(?:to|using|via|by|through)",
     ]

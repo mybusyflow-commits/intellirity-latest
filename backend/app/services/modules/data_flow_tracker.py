@@ -55,13 +55,15 @@ def data_flow_tracker(payload: dict) -> dict:
             tool = call.get("tool", "")
             if tool in ["delete", "drop", "write", "execute", "rm", "format", "kill"]:
                 reasoning_flags.append({"tool": tool, "reasoning": call.get("reasoning", ""), "flag": "destructive_tool_call"})
+                risk_score += 0.5
 
-            if re.search(r"(?:http|https|webhook|callback)\s*[:=]\s*[\"']?https?://(?!(?:localhost|127\.0\.0\.1|10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.))", str(call), re.IGNORECASE):
+            if re.search(r"(?:http|https|webhook|callback|endpoint|url)['\"]?\s*[:=]\s*['\"]?https?://(?!(?:localhost|127\.0\.0\.1|10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.))", str(call), re.IGNORECASE):
                 tool_call_anomalies.append({"tool": tool, "issue": "external_destination", "severity": "high"})
                 risk_score += 0.6
 
         if len(reasoning_chain) > 50:
             reasoning_flags.append({"flag": "excessive_reasoning", "detail": f"Reasoning chain has {len(reasoning_chain)} steps"})
+            risk_score += 0.3
 
     risk_score = min(risk_score, 1.0)
 
