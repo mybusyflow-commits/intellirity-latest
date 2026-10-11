@@ -119,22 +119,31 @@ async def run_full_scan(payload: dict):
 
     from app.api.v1.modules import _cached_scan
 
-    fresh = False
-    for mod_key in selected_modules:
-        if mod_key in FEATURE_REGISTRY:
+    import concurrent.futures
+
+    def _run_one(mod_key: str):
+        try:
             func = FEATURE_REGISTRY[mod_key]["function"]
-            try:
-                res, was_cached = _cached_scan(mod_key, scan_payload, lambda f=func: f(scan_payload))
-                results[mod_key] = res
-                if not was_cached:
-                    fresh = True
-                risk = res.get("risk_score", 0.0)
-                if risk > max_risk:
-                    max_risk = risk
-                if res.get("findings"):
-                    all_findings.extend(res["findings"])
-            except Exception as e:
-                results[mod_key] = {"error": str(e)}
+            res, was_cached = _cached_scan(mod_key, scan_payload, lambda f=func: f(scan_payload))
+            return mod_key, res, was_cached, None
+        except Exception as e:
+            return mod_key, {"error": str(e)}, True, e
+
+    # N+1-analogue fix: modules are independent pure functions — running them
+    # one-by-one in a loop is sequential CPU stall (regex releases the GIL,
+    # so threads parallelize for real). Order of results is restored below.
+    fresh = False
+    runnable = [m for m in selected_modules if m in FEATURE_REGISTRY]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, min(len(runnable), 6))) as pool:
+        for mod_key, res, was_cached, _err in pool.map(_run_one, runnable):
+            results[mod_key] = res
+            if not was_cached:
+                fresh = True
+            risk = res.get("risk_score", 0.0)
+            if risk > max_risk:
+                max_risk = risk
+            if res.get("findings"):
+                all_findings.extend(res["findings"])
 
     # Repeat sweeps reuse cached module results; only a fresh computation
     # (any module newly evaluated) may log a threat — never twice per input.
