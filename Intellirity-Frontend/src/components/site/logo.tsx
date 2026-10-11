@@ -22,6 +22,10 @@ export function Logo({
         <img
           src="/logo.png"
           alt="Intellirity: securing AI, empowering innovation"
+          width={480}
+          height={172}
+          fetchPriority="high"
+          decoding="async"
           className={cn("h-8 w-auto", imgClassName)}
           onError={() => setMissing(true)}
         />

@@ -1,25 +1,30 @@
-"use client";
+import type { Metadata } from "next";
+import { ConsoleShell } from "./shell";
+import { SITE_URL } from "@/lib/site";
 
-import { useState } from "react";
-import { Sidebar } from "@/components/console/sidebar";
-import { Topbar, MobileNav } from "@/components/console/topbar";
+export const metadata: Metadata = {
+  title: {
+    default: "Console",
+    template: "%s · Intellirity Console",
+  },
+  description:
+    "The live Intellirity console: run adversarial scans, review verdicts, trace data flow, audit agents, and verify tamper-evident evidence — all against the real engine.",
+  alternates: {
+    canonical: `${SITE_URL}/console`,
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  openGraph: {
+    title: "Intellirity Console",
+    description: "Every AI security control, live in one console.",
+    url: `${SITE_URL}/console`,
+    type: "website",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+  },
+};
 
 export default function ConsoleLayout({ children }: { children: React.ReactNode }) {
-  const [navOpen, setNavOpen] = useState(false);
-
-  return (
-    <div className="min-h-screen bg-bg text-ink">
-      {/* landing-grade backdrop: dot field + soft top light, theme-aware */}
-      <div className="pointer-events-none fixed inset-0 z-0" aria-hidden>
-        <div className="grid-texture-console absolute inset-0" />
-        <div className="console-glow absolute inset-x-0 top-0 h-[420px]" />
-      </div>
-      <Sidebar />
-      <MobileNav open={navOpen} onClose={() => setNavOpen(false)} />
-      <div className="relative z-10 lg:pl-60">
-        <Topbar onMenu={() => setNavOpen(true)} />
-        <main className="mx-auto max-w-[1180px] px-5 py-8 md:px-8 md:py-10">{children}</main>
-      </div>
-    </div>
-  );
+  return <ConsoleShell>{children}</ConsoleShell>;
 }

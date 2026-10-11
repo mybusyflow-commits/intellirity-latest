@@ -15,6 +15,19 @@ type Cell = {
   span: string;
 };
 
+/* Internal links: every capability opens its live console tab. */
+const CELL_HREFS: Record<string, string> = {
+  "01": "/console/scanner",
+  "02": "/console/verdicts",
+  "03": "/console/scanner",
+  "04": "/console/leakage",
+  "05": "/console/anomalies",
+  "06": "/console/policies",
+  "07": "/console/audit",
+  "08": "/console/escrow",
+  "09": "/console/proof",
+};
+
 const CELLS: Cell[] = [
   {
     icon: ShieldCheck,
@@ -143,6 +156,11 @@ export function Platform() {
                 {cell.title}
               </h3>
               <p className="mt-2 text-[13.5px] leading-relaxed text-dim">{cell.desc}</p>
+              <a
+                href={CELL_HREFS[cell.index] ?? "/console"}
+                aria-label={`${cell.title} — open live in console`}
+                className="absolute inset-0 rounded-[inherit] focus:outline-none focus-visible:ring-1 focus-visible:ring-steel"
+              />
               <ArrowUpRight className="absolute bottom-6 right-6 size-4 text-faint opacity-0 transition-all duration-300 group-hover:translate-x-0.5 group-hover:opacity-100" />
             </article>
           );
@@ -151,3 +169,4 @@ export function Platform() {
     </section>
   );
 }
+
