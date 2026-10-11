@@ -3,6 +3,8 @@ import random
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
+from app.core.ratelimit import contact_limit
+from app.core.security import require_user
 
 from app.api.v1.threats import add_threat_event, get_threats_store
 from app.api.v1.scans import get_scans_store
@@ -90,8 +92,9 @@ async def system_status():
 
 
 # ─── Live summary / KPIs ──────────────────────────────────────────────────────
+# Operational data: authenticated only (status + contact stay public).
 
-@router.get("/summary")
+@router.get("/summary", dependencies=[Depends(require_user)])
 async def system_summary():
     threats = get_threats_store()
     scans = get_scans_store()
@@ -142,7 +145,7 @@ class ContactMessage(BaseModel):
 _contact_store: list[dict] = []
 
 
-@router.post("/contact")
+@router.post("/contact", dependencies=[Depends(contact_limit)])
 async def contact(msg: ContactMessage, request: Request):
     from fastapi import HTTPException
     from app.services.turnstile import verify_turnstile
@@ -151,6 +154,11 @@ async def contact(msg: ContactMessage, request: Request):
     ok, reason = verify_turnstile(msg.turnstile_token, client_ip)
     if not ok:
         raise HTTPException(status_code=403, detail=f"Spam check failed: {reason}")
+    # Size caps: the store is in-memory; unbounded bodies are a DoS vector.
+    if len(msg.name) > 200 or len(msg.email) > 320 or len(msg.subject) > 300:
+        raise HTTPException(status_code=422, detail="Name/email/subject too long")
+    if len(msg.message) > 10_000:
+        raise HTTPException(status_code=422, detail="Message too long (max 10,000 chars)")
     ticket = f"INT-{len(_contact_store) + 1001}"
     _contact_store.append({
         "ticket": ticket,

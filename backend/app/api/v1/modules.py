@@ -109,7 +109,17 @@ async def run_module_scan(module_id: str, payload: dict):
     module_info = FEATURE_REGISTRY[module_id]
     module_func = module_info["function"]
 
-    result, cached = _cached_scan(module_id, payload, lambda: module_func(payload))
+    # Malformed payloads must fail as 422, never as a 500: the module gets
+    # well-formed-but-unexpected shapes (e.g. a string where a list belongs).
+    def _compute():
+        try:
+            return module_func(payload)
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(status_code=422, detail=f"Scan failed: {type(exc).__name__}")
+
+    result, cached = _cached_scan(module_id, payload, _compute)
 
     # Auto-log threat if high/medium risk score or block verdict.
     # Cache hits never re-log: the event was already recorded on first scan.

@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,6 +7,37 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.api.v1.router import api_router
 import app.services.modules  # Register all detection modules
+
+
+# Structured JSON logs for production (LOG_JSON=true). Free-form uvicorn
+# output stays the dev default. JSON lines are trivially searchable in
+# Render/Railway/Vercel log drains and any alerting built on top.
+def _configure_logging() -> None:
+    import logging
+
+    if os.getenv("LOG_JSON", "").lower() not in ("1", "true", "yes"):
+        return
+
+    class _JsonFormatter(logging.Formatter):
+        def format(self, record: logging.LogRecord) -> str:
+            import json as _json
+            from datetime import datetime, timezone
+
+            return _json.dumps({
+                "ts": datetime.now(timezone.utc).isoformat(),
+                "level": record.levelname,
+                "logger": record.name,
+                "msg": record.getMessage(),
+            })
+
+    handler = logging.StreamHandler()
+    handler.setFormatter(_JsonFormatter())
+    root = logging.getLogger()
+    root.handlers = [handler]
+    root.setLevel(logging.INFO)
+
+
+_configure_logging()
 
 
 @asynccontextmanager
@@ -26,9 +58,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+def _allowed_origins() -> list[str]:
+    extra = [o.strip() for o in settings.ALLOWED_ORIGINS.split(",") if o.strip()]
+    if extra:
+        return extra
+    return [
         "http://localhost:8000",
         "http://127.0.0.1:8000",
         "http://localhost:3000",
@@ -39,7 +73,12 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://127.0.0.1:5174",
         "http://127.0.0.1:5175",
-    ],
+    ]
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_allowed_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

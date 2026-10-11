@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     API_V1_PREFIX: str = "/api/v1"
     OPENCODEZEN_API_KEY: str = ""
+    # Production CORS: comma-separated allowed origins. Default is the
+    # localhost set for dev. On deploy, set this to your real domains ONLY
+    # (frontend URL + custom domain) — never "*" and never localhost.
+    ALLOWED_ORIGINS: str = ""
 
     class Config:
         env_file = ".env"

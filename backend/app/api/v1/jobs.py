@@ -1,6 +1,7 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
+from app.core.ratelimit import job_create_limit
 from app.services import jobs as jobstore
 
 router = APIRouter()
@@ -40,7 +41,7 @@ def _normalize_job(kind: str, body: JobCreate) -> dict:
     return payload
 
 
-@router.post("", status_code=202)
+@router.post("", status_code=202, dependencies=[Depends(job_create_limit)])
 async def create_job(body: JobCreate, background: BackgroundTasks):
     """Queue a slow task; returns immediately with a job id to poll."""
     if body.kind not in JOB_KINDS:
