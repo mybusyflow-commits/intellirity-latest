@@ -139,6 +139,37 @@ def test_scans_history_pagination():
     assert isinstance(client.get(f"{P}/scans/history").json()["scans"], list)
 
 
+def test_jobs_sweep_lifecycle():
+    import time as _t
+    c = client.post(f"{P}/jobs", json={
+        "kind": "sweep", "text": "hello world", "target": "jobs-test",
+        "modules": ["data_loss_prevention"]})
+    assert c.status_code == 202, c.text
+    jid = c.json()["job_id"]
+    assert c.json()["status"] in ("queued", "running", "done")
+    # Background worker finishes within seconds; poll for completion.
+    final = None
+    for _ in range(40):
+        g = client.get(f"{P}/jobs/{jid}")
+        assert g.status_code == 200
+        if g.json()["status"] in ("done", "failed"):
+            final = g.json()
+            break
+        _t.sleep(0.25)
+    assert final is not None, "job never finished"
+    assert final["status"] == "done", final.get("error")
+    assert final["result"]["max_risk_score"] == 0.0
+    assert final["attempts"] >= 1
+
+
+def test_jobs_validation():
+    assert client.post(f"{P}/jobs", json={"kind": "nope"}).status_code == 422
+    assert client.post(f"{P}/jobs", json={"kind": "sweep"}).status_code == 422
+    assert client.post(f"{P}/jobs", json={"kind": "reasoning"}).status_code == 422
+    assert client.get(f"{P}/jobs/JOB-NOPE").status_code == 404
+    assert "jobs" in client.get(f"{P}/jobs").json()
+
+
 def test_contact_and_reasoning_empty():
     c = client.post(f"{P}/system/contact", json={
         "name": "T", "email": "t@example.com", "message": "hi"})

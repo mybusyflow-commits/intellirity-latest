@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Terminal } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { ScanRecord } from "@/lib/console-data";
-import { runScan } from "@/lib/api";
+import { createJob, getJob, runScan, type ScanRun } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type Phase = "idle" | "running" | "done";
@@ -75,8 +75,53 @@ export default function ScannerPage() {
   const [lines, setLines] = useState<string[]>(["// enter a target, then run a live scan"]);
   const [pct, setPct] = useState(0);
   const [history, setHistory] = useState<ScanRecord[]>([]);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [jobStatus, setJobStatus] = useState("");
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
+
+  const finishScan = useCallback((data: ScanRun, label: string, t: string, elapsedSec: number) => {
+    const mods = Object.entries(data.module_results ?? {});
+    const report: string[] = [
+      "",
+      `SCAN REPORT · ${data.scan.id} · risk ${(data.max_risk_score * 10).toFixed(1)}`,
+      "─────────────────────────────────────────",
+    ];
+    let crit = 0;
+    let warn = 0;
+    for (const [key, raw] of mods) {
+      const tag = verdictTag(raw);
+      const risk = (raw as { risk_score?: number }).risk_score ?? 0;
+      if (tag === "BLOCK") crit += 1;
+      else if (tag === "FLAG") warn += 1;
+        report.push(`  [${tag}] ${key} · risk ${risk}`);
+      const f = (raw as { findings?: unknown[] }).findings;
+      if (Array.isArray(f)) {
+        for (const item of f.slice(0, 2)) {
+          const rec = item as { title?: unknown; type?: unknown };
+          const text = typeof item === "string" ? item : (rec?.title ?? rec?.type ?? JSON.stringify(item));
+          report.push(`    · ${String(text).slice(0, 90)}`);
+        }
+      }
+    }
+    report.push("", `  verdict · ${data.total_findings} finding(s) across ${mods.length} controls`);
+    setLines((p) => [...p, ...report]);
+    setPct(100);
+    setPhase("done");
+    setHistory((h) => [
+      {
+        id: data.scan.id,
+        profile: label,
+        target: t,
+        started: new Date().toLocaleTimeString("en-GB", { hour12: false }),
+        duration: `${elapsedSec.toFixed(1)}s`,
+        crit,
+        warn,
+        status: crit > 0 ? "failed" : warn > 0 ? "attention" : "passed",
+      },
+      ...h,
+    ]);
+  }, []);
 
   const switchProfile = (p: Profile) => {
     if (phase === "running") return;
@@ -104,52 +149,59 @@ export default function ScannerPage() {
     requestAnimationFrame(tick);
     try {
       const data = await runScan(t, s.modules);
-      const mods = Object.entries(data.module_results ?? {});
-      const report: string[] = [
-        "",
-        `SCAN REPORT · ${data.scan.id} · risk ${(data.max_risk_score * 10).toFixed(1)}`,
-        "─────────────────────────────────────────",
-      ];
-      let crit = 0;
-      let warn = 0;
-      for (const [key, raw] of mods) {
-        const tag = verdictTag(raw);
-        const risk = (raw as { risk_score?: number }).risk_score ?? 0;
-        if (tag === "BLOCK") crit += 1;
-        else if (tag === "FLAG") warn += 1;
-          report.push(`  [${tag}] ${key} · risk ${risk}`);
-        const f = (raw as { findings?: unknown[] }).findings;
-        if (Array.isArray(f)) {
-          for (const item of f.slice(0, 2)) {
-            const rec = item as { title?: unknown; type?: unknown };
-            const text = typeof item === "string" ? item : (rec?.title ?? rec?.type ?? JSON.stringify(item));
-            report.push(`    · ${String(text).slice(0, 90)}`);
-          }
-        }
-      }
-      report.push("", `  verdict · ${data.total_findings} finding(s) across ${mods.length} controls`);
-      setLines((p) => [...p, ...report]);
-      setPct(100);
-      setPhase("done");
-      setHistory((h) => [
-        {
-          id: data.scan.id,
-          profile: s.label,
-          target: t,
-          started: new Date().toLocaleTimeString("en-GB", { hour12: false }),
-          duration: `${((performance.now() - start) / 1000).toFixed(1)}s`,
-          crit,
-          warn,
-          status: crit > 0 ? "failed" : warn > 0 ? "attention" : "passed",
-        },
-        ...h,
-      ]);
+      finishScan(data, s.label, t, (performance.now() - start) / 1000);
     } catch (e) {
       setLines((p) => [...p, "✕ engine unreachable. Is the backend running on :8000?"]);
       setPct(100);
       setPhase("done");
     }
-  }, [profile, target, phase]);
+  }, [profile, target, phase, finishScan]);
+
+  const queueSweep = useCallback(async () => {
+    const s = PROFILES[profile];
+    const t = target.trim() || "https://api.openai.com/v1/chat/completions";
+    if (phase === "running" || jobId) return;
+    setLines([`→ target: ${t}`, "→ sweep queued as background job…"]);
+    setJobStatus("queued");
+    try {
+      const job = await createJob("sweep", { text: t, target: t, modules: s.modules });
+      setJobId(job.job_id);
+      setJobStatus(job.status);
+      const started = performance.now();
+      for (let i = 0; i < 60; i++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const cur = await getJob(job.job_id);
+        setJobStatus(cur.status);
+        setLines((p) => {
+          const last = p[p.length - 1] ?? "";
+          const tick = `→ job ${cur.job_id} · ${cur.status} · attempt ${cur.attempts}`;
+          return last.startsWith("→ job") ? [...p.slice(0, -1), tick] : [...p, tick];
+        });
+        if (cur.status === "done" && cur.result) {
+          setJobId(null);
+          setJobStatus("");
+          finishScan(cur.result, `${s.label} (job)`, t, (performance.now() - started) / 1000);
+          return;
+        }
+        if (cur.status === "failed") {
+          setJobId(null);
+          setJobStatus("");
+          setLines((p) => [...p, `✕ job failed after ${cur.attempts} attempt(s): ${cur.error ?? "unknown error"}`]);
+          setPhase("done");
+          return;
+        }
+      }
+      setJobId(null);
+      setJobStatus("");
+      setLines((p) => [...p, "✕ job timed out waiting — check the job from the API."]);
+      setPhase("done");
+    } catch (e) {
+      setJobId(null);
+      setJobStatus("");
+      setLines((p) => [...p, "✕ could not queue job. Is the backend running on :8000?"]);
+      setPhase("done");
+    }
+  }, [profile, target, phase, jobId, finishScan]);
 
   return (
     <div className="space-y-4">
@@ -202,11 +254,18 @@ export default function ScannerPage() {
           <div className="mt-5 flex flex-wrap items-center gap-4">
             <button
               onClick={run}
-              disabled={phase === "running"}
+              disabled={phase === "running" || jobId !== null}
               className="inline-flex h-10 items-center gap-2 rounded bg-ink px-5 font-mono text-[13px] font-medium text-bg transition-colors hover:bg-white disabled:opacity-60"
             >
               {phase === "running" && <Loader2 className="size-4 animate-spin" />}
               {phase === "running" ? "running…" : phase === "done" ? "run again" : "run live scan"}
+            </button>
+            <button
+              onClick={queueSweep}
+              disabled={phase === "running" || jobId !== null}
+              className="inline-flex h-10 items-center rounded border border-line-strong px-5 font-mono text-[13px] font-medium transition-colors hover:border-ink/40 disabled:opacity-50"
+            >
+              {jobId ? `job ${jobStatus}…` : "queue background sweep"}
             </button>
             <span className="font-mono text-[11px] text-faint">results stream from the live engine</span>
           </div>

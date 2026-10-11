@@ -133,6 +133,26 @@ export function sendContact(payload: {
   });
 }
 
+export interface Job {
+  job_id: string;
+  kind: string;
+  status: "queued" | "running" | "done" | "failed";
+  result: ScanRun | null;
+  error: string | null;
+  attempts: number;
+}
+
+export function createJob(kind: "sweep" | "reasoning", payload: Record<string, unknown>) {
+  return req<Job>("/jobs", {
+    method: "POST",
+    body: JSON.stringify({ kind, ...payload }),
+  });
+}
+
+export function getJob(id: string) {
+  return req<Job>(`/jobs/${encodeURIComponent(id)}`);
+}
+
 export function resolveThreat(id: string) {
   return req<Threat>(`/threats/${encodeURIComponent(id)}/resolve`, {
     method: "POST",

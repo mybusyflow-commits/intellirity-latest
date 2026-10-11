@@ -90,9 +90,8 @@ async def create_scan(
     return SecurityScanResponse(**new_scan)
 
 
-@router.post("/run")
-async def run_full_scan(payload: dict):
-    """Run an automated sweep across multiple security modules."""
+def run_full_scan_sync(payload: dict) -> dict:
+    """Synchronous sweep core shared by the live endpoint and background jobs."""
     from app.api.v1.modules import _reject_oversize
 
     _reject_oversize(payload)
@@ -176,11 +175,17 @@ async def run_full_scan(payload: dict):
     _memory_scans.insert(0, scan_record)
 
     return {
-        "scan": SecurityScanResponse(**scan_record),
+        "scan": SecurityScanResponse(**scan_record).model_dump(mode="json"),
         "module_results": results,
         "max_risk_score": round(max_risk, 3),
         "total_findings": len(all_findings),
     }
+
+
+@router.post("/run")
+async def run_full_scan(payload: dict):
+    """Run an automated sweep across multiple security modules (live)."""
+    return run_full_scan_sync(payload)
 
 
 @router.get("/", response_model=list[SecurityScanResponse], dependencies=[Depends(require_user)])
