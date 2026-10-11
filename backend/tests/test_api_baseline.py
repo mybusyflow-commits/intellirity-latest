@@ -170,6 +170,24 @@ def test_jobs_validation():
     assert "jobs" in client.get(f"{P}/jobs").json()
 
 
+def test_health_reports_database_mode():
+    h = client.get("/health").json()
+    assert h["status"] == "healthy"
+    assert h["database"] in ("connected", "memory")
+
+
+def test_ledger_result_carries_record():
+    import asyncio
+    from app.db.persist import persist_ledger_record
+
+    r = client.post(f"{P}/modules/black_box_ledger/scan",
+                    json={"action": "log", "ai_decision": "persist-probe"}).json()["result"]
+    assert isinstance(r.get("record"), dict)
+    assert r["record"]["record_id"] == r["record_id"]
+    # Memory mode (no Postgres here): dual-write is a safe no-op.
+    assert asyncio.run(persist_ledger_record(r["record"])) is False
+
+
 def test_contact_and_reasoning_empty():
     c = client.post(f"{P}/system/contact", json={
         "name": "T", "email": "t@example.com", "message": "hi"})

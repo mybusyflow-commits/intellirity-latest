@@ -51,6 +51,20 @@ class SecurityScan(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class LedgerRecord(Base):
+    __tablename__ = "ledger_records"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    ai_decision: Mapped[str] = mapped_column(Text, default="")
+    prompt_hash: Mapped[str | None] = mapped_column(String, nullable=True)
+    action_taken: Mapped[str] = mapped_column(Text, default="")
+    confidence_score: Mapped[float | None] = mapped_column(nullable=True)
+    previous_hash: Mapped[str] = mapped_column(String, default="")
+    merkle_hash: Mapped[str] = mapped_column(String, index=True, default="")
+    record_json: Mapped[str] = mapped_column(Text, default="{}")
+
+
 class ThreatDetection(Base):
     __tablename__ = "threat_detections"
 

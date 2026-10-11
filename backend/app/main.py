@@ -42,6 +42,10 @@ _configure_logging()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Bootstrap Postgres when reachable (tables + indexes); otherwise the
+    # app runs memory-first. Never blocks or crashes boot.
+    from app.db.persist import init_db
+    await init_db()
     # Start the live monitoring simulator on startup
     from app.api.v1.system import live_event_loop
     task = asyncio.create_task(live_event_loop())
@@ -157,7 +161,13 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "service": "intellirity"}
+    from app.db.persist import is_connected
+
+    return {
+        "status": "healthy",
+        "service": "intellirity",
+        "database": "connected" if is_connected() else "memory",
+    }
 
 
 @app.get("/app/{path:path}")

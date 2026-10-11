@@ -76,6 +76,9 @@ def _append(payload: dict) -> dict:
         "merkle_hash": merkle_hash,
         "merkle_root": _compute_merkle_root(_ledger),
         "total_records": len(_ledger),
+        # Full record included so the API layer can persist it when a
+        # database is available. Additive: existing clients ignore it.
+        "record": record,
     }
 
 

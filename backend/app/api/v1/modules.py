@@ -128,6 +128,12 @@ async def run_module_scan(module_id: str, payload: dict):
     findings = result.get("findings", [])
     _should_log = not cached and (verdict == "block" or risk_score >= 0.6 or verdict == "flag" or risk_score >= 0.3)
     
+    # Ledger dual-write: sealed records persist to Postgres when available.
+    if module_id == "black_box_ledger" and isinstance(result.get("record"), dict):
+        from app.db.persist import persist_ledger_record
+
+        await persist_ledger_record(result["record"])
+
     if _should_log:
         if verdict == "block" or risk_score >= 0.6:
             add_threat_event(
