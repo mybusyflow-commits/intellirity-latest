@@ -134,6 +134,24 @@ async def run_module_scan(module_id: str, payload: dict):
 
         await persist_ledger_record(result["record"])
 
+    # Escrow statefulness: hydrate unknown ids from Postgres (cross-restart
+    # verify/reject), then persist every mutation. Trust the state machine.
+    if module_id == "autonomous_escrow":
+        from app.db.persist import load_escrow_hold, save_escrow_hold
+        from app.services.modules import blackbox_ledger as ledger_mod
+
+        action = payload.get("action", "create")
+        if action in ("verify", "release", "reject", "status", "get"):
+            eid = str(payload.get("escrow_id", ""))
+            if eid and ledger_mod.escrow_get_hold(eid) is None:
+                loaded = await load_escrow_hold(eid)
+                if loaded is not None:
+                    # Re-run through the state machine with hydrated state.
+                    result = module_func(payload)
+        hold = result.get("hold")
+        if isinstance(hold, dict) and hold.get("escrow_id"):
+            await save_escrow_hold(hold)
+
     if _should_log:
         if verdict == "block" or risk_score >= 0.6:
             add_threat_event(

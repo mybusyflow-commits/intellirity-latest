@@ -188,6 +188,34 @@ def test_ledger_result_carries_record():
     assert asyncio.run(persist_ledger_record(r["record"])) is False
 
 
+def _escrow(action, **kw):
+    return client.post(f"{P}/modules/autonomous_escrow/scan", json={"action": action, **kw}).json()["result"]
+
+
+def test_escrow_state_machine():
+    c = _escrow("create", agent_id="sm", amount=25)
+    assert c["status"] == "held" and c["escrow_id"]
+    eid = c["escrow_id"]
+    # bogus ids fail instead of echoing fake success
+    assert _escrow("verify", escrow_id="NOPE-NOPE").get("error")
+    assert _escrow("reject", escrow_id="NOPE-NOPE").get("error")
+    # invalid amounts rejected, no phantom holds
+    assert _escrow("create", agent_id="sm", amount=0).get("error")
+    assert _escrow("create", agent_id="sm", amount=-3).get("error")
+    # single transition only
+    v = _escrow("verify", escrow_id=eid)
+    assert v["status"] == "released"
+    assert _escrow("verify", escrow_id=eid).get("error")
+    assert _escrow("reject", escrow_id=eid).get("error")
+    # second hold takes the reject path
+    c2 = _escrow("create", agent_id="sm", amount=7)
+    assert _escrow("reject", escrow_id=c2["escrow_id"])["status"] == "rejected"
+    assert _escrow("verify", escrow_id=c2["escrow_id"]).get("error")
+    # status introspection
+    s = _escrow("status", escrow_id=eid)
+    assert s["status"] == "released"
+
+
 def test_contact_and_reasoning_empty():
     c = client.post(f"{P}/system/contact", json={
         "name": "T", "email": "t@example.com", "message": "hi"})

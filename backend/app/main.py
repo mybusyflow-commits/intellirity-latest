@@ -44,8 +44,9 @@ _configure_logging()
 async def lifespan(app: FastAPI):
     # Bootstrap Postgres when reachable (tables + indexes); otherwise the
     # app runs memory-first. Never blocks or crashes boot.
-    from app.db.persist import init_db
+    from app.db.persist import init_db, restore_ledger_chain
     await init_db()
+    await restore_ledger_chain()
     # Start the live monitoring simulator on startup
     from app.api.v1.system import live_event_loop
     task = asyncio.create_task(live_event_loop())

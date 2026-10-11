@@ -65,6 +65,17 @@ class LedgerRecord(Base):
     record_json: Mapped[str] = mapped_column(Text, default="{}")
 
 
+class EscrowHold(Base):
+    __tablename__ = "escrow_holds"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    agent_id: Mapped[str] = mapped_column(String, index=True, default="")
+    amount: Mapped[float] = mapped_column(default=0.0)
+    status: Mapped[str] = mapped_column(String, default="held")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class ThreatDetection(Base):
     __tablename__ = "threat_detections"
 

@@ -40,10 +40,14 @@ export default function EscrowPage() {
         agent_id: a,
         amount: amt,
       });
-      const r = data.result as { escrow_id?: string; status?: string };
+      const r = data.result as { escrow_id?: string; status?: string; error?: string };
+      if (r.error || !r.escrow_id) {
+        setError(r.error ?? "Create failed");
+        return;
+      }
       setHolds((hs) => [
         {
-          id: String(r.escrow_id ?? `ESC-${Date.now().toString(36).toUpperCase()}`),
+          id: String(r.escrow_id),
           agent: a,
           amount: amt,
           status: "held",
@@ -60,13 +64,20 @@ export default function EscrowPage() {
   async function decide(id: string, action: "verify" | "reject") {
     setError("");
     try {
-      await scanModule("autonomous_escrow", `${id} ${action}`, {
+      const data = await scanModule("autonomous_escrow", `${id} ${action}`, {
         action,
         escrow_id: id,
       });
-      setHolds((hs) =>
-        hs.map((h) => (h.id === id ? { ...h, status: action === "verify" ? "released" : "rejected" } : h))
-      );
+      const r = data.result as { status?: string; error?: string };
+      // Trust the state machine: only flip on a real decision, surface
+      // replays and unknown ids as errors instead of fake success.
+      if (r.error) {
+        setError(`Hold ${id}: ${r.error}`);
+        return;
+      }
+      const next: Status =
+        r.status === "released" ? "released" : r.status === "rejected" ? "rejected" : "held";
+      setHolds((hs) => hs.map((h) => (h.id === id ? { ...h, status: next } : h)));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Decision failed");
     }
