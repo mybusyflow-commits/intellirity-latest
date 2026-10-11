@@ -6,10 +6,19 @@ import { RefreshCw, Search } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VerdictDrawer } from "@/components/console/verdict-drawer";
 import type { Action, Verdict } from "@/lib/console-data";
-import { getThreats, type Threat } from "@/lib/api";
+import { getThreats, getThreatsPage, type Threat } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type Filter = "ALL" | Action;
+
+const PAGE_SIZE = 20;
+/* Action tabs map 1:1 to engine severities, so filtering happens server-side. */
+const FILTER_SEVERITY: Record<Filter, string | undefined> = {
+  ALL: undefined,
+  BLOCK: "high",
+  FLAG: "medium",
+  ALLOW: "low",
+};
 
 function actionTone(a: Action) {
   if (a === "BLOCK") return "text-crit border-crit/30 bg-crit/10";
@@ -40,19 +49,42 @@ export default function VerdictsPage() {
   const [selected, setSelected] = useState<Verdict | null>(null);
   const [selectedDetail, setSelectedDetail] = useState<Threat | null>(null);
   const [acknowledged, setAcknowledged] = useState<Set<string>>(new Set());
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const items = await getThreats();
-      setRows(items.map(toVerdict));
+      const page = await getThreatsPage({ limit: PAGE_SIZE, severity: FILTER_SEVERITY[filter] });
+      setRows(page.items.map(toVerdict));
+      setCursor(page.next_cursor);
+      setHasMore(page.has_more);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load verdicts");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filter]);
+
+  const loadMore = useCallback(async () => {
+    if (!hasMore || !cursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const page = await getThreatsPage({ limit: PAGE_SIZE, cursor, severity: FILTER_SEVERITY[filter] });
+      setRows((rs) => {
+        const seen = new Set(rs.map((r) => r.id));
+        return [...rs, ...page.items.map(toVerdict).filter((v) => !seen.has(v.id))];
+      });
+      setCursor(page.next_cursor);
+      setHasMore(page.has_more);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not load more");
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [cursor, hasMore, loadingMore, filter]);
 
   useEffect(() => {
     load();
@@ -171,9 +203,20 @@ export default function VerdictsPage() {
             {error !== "" ? error : "no verdicts match this filter"}
           </div>
         )}
+        {hasMore && visible.length > 0 && (
+          <div className="flex justify-center px-5 py-4">
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="inline-flex h-9 items-center rounded border border-line-strong px-5 font-mono text-[11.5px] uppercase tracking-[0.1em] transition-colors hover:border-ink/40 disabled:opacity-50"
+            >
+              {loadingMore ? "loading…" : `load more · ${rows.length} shown`}
+            </button>
+          </div>
+        )}
       </div>
       <div className="border-t border-line px-5 py-3 font-mono text-[10.5px] uppercase tracking-[0.12em] text-faint">
-        live from engine · refreshes every 15s · click any row for evidence
+        live from engine · page size {PAGE_SIZE} · refreshes every 15s · click any row for evidence
       </div>
       <VerdictDrawer
         verdict={selected}

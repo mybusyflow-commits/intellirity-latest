@@ -93,11 +93,37 @@ def get_threats_store() -> list[dict]:
     return _memory_threats
 
 
+PAGE_SIZE = 20
+
+
+def _paginate(items: list[dict], limit: Optional[int], cursor: Optional[str]):
+    """Stable newest-first paging by unique id. New inserts land at the
+    front, so 'older than cursor' slices never repeat or skip (no deletes)."""
+    if not limit or limit <= 0:
+        return {"items": items, "next_cursor": None, "has_more": False}
+    limit = min(limit, 100)
+    start = 0
+    if cursor:
+        for i, t in enumerate(items):
+            if t.get("id") == cursor:
+                start = i + 1
+                break
+    page = items[start:start + limit]
+    next_cursor = page[-1]["id"] if page and start + limit < len(items) else None
+    return {
+        "items": page,
+        "next_cursor": next_cursor,
+        "has_more": next_cursor is not None,
+    }
+
+
 @router.get("")
-@router.get("/", response_model=list[ThreatDetectionResponse])
+@router.get("/")
 async def list_threats(
     status: Optional[str] = None,
     severity: Optional[str] = None,
+    limit: Optional[int] = None,
+    cursor: Optional[str] = None,
 ):
     results = _memory_threats
     if status == "active":
@@ -108,7 +134,12 @@ async def list_threats(
     if severity:
         results = [t for t in results if t["severity"].lower() == severity.lower()]
 
-    return [ThreatDetectionResponse(**t) for t in results]
+    # Legacy shape (no limit): plain list, unchanged for existing clients.
+    if not limit:
+        return [ThreatDetectionResponse(**t).model_dump() for t in results]
+    page = _paginate(results, limit, cursor)
+    page["items"] = [ThreatDetectionResponse(**t).model_dump() for t in page["items"]]
+    return page
 
 
 @router.get("/{threat_id}", response_model=ThreatDetectionResponse)

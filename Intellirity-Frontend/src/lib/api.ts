@@ -70,6 +70,21 @@ export interface ModuleScan {
 export const getSummary = () => req<Summary>("/system/summary");
 export const getThreats = () => req<Threat[]>("/threats");
 
+export interface ThreatPage {
+  items: Threat[];
+  next_cursor: string | null;
+  has_more: boolean;
+}
+
+export function getThreatsPage(opts: { limit?: number; cursor?: string | null; severity?: string } = {}) {
+  const q = new URLSearchParams();
+  if (opts.limit) q.set("limit", String(opts.limit));
+  if (opts.cursor) q.set("cursor", opts.cursor);
+  if (opts.severity) q.set("severity", opts.severity);
+  const qs = q.toString();
+  return req<ThreatPage>(`/threats${qs ? `?${qs}` : ""}`);
+}
+
 export function runScan(
   target: string,
   modules: string[] = [

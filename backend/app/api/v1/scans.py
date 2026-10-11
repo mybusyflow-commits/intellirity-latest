@@ -49,9 +49,15 @@ def get_scans_store() -> list[dict]:
 
 
 @router.get("/history", dependencies=[Depends(require_user)])
-async def scan_history():
-    """Return in-memory scan history produced by the multi-module sweep."""
-    return {"scans": _memory_scans}
+async def scan_history(limit: Optional[int] = None, cursor: Optional[str] = None):
+    """Scan history, newest first. Pass limit for a stable id-cursor page."""
+    from app.api.v1.threats import _paginate
+
+    if not limit:
+        return {"scans": _memory_scans}
+    page = _paginate(_memory_scans, limit, cursor)
+    page["items"] = [SecurityScanResponse(**s).model_dump() for s in page["items"]]
+    return {"scans": page["items"], "next_cursor": page["next_cursor"], "has_more": page["has_more"]}
 
 
 @router.post("/code-security")
