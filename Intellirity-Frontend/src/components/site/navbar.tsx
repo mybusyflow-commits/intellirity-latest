@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Logo } from "@/components/site/logo";
+import { MobileAuth, NavbarAuth } from "@/components/site/auth-controls";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -66,13 +67,7 @@ export function Navbar() {
               <span className="dot animate-status bg-ok" />
               All systems normal
             </span>
-            <a
-              href="/console"
-              className="hidden h-9 items-center gap-1.5 rounded bg-ink px-4 text-[13px] font-medium text-bg transition-colors hover:bg-white sm:inline-flex"
-            >
-              Open Dashboard
-              <ArrowRight className="size-3.5" />
-            </a>
+            <NavbarAuth />
             <button
               onClick={() => setOpen((v) => !v)}
               aria-label={open ? "Close menu" : "Open menu"}
@@ -121,14 +116,7 @@ export function Navbar() {
                 </motion.li>
               ))}
               <li className="pt-3">
-                <a
-                  href="/console"
-                  onClick={() => setOpen(false)}
-                  className="flex h-11 items-center justify-center gap-2 rounded bg-ink text-[14px] font-medium text-bg"
-                >
-                  Open Dashboard
-                  <ArrowRight className="size-4" />
-                </a>
+                <MobileAuth onDone={() => setOpen(false)} />
               </li>
             </ul>
           </motion.nav>

@@ -1,13 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 /* Edge-layer guard: HTTPS enforcement (production only) + rate limiting
    on the engine proxy so abusive clients are throttled before they reach
-   FastAPI. In-memory sliding window, per deployment instance. */
+   FastAPI. In-memory sliding window, per deployment instance.
+   Clerk route protection activates only when CLERK_SECRET_KEY exists —
+   keyless local dev passes through untouched. */
 
 const WINDOW_MS = 60_000;
 const PROXY_LIMIT = 120; // requests per IP per minute on /backend/*
 const PAGE_LIMIT = 300; // requests per IP per minute on pages/APIs
 const hits = new Map<string, number[]>();
+
+const HAS_CLERK = Boolean(process.env.CLERK_SECRET_KEY);
+const isProtectedRoute = createRouteMatcher(["/console(.*)"]);
 
 function rateLimited(ip: string, limit: number): boolean {
   const now = Date.now();
@@ -24,7 +30,8 @@ function rateLimited(ip: string, limit: number): boolean {
   return fresh.length > limit;
 }
 
-export function middleware(req: NextRequest) {
+/* Shared guards: returns a blocking response, or null to continue. */
+function guard(req: NextRequest): NextResponse | null {
   const url = req.nextUrl;
 
   // HTTPS enforcement: only when explicitly enabled (production behind a
@@ -52,8 +59,23 @@ export function middleware(req: NextRequest) {
     });
   }
 
-  return NextResponse.next();
+  return null;
 }
+
+async function baseMiddleware(req: NextRequest) {
+  return guard(req) ?? NextResponse.next();
+}
+
+export default HAS_CLERK
+  ? clerkMiddleware(async (auth, req) => {
+      const blocked = guard(req);
+      if (blocked) return blocked;
+      // /console/* requires sign-in; landing, sign-in/up, and the engine
+      // proxy stay public (the backend enforces API auth itself).
+      if (isProtectedRoute(req)) await auth.protect();
+      return NextResponse.next();
+    })
+  : baseMiddleware;
 
 export const config = {
   matcher: ["/backend/:path*", "/console/:path*", "/((?!_next/static|_next/image|favicon.png|logo.png|og-image.png).*)"],

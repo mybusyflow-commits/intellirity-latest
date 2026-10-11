@@ -3,9 +3,27 @@
 
 const BASE = "/backend";
 
+/* Session token source, wired by <AuthBridge/> when Clerk is configured.
+   Without it (keyless local dev) requests simply carry no auth header and
+   the backend stays in open mode. */
+let tokenGetter: (() => Promise<string | null>) | null = null;
+
+export function setTokenGetter(fn: (() => Promise<string | null>) | null) {
+  tokenGetter = fn;
+}
+
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (tokenGetter) {
+    try {
+      const token = await tokenGetter();
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+    } catch {
+      /* unauthenticated request */
+    }
+  }
   const r = await fetch(BASE + path, {
-    headers: { "Content-Type": "application/json" },
+    headers,
     ...init,
   });
   if (!r.ok) {

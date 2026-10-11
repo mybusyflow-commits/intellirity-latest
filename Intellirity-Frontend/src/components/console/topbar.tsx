@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Menu, Plus, X } from "lucide-react";
 import { Sidebar } from "./sidebar";
 import { CommandPalette } from "./command-palette";
+import { UserChip } from "./user-chip";
 import { Logo } from "@/components/site/logo";
 
 const TITLES: Record<string, { title: string; sub: string }> = {
@@ -73,6 +74,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
             <Plus className="size-3.5" />
             New scan
           </Link>
+          <UserChip />
         </div>
       </div>
     </header>

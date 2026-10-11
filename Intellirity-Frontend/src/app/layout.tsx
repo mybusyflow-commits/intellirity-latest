@@ -1,6 +1,12 @@
 import type { Metadata, Viewport } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import { DarkEnforcer } from "@/components/fx/dark-enforcer";
+import { AuthBridge } from "@/components/site/auth-bridge";
+
+/* Clerk activates only once NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY exists.
+   Until then the app renders exactly as before (keyless local dev). */
+const CLERK_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 import {
   SITE_DESCRIPTION,
   SITE_KEYWORDS,
@@ -123,12 +129,29 @@ function JsonLd() {
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const bodyInner = (
+    <>
+      <DarkEnforcer />
+      {children}
+      <JsonLd />
+    </>
+  );
+
   return (
     <html lang="en" className="dark">
       <body className="bg-bg font-sans text-ink antialiased">
-        <DarkEnforcer />
-        {children}
-        <JsonLd />
+        {CLERK_KEY ? (
+          <ClerkProvider
+            signInUrl="/sign-in"
+            signUpUrl="/sign-up"
+            afterSignOutUrl="/"
+          >
+            <AuthBridge />
+            {bodyInner}
+          </ClerkProvider>
+        ) : (
+          bodyInner
+        )}
       </body>
     </html>
   );
