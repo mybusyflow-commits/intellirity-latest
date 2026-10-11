@@ -111,12 +111,17 @@ async def run_full_scan(payload: dict):
         "target_type": "url" if is_url else "code",
     }
 
+    from app.api.v1.modules import _cached_scan
+
+    fresh = False
     for mod_key in selected_modules:
         if mod_key in FEATURE_REGISTRY:
             func = FEATURE_REGISTRY[mod_key]["function"]
             try:
-                res = func(scan_payload)
+                res, was_cached = _cached_scan(mod_key, scan_payload, lambda f=func: f(scan_payload))
                 results[mod_key] = res
+                if not was_cached:
+                    fresh = True
                 risk = res.get("risk_score", 0.0)
                 if risk > max_risk:
                     max_risk = risk
@@ -125,8 +130,10 @@ async def run_full_scan(payload: dict):
             except Exception as e:
                 results[mod_key] = {"error": str(e)}
 
+    # Repeat sweeps reuse cached module results; only a fresh computation
+    # (any module newly evaluated) may log a threat — never twice per input.
     status = "completed"
-    if max_risk >= 0.7:
+    if max_risk >= 0.7 and fresh:
         # Trigger automatic threat detection event
         add_threat_event(
             threat_type="Adversarial Scan Threat",
@@ -134,7 +141,7 @@ async def run_full_scan(payload: dict):
             source=target,
             description=f"High risk score ({max_risk:.2f}) detected during security sweep: {all_findings[:1]}",
         )
-    elif max_risk >= 0.3:
+    elif max_risk >= 0.3 and fresh:
         add_threat_event(
             threat_type="Suspicious Pattern Detected",
             severity="medium",

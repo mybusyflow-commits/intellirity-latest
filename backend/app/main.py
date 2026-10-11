@@ -65,11 +65,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 app.add_middleware(SecurityHeadersMiddleware)
 
 # --- Simple in-memory rate limiting (fix: No Rate Limiting Detected) ---
+import os
 import time
 from collections import defaultdict, deque
 from fastapi import Request
 
-_RATE_LIMIT = 60  # requests
+# Tunable without code changes; default 60 req/60s per IP on /api/.
+_RATE_LIMIT = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
 _RATE_WINDOW = 60  # seconds
 _ip_hits: dict[str, deque] = defaultdict(deque)
 

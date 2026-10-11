@@ -1,9 +1,56 @@
+import hashlib
+import json
+import time
 from fastapi import APIRouter, Depends, HTTPException
 from app.services.feature_registry import FEATURE_REGISTRY, get_customer_features, check_entitlement
 from app.api.v1.threats import add_threat_event
 from app.core.security import require_user
 
 router = APIRouter()
+
+# In-memory TTL cache for PURE detectors (same payload -> same verdict).
+# Stateful modules are NEVER cached: ledger/escrow mutate state, VPI mints a
+# unique nonce per call. Cache key hashes the full payload, so per-user and
+# per-session inputs partition naturally (no shared-key leakage).
+_CACHEABLE = {
+    "jailbreak_injection_protection": 60,
+    "vibe_code_security": 60,
+    "data_loss_prevention": 60,
+    "content_moderation": 60,
+    "advanced_threat_intelligence": 60,
+    "ai_action_policy_enforcer": 60,
+    "data_flow_tracker": 60,
+    "denial_of_wallet_protector": 60,
+    "model_supply_chain_security": 300,
+    "workflow_anomaly_detector": 60,
+    "behavioral_analysis_engine": 60,
+    "mcp_security_monitor": 60,
+    "threat_intelligence_feed": 300,
+}
+_scan_cache: dict[str, tuple[float, dict]] = {}
+_CACHE_MAX = 512
+
+
+def _cached_scan(module_id: str, payload: dict, compute):
+    ttl = _CACHEABLE.get(module_id)
+    if not ttl:
+        return compute(), False
+    try:
+        fingerprint = hashlib.sha256(
+            json.dumps({"m": module_id, "p": payload}, sort_keys=True, default=str).encode()
+        ).hexdigest()
+    except Exception:
+        return compute(), False
+    now = time.time()
+    hit = _scan_cache.get(fingerprint)
+    if hit and now - hit[0] < ttl:
+        return hit[1], True
+    result = compute()
+    _scan_cache[fingerprint] = (now, result)
+    if len(_scan_cache) > _CACHE_MAX:
+        oldest = min(_scan_cache, key=lambda k: _scan_cache[k][0])
+        del _scan_cache[oldest]
+    return result, False
 
 
 @router.get("", dependencies=[Depends(require_user)])
@@ -61,28 +108,31 @@ async def run_module_scan(module_id: str, payload: dict):
 
     module_info = FEATURE_REGISTRY[module_id]
     module_func = module_info["function"]
-    
-    result = module_func(payload)
-    
-    # Auto-log threat if high/medium risk score or block verdict
+
+    result, cached = _cached_scan(module_id, payload, lambda: module_func(payload))
+
+    # Auto-log threat if high/medium risk score or block verdict.
+    # Cache hits never re-log: the event was already recorded on first scan.
     risk_score = result.get("risk_score", 0.0)
     verdict = result.get("verdict", "allow")
     findings = result.get("findings", [])
+    _should_log = not cached and (verdict == "block" or risk_score >= 0.6 or verdict == "flag" or risk_score >= 0.3)
     
-    if verdict == "block" or risk_score >= 0.6:
-        add_threat_event(
-            threat_type=f"{module_info['name']} Threat",
-            severity="high",
-            source=payload.get("source", "Model Inference Engine"),
-            description=f"BLOCKED attack via {module_info['name']}: {findings[:1] if findings else 'High risk detection'}",
-        )
-    elif verdict == "flag" or risk_score >= 0.3:
-        add_threat_event(
-            threat_type=f"{module_info['name']} Anomaly",
-            severity="medium",
-            source=payload.get("source", "Model Inference Engine"),
-            description=f"FLAGGED suspicious activity via {module_info['name']}: {findings[:1] if findings else 'Medium risk detection'}",
-        )
+    if _should_log:
+        if verdict == "block" or risk_score >= 0.6:
+            add_threat_event(
+                threat_type=f"{module_info['name']} Threat",
+                severity="high",
+                source=payload.get("source", "Model Inference Engine"),
+                description=f"BLOCKED attack via {module_info['name']}: {findings[:1] if findings else 'High risk detection'}",
+            )
+        elif verdict == "flag" or risk_score >= 0.3:
+            add_threat_event(
+                threat_type=f"{module_info['name']} Anomaly",
+                severity="medium",
+                source=payload.get("source", "Model Inference Engine"),
+                description=f"FLAGGED suspicious activity via {module_info['name']}: {findings[:1] if findings else 'Medium risk detection'}",
+            )
 
-    return {"module_id": module_id, "module_name": module_info["name"], "result": result}
+    return {"module_id": module_id, "module_name": module_info["name"], "result": result, "cached": cached}
 

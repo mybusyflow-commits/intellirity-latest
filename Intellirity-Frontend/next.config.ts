@@ -22,6 +22,26 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
         ],
       },
+      // Live engine GETs refresh every few seconds; a 5s shared-cache TTL
+      // absorbs duplicate fan-out without serving visibly stale data.
+      // Browsers never cache POSTs, so mutations are unaffected.
+      {
+        source: "/backend/system/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=5, stale-while-revalidate=5" }],
+      },
+      {
+        source: "/backend/threats",
+        headers: [{ key: "Cache-Control", value: "public, max-age=5, stale-while-revalidate=5" }],
+      },
+      {
+        source: "/backend/realtime/feed",
+        headers: [{ key: "Cache-Control", value: "public, max-age=5, stale-while-revalidate=5" }],
+      },
+      // Static brand assets: immutable for a year (filenames are versioned by content change).
+      {
+        source: "/:all*(png|ico|woff2)",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
     ];
   },
   turbopack: {
