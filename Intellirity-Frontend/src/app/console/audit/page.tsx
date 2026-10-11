@@ -13,6 +13,7 @@ interface Entry {
   ai_decision: string;
   actor: string;
   time: string;
+  pending?: boolean;
 }
 
 export default function AuditPage() {
@@ -23,12 +24,26 @@ export default function AuditPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [root, setRoot] = useState("");
+  const [failedText, setFailedText] = useState("");
 
-  async function seal() {
-    const t = decision.trim();
+  async function seal(text?: string) {
+    const t = (text ?? decision).trim();
     if (!t || busy) return;
     setBusy(true);
     setError("");
+    setFailedText("");
+    // Optimistic: the entry appears instantly as pending.
+    const tempId = `pending-${Date.now().toString(36)}`;
+    const optimistic: Entry = {
+      record_id: tempId,
+      merkle_hash: "",
+      ai_decision: t,
+      actor: "human",
+      time: new Date().toLocaleTimeString("en-GB", { hour12: false }),
+      pending: true,
+    };
+    setEntries((prev) => [optimistic, ...prev]);
+    if (text === undefined) setDecision("");
     try {
       const r = await ledger("log", {
         ai_decision: t,
@@ -36,18 +51,24 @@ export default function AuditPage() {
         reasoning_trace: "sealed from console",
         metadata: { actor: "human" },
       });
-      setEntries((prev) => [
-        {
-          record_id: String(r.record_id ?? "unknown"),
-          merkle_hash: String(r.merkle_hash ?? ""),
-          ai_decision: t,
-          actor: "human",
-          time: new Date().toLocaleTimeString("en-GB", { hour12: false }),
-        },
-        ...prev,
-      ]);
-      setDecision("");
+      // Confirm: swap the pending row for the sealed record.
+      setEntries((prev) =>
+        prev.map((e) =>
+          e.record_id === tempId
+            ? {
+                record_id: String(r.record_id ?? "unknown"),
+                merkle_hash: String(r.merkle_hash ?? ""),
+                ai_decision: t,
+                actor: "human",
+                time: e.time,
+              }
+            : e
+        )
+      );
     } catch (e) {
+      // Roll back the optimistic row; offer retry with the same text.
+      setEntries((prev) => prev.filter((en) => en.record_id !== tempId));
+      setFailedText(t);
       setError(e instanceof Error ? e.message : "Seal failed");
     } finally {
       setBusy(false);
@@ -100,13 +121,13 @@ export default function AuditPage() {
           <input
             value={decision}
             onChange={(e) => setDecision(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") seal(); }}
+            onKeyDown={(e) => { if (e.key === "Enter") seal(undefined); }}
             placeholder="AI decision to log…"
             spellCheck={false}
             className="h-10 flex-1 rounded border border-line bg-sunken px-3 font-mono text-[12.5px] text-ink placeholder:text-faint focus:border-line-strong focus:outline-none"
           />
           <button
-            onClick={seal}
+            onClick={() => seal(undefined)}
             disabled={busy}
             className="inline-flex h-10 items-center rounded bg-ink px-5 font-mono text-[13px] font-medium text-bg transition-colors hover:bg-white disabled:opacity-60"
           >
@@ -119,7 +140,20 @@ export default function AuditPage() {
             verify chain
           </button>
         </div>
-        {error !== "" && <p className="mt-2 font-mono text-[11.5px] text-crit">{error}</p>}
+        {error !== "" && (
+          <p className="mt-2 flex flex-wrap items-center gap-3 font-mono text-[11.5px] text-crit">
+            <span>{error}</span>
+            {failedText !== "" && (
+              <button
+                onClick={() => seal(failedText)}
+                disabled={busy}
+                className="rounded border border-crit/40 px-2.5 py-1 text-[11px] uppercase tracking-[0.08em] transition-colors hover:bg-crit/10 disabled:opacity-50"
+              >
+                retry seal
+              </button>
+            )}
+          </p>
+        )}
         {root !== "" && <p className="mt-2 font-mono text-[11.5px] text-ok">{root}</p>}
       </div>
 
@@ -162,12 +196,12 @@ export default function AuditPage() {
             </thead>
             <tbody className="font-mono text-[12.5px]">
               {visible.map((e) => (
-                <tr key={e.record_id} className="border-b border-line/60 last:border-b-0 hover:bg-white/[0.02]">
+                <tr key={e.record_id} className={e.pending ? "border-b border-line/60 opacity-60 last:border-b-0" : "border-b border-line/60 last:border-b-0 hover:bg-white/[0.02]"}>
                   <td className="px-5 py-3 tabular-nums text-faint">{e.time}</td>
                   <td className="px-3 py-3 text-dim">{e.actor}</td>
                   <td className="max-w-[280px] truncate px-3 py-3 text-ink">{e.ai_decision}</td>
-                  <td className="px-3 py-3 text-steel">{e.record_id.slice(0, 12)}</td>
-                  <td className="max-w-[200px] truncate px-5 py-3 text-faint">{e.merkle_hash.slice(0, 24)}</td>
+                  <td className="px-3 py-3 text-steel">{e.pending ? "sealing…" : e.record_id.slice(0, 12)}</td>
+                  <td className="max-w-[200px] truncate px-5 py-3 text-faint">{e.pending ? "…" : e.merkle_hash.slice(0, 24)}</td>
                 </tr>
               ))}
               {visible.length === 0 && (

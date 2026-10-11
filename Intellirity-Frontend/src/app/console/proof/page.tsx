@@ -41,13 +41,18 @@ export default function ProofPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [certs, setCerts] = useState(0);
+  const [issuing, setIssuing] = useState<string | null>(null);
+  const [failedIssue, setFailedIssue] = useState(false);
 
-  async function issue() {
+  async function issue(retry = false) {
     const h = human.trim();
     const ins = instruction.trim();
     if (!h || !ins || busy) return;
     setBusy(true);
     setError("");
+    setFailedIssue(false);
+    // Optimistic: the pending certificate appears instantly.
+    setIssuing(`${h} · ${ins.slice(0, 60)}`);
     try {
       const data = await scanModule("verifiable_proof_of_intent", ins, {
         human_id: h,
@@ -58,7 +63,11 @@ export default function ProofPage() {
       });
       setResult(data.result as ProofResult);
       setCerts((n) => n + 1);
+      setIssuing(null);
     } catch (e) {
+      // Roll back the pending card; retry reuses the same inputs.
+      setIssuing(null);
+      setFailedIssue(true);
       setError(e instanceof Error ? e.message : "Issue failed");
     } finally {
       setBusy(false);
@@ -133,13 +142,31 @@ export default function ProofPage() {
               className="h-10 w-full rounded border border-line bg-sunken px-3 font-mono text-[12.5px] text-ink placeholder:text-faint focus:border-line-strong focus:outline-none"
             />
             <button
-              onClick={issue}
+              onClick={() => issue(false)}
               disabled={busy}
               className="inline-flex h-10 w-full items-center justify-center rounded bg-ink text-[13px] font-medium text-bg transition-colors hover:bg-white disabled:opacity-60"
             >
               {busy ? "issuing…" : "issue + verify"}
             </button>
-            {error !== "" && <p className="font-mono text-[11.5px] text-crit">{error}</p>}
+            {issuing !== null && (
+              <p className="animate-pulse font-mono text-[11.5px] text-warn">
+                issuing… {issuing}
+              </p>
+            )}
+            {error !== "" && (
+              <p className="flex flex-wrap items-center gap-3 font-mono text-[11.5px] text-crit">
+                <span>{error}</span>
+                {failedIssue && (
+                  <button
+                    onClick={() => issue(true)}
+                    disabled={busy}
+                    className="rounded border border-crit/40 px-2.5 py-1 text-[11px] uppercase tracking-[0.08em] transition-colors hover:bg-crit/10 disabled:opacity-50"
+                  >
+                    retry issue
+                  </button>
+                )}
+              </p>
+            )}
           </div>
         </div>
 
