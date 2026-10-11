@@ -7,30 +7,98 @@ import { Separator } from "@/components/ui/separator";
 import { Soffit } from "@/components/fx/soffit";
 import { SoftSurfaceButton } from "@/components/fx/study-buttons";
 import { InfoModal } from "@/components/site/info-modal";
+import { Turnstile } from "@/components/site/turnstile";
 import { Logo } from "@/components/site/logo";
+import { sendContact } from "@/lib/api";
 
-const FAQS = [
+type AnswerSeg = { t: string; href?: string };
+
+const FAQS: Array<{ q: string; a: AnswerSeg[] }> = [
   {
     q: "Will Intellirity slow down our AI?",
-    a: "Verdicts compute inline on every call with async enforcement, so your users never wait on security. Measured latency is shown live in the dashboard.",
+    a: [
+      { t: "No. Verdicts compute inline with async enforcement, so users never wait on security. The live round-trip is measured on every page — open the " },
+      { t: "dashboard", href: "/console" },
+      { t: " and watch the mesh-health readout in the sidebar." },
+    ],
   },
   {
     q: "Which models and frameworks are supported?",
-    a: "Anything that speaks text: OpenAI, Anthropic, Google, Mistral, Llama, plus LangChain, LlamaIndex, Bedrock, Vertex, and raw HTTP endpoints. If it prompts, we guard it.",
+    a: [
+      { t: "Anything that speaks text: OpenAI, Anthropic, Google, Mistral, Llama, plus LangChain, Bedrock, Vertex, and raw HTTP. Register each endpoint under " },
+      { t: "Models & agents", href: "/console/models" },
+      { t: " and scan it against the live engine." },
+    ],
+  },
+  {
+    q: "Can we attack it ourselves before buying?",
+    a: [
+      { t: "Please do. Paste a jailbreak into the " },
+      { t: "live scanner", href: "/console/scanner" },
+      { t: " and watch the verdict stream, or run the full barrage across six detection modules." },
+    ],
   },
   {
     q: "Where does our data live?",
-    a: "Verdict metadata is yours. We never train on your traffic. Self-hosted deployments keep everything inside your VPC with a local evidence vault.",
+    a: [
+      { t: "With you. Verdict metadata is yours and we never train on traffic. Every decision lands in the tamper-evident " },
+      { t: "evidence vault", href: "/console/audit" },
+      { t: ", verifiable any time." },
+    ],
+  },
+  {
+    q: "What happens when the AI tries something risky?",
+    a: [
+      { t: "Dangerous actions are held in " },
+      { t: "agent escrow", href: "/console/escrow" },
+      { t: " until a human approves them, and every approval carries a signed " },
+      { t: "proof of intent", href: "/console/proof" },
+      { t: "." },
+    ],
   },
   {
     q: "How is this different from a WAF?",
-    a: "WAFs understand HTTP. Intellirity understands intent: semantic injection, multi-turn jailbreak chains, agent abuse, and exfiltration patterns no regex will ever catch.",
+    a: [
+      { t: "WAFs understand HTTP. Intellirity understands intent: semantic injection, multi-turn jailbreak chains, agent abuse, and exfiltration. See each control mapped to its live tab on the " },
+      { t: "platform", href: "#platform" },
+      { t: " section." },
+    ],
+  },
+  {
+    q: "How much does it cost?",
+    a: [
+      { t: "Starter workspaces begin at ₹99/month and Growth at ₹3,999. Compare every tier in " },
+      { t: "pricing", href: "#pricing" },
+      { t: "." },
+    ],
   },
 ];
+
+function FaqJsonLd() {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQS.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: f.a.map((s) => s.t).join(""),
+      },
+    })),
+  };
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+    />
+  );
+}
 
 export function Faq() {
   return (
     <section className="relative z-10 mx-auto max-w-[860px] px-6 py-24 md:py-32">
+      <FaqJsonLd />
       <div className="mb-10">
         <div className="reveal mb-4 flex items-center gap-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-faint">
             <span className="text-steel">07</span>
@@ -61,7 +129,17 @@ export function Faq() {
               </Accordion.Trigger>
             </Accordion.Header>
             <Accordion.Content className="overflow-hidden data-[state=closed]:animate-[acc-up_0.25s_ease] data-[state=open]:animate-[acc-down_0.3s_cubic-bezier(0.16,1,0.3,1)]">
-              <p className="px-6 pb-6 pl-[3.7rem] text-[14px] leading-relaxed text-dim">{f.a}</p>
+              <p className="px-6 pb-6 pl-[3.7rem] text-[14px] leading-relaxed text-dim">
+                {f.a.map((seg, j) =>
+                  seg.href ? (
+                    <a key={j} href={seg.href} className="text-ink underline decoration-steel/60 underline-offset-2 transition-colors hover:decoration-ink">
+                      {seg.t}
+                    </a>
+                  ) : (
+                    <span key={j}>{seg.t}</span>
+                  )
+                )}
+              </p>
             </Accordion.Content>
           </Accordion.Item>
         ))}
@@ -104,9 +182,95 @@ export function FinalCta() {
               <ArrowUpRight className="size-4 opacity-60" />
             </a>
           </div>
+          <ContactForm />
         </div>
       </div>
     </section>
+  );
+}
+
+function ContactForm() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [token, setToken] = useState("");
+  const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [note, setNote] = useState("");
+
+  async function submit() {
+    if (state === "sending") return;
+    if (!name.trim() || !email.trim() || !message.trim()) {
+      setState("error");
+      setNote("Name, email, and message are all required.");
+      return;
+    }
+    setState("sending");
+    setNote("");
+    try {
+      const r = await sendContact({
+        name: name.trim(),
+        email: email.trim(),
+        subject: "Landing contact",
+        message: message.trim(),
+        ...(token !== "" ? { turnstile_token: token } : {}),
+      });
+      setState("sent");
+      setNote(`Received · ticket ${r.ticket}. We reply on business days.`);
+      setName("");
+      setEmail("");
+      setMessage("");
+    } catch (e) {
+      setState("error");
+      setNote(e instanceof Error ? e.message : "Send failed — try again.");
+    }
+  }
+
+  if (state === "sent") {
+    return <p className="mx-auto mt-8 max-w-md font-mono text-[12px] text-[#14161a]/80">{note}</p>;
+  }
+
+  return (
+    <div className="mx-auto mt-8 max-w-md">
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Name"
+          aria-label="Name"
+          spellCheck={false}
+          className="h-10 flex-1 rounded border border-[#14161a]/25 bg-white/60 px-3 text-[13px] text-[#14161a] placeholder:text-[#14161a]/50 focus:border-[#14161a]/60 focus:outline-none"
+        />
+        <input
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Work email"
+          aria-label="Work email"
+          inputMode="email"
+          spellCheck={false}
+          className="h-10 flex-1 rounded border border-[#14161a]/25 bg-white/60 px-3 text-[13px] text-[#14161a] placeholder:text-[#14161a]/50 focus:border-[#14161a]/60 focus:outline-none"
+        />
+      </div>
+      <textarea
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder="What should we guard for you?"
+        aria-label="Message"
+        rows={3}
+        spellCheck={false}
+        className="mt-2 w-full rounded border border-[#14161a]/25 bg-white/60 p-3 text-[13px] text-[#14161a] placeholder:text-[#14161a]/50 focus:border-[#14161a]/60 focus:outline-none"
+      />
+      <div className="mt-3 flex flex-col items-center gap-3">
+        <Turnstile onToken={setToken} />
+        <button
+          onClick={submit}
+          disabled={state === "sending"}
+          className="inline-flex h-10 items-center rounded bg-[#14161a] px-6 text-[13px] font-medium text-white transition-transform duration-300 hover:scale-[1.02] disabled:opacity-60"
+        >
+          {state === "sending" ? "sending…" : "Contact sales"}
+        </button>
+        {note !== "" && <p className="font-mono text-[11.5px] text-[#a33]">{note}</p>}
+      </div>
+    </div>
   );
 }
 

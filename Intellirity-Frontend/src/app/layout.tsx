@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import { DarkEnforcer } from "@/components/fx/dark-enforcer";
+import { Analytics } from "@/components/site/analytics";
 import { AuthBridge } from "@/components/site/auth-bridge";
 
 /* Clerk activates only once NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY exists.
@@ -132,6 +133,7 @@ export default function RootLayout({
   const bodyInner = (
     <>
       <DarkEnforcer />
+      <Analytics />
       {children}
       <JsonLd />
     </>

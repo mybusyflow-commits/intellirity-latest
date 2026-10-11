@@ -126,6 +126,7 @@ export function sendContact(payload: {
   email: string;
   subject: string;
   message: string;
+  turnstile_token?: string;
 }) {
   return req<{ ok: boolean; ticket: string; message: string }>("/system/contact", {
     method: "POST",

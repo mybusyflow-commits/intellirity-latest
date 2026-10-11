@@ -1,11 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/console/sidebar";
 import { Topbar, MobileNav } from "@/components/console/topbar";
 
+/* Per-tab document titles (client pages cannot export metadata). */
+const TAB_TITLES: Record<string, string> = {
+  "/console": "Overview",
+  "/console/scanner": "Scanner",
+  "/console/verdicts": "Verdicts",
+  "/console/leakage": "Leakage guard",
+  "/console/anomalies": "Anomalies",
+  "/console/proof": "Proof of intent",
+  "/console/flow": "Data flow",
+  "/console/content": "Content guard",
+  "/console/behavior": "Agent behavior",
+  "/console/intel": "Threat intel",
+  "/console/wallet": "Wallet guard",
+  "/console/models": "Models & agents",
+  "/console/policies": "Policies",
+  "/console/escrow": "Agent escrow",
+  "/console/audit": "Audit log",
+};
+
 export function ConsoleShell({ children }: { children: React.ReactNode }) {
   const [navOpen, setNavOpen] = useState(false);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    document.title = `${TAB_TITLES[pathname] ?? "Console"} · Intellirity Console`;
+  }, [pathname]);
 
   return (
     <div className="min-h-screen bg-bg text-ink">

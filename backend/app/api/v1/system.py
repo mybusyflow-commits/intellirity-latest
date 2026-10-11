@@ -1,7 +1,7 @@
 import asyncio
 import random
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
 from app.api.v1.threats import add_threat_event, get_threats_store
@@ -136,13 +136,21 @@ class ContactMessage(BaseModel):
     email: str
     subject: str = ""
     message: str
+    turnstile_token: str = ""
 
 
 _contact_store: list[dict] = []
 
 
 @router.post("/contact")
-async def contact(msg: ContactMessage):
+async def contact(msg: ContactMessage, request: Request):
+    from fastapi import HTTPException
+    from app.services.turnstile import verify_turnstile
+
+    client_ip = request.client.host if request.client else ""
+    ok, reason = verify_turnstile(msg.turnstile_token, client_ip)
+    if not ok:
+        raise HTTPException(status_code=403, detail=f"Spam check failed: {reason}")
     ticket = f"INT-{len(_contact_store) + 1001}"
     _contact_store.append({
         "ticket": ticket,

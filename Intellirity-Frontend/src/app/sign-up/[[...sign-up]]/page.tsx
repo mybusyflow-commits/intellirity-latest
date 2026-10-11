@@ -7,7 +7,18 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Sign up",
   description: "Create an Intellirity account.",
+  openGraph: {
+    title: "Sign up · Intellirity",
+    description: "Create an Intellirity account.",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["/og-image.png"],
+  },
 };
+
+const CLERK_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 export default function SignUpPage() {
   return (
@@ -16,8 +27,24 @@ export default function SignUpPage() {
         <div className="mb-8 flex justify-center">
           <Logo />
         </div>
-        {/* Appearance is themed with Clerk keys live; defaults until then. */}
-        <SignUp />
+        {CLERK_KEY ? (
+          <SignUp />
+        ) : (
+          <div className="panel rounded-lg p-8 text-center">
+            <p className="font-mono text-[12px] uppercase tracking-[0.14em] text-dim">
+              sign-up not configured
+            </p>
+            <p className="mt-3 text-[13.5px] leading-relaxed text-faint">
+              Add Clerk keys to enable authentication, or continue to the live console.
+            </p>
+            <a
+              href="/console"
+              className="mt-5 inline-flex h-10 items-center rounded bg-ink px-5 text-[13px] font-medium text-bg transition-colors hover:bg-white"
+            >
+              Open console
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );

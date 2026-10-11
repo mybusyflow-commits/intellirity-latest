@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { Logo } from "@/components/site/logo";
+
+export const metadata: Metadata = {
+  title: "Page not found",
+  description: "This path is not guarded. Return to Intellirity.",
+};
 
 export default function NotFound() {
   return (
