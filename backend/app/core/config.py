@@ -3,6 +3,30 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://intellirity:intellirity_secret@localhost:5432/intellirity_db"
+
+    from pydantic import field_validator
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def _normalize_url(cls, v):
+        # Neon dashboards hand out plain postgresql:// URLs with libpq-style
+        # query params. Our engine is async: force the asyncpg dialect (or
+        # SQLAlchemy falls back to the uninstalled psycopg2 driver and boot
+        # crashes) and strip params asyncpg.connect() does not accept
+        # (sslmode/channel_binding are translated to connect_args instead).
+        if not isinstance(v, str):
+            return v
+        if v.startswith("postgresql://"):
+            v = v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        try:
+            from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+
+            parts = urlsplit(v)
+            q = [(k, val) for k, val in parse_qsl(parts.query) if k not in ("sslmode", "channel_binding")]
+            v = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(q), parts.fragment))
+        except Exception:
+            pass
+        return v
     SECRET_KEY: str = "dev-secret-key"
     CLERK_SECRET_KEY: str = ""
     CLERK_PUBLISHABLE_KEY: str = ""
