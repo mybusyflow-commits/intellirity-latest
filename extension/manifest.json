@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Intellirity Prompt Shield",
+  "version": "0.1.0",
+  "description": "Screen prompts for injection, jailbreaks and leaks before you send them to any AI.",
+  "permissions": ["storage"],
+  "host_permissions": ["http://localhost:8000/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Scan with Intellirity"
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}

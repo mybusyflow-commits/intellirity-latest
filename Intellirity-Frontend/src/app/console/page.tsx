@@ -55,6 +55,17 @@ function toAction(sev: string): Action {
   return s === "high" ? "BLOCK" : s === "medium" ? "FLAG" : "ALLOW";
 }
 
+function ago(iso: string | undefined): string {
+  const ts = Date.parse(iso ?? "");
+  if (Number.isNaN(ts)) return "now";
+  const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
+  if (s < 5) return "now";
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  return `${Math.floor(m / 60)}h ago`;
+}
+
 function bucketize(threats: Threat[], hours: number) {
   const now = Date.now();
   const size = (hours * 3600 * 1000) / 24;
@@ -97,7 +108,7 @@ export default function OverviewPage() {
       }
     };
     load();
-    const id = setInterval(load, 15000);
+    const id = setInterval(load, 5000);
     return () => {
       live = false;
       clearInterval(id);
@@ -201,7 +212,7 @@ export default function OverviewPage() {
                     </span>
                     <span className="truncate font-mono text-[12px] text-ink/85">{t.threat_type}</span>
                     <span className="ml-auto shrink-0 font-mono text-[11px] tabular-nums text-faint">
-                      {(t.created_at ?? "").slice(11, 16) || "now"}
+                      {ago(t.created_at)}
                     </span>
                   </motion.div>
                 );
@@ -239,7 +250,7 @@ export default function OverviewPage() {
                     <span className="min-w-0">
                       <span className="block truncate text-[13px]">{t.threat_type}</span>
                       <span className="mt-0.5 block font-mono text-[11px] text-faint">
-                        {t.source} · {(t.created_at ?? "").slice(11, 16)}
+                        {t.source} · {ago(t.created_at)}
                       </span>
                     </span>
                   </Link>

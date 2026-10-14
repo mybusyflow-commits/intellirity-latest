@@ -1,62 +1,87 @@
 "use client";
 
-import { useState } from "react";
-import { Check } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Period = "monthly" | "annual";
-
-type Plan = {
+interface Product {
+  id: string;
   name: string;
+  price: number;
   blurb: string;
-  monthly?: number;
-  annual?: number;
-  custom?: boolean;
-  cta: string;
-  featured: boolean;
-  features: string[];
-};
+  engines: string[];
+  href: string;
+  tier: "basic" | "core";
+}
 
-const PLANS: Plan[] = [
-  {
-    name: "Starter",
-    blurb: "For individuals and teams starting to secure their AI.",
-    monthly: 99,
-    annual: 79,
-    cta: "Start free trial",
-    featured: false,
-    features: [
-      "Adversarial endpoint scanner",
-      "Prompt injection and jailbreak detection",
-      "Basic code security scan",
-      "Data leakage protection",
-      "Real-time threat monitoring",
-      "Live security dashboard",
-    ],
-  },
-  {
-    name: "Growth",
-    blurb: "For teams running AI in production.",
-    monthly: 3999,
-    annual: 3199,
-    cta: "Start free trial",
-    featured: true,
-    features: [
-      "Everything in Starter",
-      "Behavioral anomaly detection",
-      "AI action policy enforcement",
-      "Deep code scan (SQLi, XSS, command injection, SSRF, weak crypto, headers)",
-      "Data flow tracker",
-      "Black box audit ledger",
-      "Verifiable proof of intent",
-      "Autonomous escrow",
-      "Workflow anomaly detection",
-    ],
-  },
+/* Mirrors the engine's catalogue; used only if the backend is unreachable. */
+const FALLBACK: Product[] = [
+  { id: "injection-shield", name: "Injection Shield", price: 99, blurb: "Jailbreak + advanced encoding defense.", engines: [], href: "/console/scanner", tier: "basic" },
+  { id: "vibe-code", name: "Vibe-Code Security", price: 99, blurb: "SQLi, XSS, secrets and supply-chain checks.", engines: [], href: "/console/scanner", tier: "basic" },
+  { id: "leakage-guard", name: "Leakage Guard", price: 99, blurb: "PII, secrets and pipeline-hop tracing.", engines: [], href: "/console/leakage", tier: "basic" },
+  { id: "content-guard", name: "Content Guard", price: 79, blurb: "Spam, abuse and violence screening.", engines: [], href: "/console/content", tier: "basic" },
+  { id: "agent-guard", name: "Agent Guard", price: 99, blurb: "Policy, drift, MCP and workflow checks.", engines: [], href: "/console/behavior", tier: "basic" },
+  { id: "wallet-guard", name: "Wallet Guard", price: 79, blurb: "Runaway AI spend stopped early.", engines: [], href: "/console/wallet", tier: "basic" },
+  { id: "escrow", name: "Agent Escrow", price: 399, blurb: "Oracle-verified custody for agent value.", engines: [], href: "/console/escrow", tier: "core" },
+  { id: "ledger", name: "Evidence Ledger", price: 299, blurb: "Tamper-evident vault for every decision.", engines: [], href: "/console/audit", tier: "core" },
+  { id: "vpi", name: "Proof of Intent", price: 299, blurb: "Signed human authorization per action.", engines: [], href: "/console/proof", tier: "core" },
 ];
 
 export function Pricing() {
-  const [period, setPeriod] = useState<Period>("annual");
+  const [products, setProducts] = useState<Product[]>(FALLBACK);
+  const [live, setLive] = useState(false);
+  const [selected, setSelected] = useState<string[]>(["injection-shield", "leakage-guard"]);
+  const [order, setOrder] = useState<{ order_id: string; total_inr: number; status: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let on = true;
+    fetch("/backend/billing/products")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (on && j && Array.isArray(j.products) && j.products.length > 0) {
+          setProducts(j.products);
+          setLive(true);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      on = false;
+    };
+  }, []);
+
+  const total = useMemo(
+    () => products.filter((p) => selected.includes(p.id)).reduce((s, p) => s + p.price, 0),
+    [products, selected]
+  );
+
+  const toggle = (id: string) =>
+    setSelected((ss) => (ss.includes(id) ? ss.filter((x) => x !== id) : [...ss, id]));
+
+  async function checkout() {
+    if (selected.length === 0 || busy) return;
+    setBusy(true);
+    setError("");
+    setOrder(null);
+    try {
+      const r = await fetch("/backend/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ modules: selected }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.detail ?? "Checkout failed");
+      setOrder({ order_id: j.order_id, total_inr: j.total_inr, status: j.status });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Checkout failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const basics = products.filter((p) => p.tier === "basic");
+  const core = products.filter((p) => p.tier === "core");
 
   return (
     <section id="pricing" className="relative z-10 mx-auto max-w-[1240px] px-6 py-24 md:py-32">
@@ -68,103 +93,108 @@ export function Pricing() {
             pricing
           </div>
           <h2 className="reveal max-w-xl font-display text-[clamp(1.9rem,3.8vw,2.9rem)] font-medium leading-[1.08] tracking-[-0.025em]">
-            Pay for coverage, not for seats.
+            One plan. Pick your modules.
           </h2>
+          <p className="reveal mt-4 max-w-lg text-[14.5px] leading-relaxed text-dim">
+            No tiers, no seats. Toggle the coverage you need — basics from ₹79,
+            the trust core up to ₹399 — and pay exactly the sum.
+            {live ? " Prices live from billing." : ""}
+          </p>
         </div>
-
-        <div className="reveal inline-flex items-center rounded border border-line bg-raise p-0.5 font-mono text-[12px]">
-          {(["monthly", "annual"] as Period[]).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              aria-pressed={period === p}
-              className={cn(
-                "rounded-[3px] px-4 py-2 uppercase tracking-[0.1em] transition-colors",
-                period === p ? "bg-ink text-bg" : "text-faint hover:text-dim"
-              )}
-            >
-              {p}
-              {p === "annual" && <span className="ml-1.5 normal-case tracking-normal">−20%</span>}
-            </button>
-          ))}
+        <div className="reveal w-full rounded-lg border border-line bg-raise p-5 md:w-72">
+          <div className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-faint">
+            your bundle · {selected.length} module{selected.length === 1 ? "" : "s"}
+          </div>
+          <div className="mt-1 font-display text-[40px] font-medium tabular-nums">
+            ₹{total.toLocaleString("en-IN")}
+            <span className="font-mono text-[12px] text-faint">/mo</span>
+          </div>
+          <button
+            onClick={checkout}
+            disabled={busy || selected.length === 0}
+            className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-ink text-[13.5px] font-medium text-bg transition-colors hover:bg-white disabled:opacity-60"
+          >
+            {busy ? "creating order…" : "Checkout bundle"}
+            <ArrowRight className="size-4" />
+          </button>
+          {order && (
+            <p className="mt-2.5 font-mono text-[11px] leading-relaxed text-ok">
+              {order.order_id} · ₹{order.total_inr.toLocaleString("en-IN")} · {order.status}
+            </p>
+          )}
+          {error !== "" && (
+            <p className="mt-2.5 font-mono text-[11px] leading-relaxed text-crit">{error}</p>
+          )}
         </div>
       </div>
 
-      <div className="mx-auto grid max-w-3xl gap-3 md:grid-cols-2">
-        {PLANS.map((plan) => {
-          const price = plan.custom
-            ? null
-            : period === "monthly"
-              ? (plan.monthly ?? 0)
-              : (plan.annual ?? 0);
-          return (
-            <article
-              key={plan.name}
-              className={cn(
-                "reveal relative flex flex-col rounded-lg border p-7 md:p-8",
-                plan.featured ? "border-steel/50 bg-raise" : "border-line bg-bg"
-              )}
-            >
-              {plan.featured && (
-                <div className="absolute right-6 top-6 rounded border border-line-strong px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-dim">
-                  most deployed
-                </div>
-              )}
-
-              <h3 className="font-mono text-[12px] uppercase tracking-[0.16em] text-dim">
-                {plan.name}
-              </h3>
-              <p className="mt-1.5 text-[13.5px] text-faint">{plan.blurb}</p>
-
-              <div className="mt-7 flex items-baseline gap-1.5">
-                {plan.custom || price === null ? (
-                  <span className="text-[40px] font-medium tracking-[-0.025em]">Custom</span>
-                ) : (
-                  <>
-                    <span
-                      key={period}
-                      className="animate-in fade-in slide-in-from-bottom-1 font-display text-[44px] font-medium tabular-nums tracking-[-0.025em]"
-                    >
-                      ₹{price.toLocaleString("en-IN")}
-                    </span>
-                    <span className="font-mono text-[12px] text-faint">/mo</span>
-                  </>
-                )}
-              </div>
-              {!plan.custom && price !== null && price > 0 && (
-                <div className="mt-1 font-mono text-[10.5px] text-faint">
-                  {period === "annual" ? "billed annually" : "billed monthly"} · per workspace
-                </div>
-              )}
-
-              <ul className="mt-7 flex flex-1 flex-col gap-2.5 border-t border-line pt-6">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-[13.5px] text-dim">
-                    <Check className="mt-0.5 size-4 shrink-0 text-steel" strokeWidth={1.75} />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-
-              <a
-                href="#contact"
-                className={cn(
-                  "mt-8 inline-flex h-10 items-center justify-center rounded text-[13.5px] font-medium transition-colors",
-                  plan.featured
-                    ? "bg-ink text-bg hover:bg-white"
-                    : "border border-line-strong text-ink hover:border-ink/40 hover:bg-white/[0.03]"
-                )}
-              >
-                {plan.cta}
-              </a>
-            </article>
-          );
-        })}
+      {(basics.length > 0 || core.length > 0) && (
+        <p className="reveal mb-4 font-mono text-[11px] uppercase tracking-[0.16em] text-faint">
+          basics · ₹79–99
+        </p>
+      )}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {basics.map((p) => (
+          <ModuleCard key={p.id} p={p} on={selected.includes(p.id)} onToggle={() => toggle(p.id)} />
+        ))}
       </div>
-
-      <p className="reveal mt-6 text-center font-mono text-[11px] text-faint">
-        every plan ships the full layered policy bundle · cancel anytime
-      </p>
+      {core.length > 0 && (
+        <p className="reveal mb-4 mt-10 font-mono text-[11px] uppercase tracking-[0.16em] text-faint">
+          trust core · ₹299–399
+        </p>
+      )}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {core.map((p) => (
+          <ModuleCard key={p.id} p={p} on={selected.includes(p.id)} onToggle={() => toggle(p.id)} />
+        ))}
+      </div>
     </section>
+  );
+}
+
+function ModuleCard({ p, on, onToggle }: { p: Product; on: boolean; onToggle: () => void }) {
+  return (
+    <article
+      className={cn(
+        "reveal relative flex flex-col rounded-lg border p-6 transition-colors",
+        on ? "border-steel/60 bg-raise" : "border-line bg-bg"
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="font-mono text-[12px] uppercase tracking-[0.16em] text-dim">{p.name}</h3>
+        <button
+          role="switch"
+          aria-checked={on}
+          aria-label={`${on ? "Remove" : "Add"} ${p.name}`}
+          onClick={onToggle}
+          className={cn(
+            "relative h-5 w-9 shrink-0 rounded-full border transition-colors",
+            on ? "border-ink/60 bg-ink" : "border-line-strong bg-sunken"
+          )}
+        >
+          <span
+            className={cn(
+              "absolute top-1/2 size-3.5 -translate-y-1/2 rounded-full transition-all",
+              on ? "left-[18px] bg-bg" : "left-[3px] bg-faint"
+            )}
+          />
+        </button>
+      </div>
+      <p className="mt-1.5 min-h-[42px] text-[13.5px] text-faint">{p.blurb}</p>
+      <div className="mt-4 flex items-baseline gap-1.5">
+        <span className="font-display text-[36px] font-medium tabular-nums tracking-[-0.025em]">
+          ₹{p.price.toLocaleString("en-IN")}
+        </span>
+        <span className="font-mono text-[12px] text-faint">/mo</span>
+      </div>
+      <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
+        <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-faint">
+          {p.engines.length > 0 ? `${p.engines.length} engines` : "live module"}
+        </span>
+        <a href={p.href} className="inline-flex items-center gap-1 text-[12.5px] text-dim transition-colors hover:text-ink">
+          Try live <Check className="size-3.5 text-ok" strokeWidth={2} />
+        </a>
+      </div>
+    </article>
   );
 }

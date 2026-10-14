@@ -97,7 +97,7 @@ def _reject_oversize(payload: dict) -> None:
 
 
 @router.post("/{module_id}/scan")
-async def run_module_scan(module_id: str, payload: dict):
+async def run_module_scan(module_id: str, payload: dict, user: dict = Depends(require_user)):
     if module_id not in FEATURE_REGISTRY:
         raise HTTPException(status_code=404, detail=f"Module {module_id} not found")
     _reject_oversize(payload)
@@ -105,6 +105,14 @@ async def run_module_scan(module_id: str, payload: dict):
     check_result = check_entitlement(module_id, get_customer_features())
     if not check_result["allowed"]:
         raise HTTPException(status_code=403, detail=check_result["message"])
+
+    # Billing enforcement: off in open/dev mode, on with BILLING_ENFORCED.
+    from app.services import billing as billing_store
+
+    owner = str((user or {}).get("sub") or (user or {}).get("user_id") or "local-dev")
+    allowed, reason = billing_store.engine_allowed(module_id, owner)
+    if not allowed:
+        raise HTTPException(status_code=403, detail=reason)
 
     module_info = FEATURE_REGISTRY[module_id]
     module_func = module_info["function"]

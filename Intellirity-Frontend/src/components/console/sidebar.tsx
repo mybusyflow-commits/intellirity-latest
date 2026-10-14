@@ -27,21 +27,21 @@ const SECTIONS: Array<{
   {
     title: "Defend",
     items: [
-      { num: "10", href: "/console/proof", label: "Proof of intent", icon: Fingerprint },
-      { num: "11", href: "/console/flow", label: "Data flow", icon: Waypoints },
-      { num: "12", href: "/console/content", label: "Content guard", icon: ShieldAlert },
-      { num: "13", href: "/console/behavior", label: "Agent behavior", icon: Bot },
-      { num: "14", href: "/console/intel", label: "Threat intel", icon: Globe, hint: "live" },
-      { num: "15", href: "/console/wallet", label: "Wallet guard", icon: Wallet },
+      { num: "06", href: "/console/proof", label: "Proof of intent", icon: Fingerprint },
+      { num: "07", href: "/console/flow", label: "Data flow", icon: Waypoints },
+      { num: "08", href: "/console/content", label: "Content guard", icon: ShieldAlert },
+      { num: "09", href: "/console/behavior", label: "Agent behavior", icon: Bot },
+      { num: "10", href: "/console/intel", label: "Threat intel", icon: Globe, hint: "live" },
+      { num: "11", href: "/console/wallet", label: "Wallet guard", icon: Wallet },
     ],
   },
   {
     title: "Govern",
     items: [
-      { num: "06", href: "/console/models", label: "Models & agents", icon: Boxes },
-      { num: "07", href: "/console/policies", label: "Policies", icon: ShieldCheck },
-      { num: "08", href: "/console/escrow", label: "Agent escrow", icon: Landmark },
-      { num: "09", href: "/console/audit", label: "Audit log", icon: FileSearch },
+      { num: "12", href: "/console/models", label: "Models & agents", icon: Boxes },
+      { num: "13", href: "/console/policies", label: "Policies", icon: ShieldCheck },
+      { num: "14", href: "/console/escrow", label: "Agent escrow", icon: Landmark },
+      { num: "15", href: "/console/audit", label: "Audit log", icon: FileSearch },
     ],
   },
 ];

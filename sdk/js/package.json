@@ -1,0 +1,11 @@
+{
+  "name": "@intellirity/shield",
+  "version": "0.1.0",
+  "description": "Intellirity AI security SDK for JavaScript/TypeScript",
+  "type": "module",
+  "main": "intellirity.js",
+  "exports": {
+    ".": "./intellirity.js"
+  },
+  "license": "MIT"
+}

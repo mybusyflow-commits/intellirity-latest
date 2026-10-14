@@ -42,22 +42,58 @@ async def create_org(
         "created_at": now,
         "owner_id": owner,
     }
+    from app.db.persist import is_connected
+
+    if is_connected():
+        try:
+            db_org = Organization(name=org.name, slug=org.slug, owner_id=owner)
+            db.add(db_org)
+            await db.commit()
+            await db.refresh(db_org)
+            return OrganizationResponse.model_validate(db_org)
+        except Exception as exc:
+            from sqlalchemy.exc import IntegrityError
+
+            await db.rollback()
+            # Duplicate slug is a real conflict, not a reason to fork state.
+            if isinstance(exc, IntegrityError) or "unique" in str(exc).lower():
+                raise HTTPException(status_code=409, detail=f"Slug '{org.slug}' is taken")
+    _memory_orgs.append(fallback)
+    return OrganizationResponse(**fallback)
+
+
+async def _db_orgs(owner: str) -> list[dict]:
+    """Best-effort read from Postgres; empty list when unconnected."""
     try:
-        db_org = Organization(name=org.name, slug=org.slug, owner_id=owner)
-        db.add(db_org)
-        await db.commit()
-        await db.refresh(db_org)
-        return OrganizationResponse.model_validate(db_org)
+        from app.db.persist import is_connected
+        from app.db.session import async_session
+        from sqlalchemy import select
+
+        if not is_connected():
+            return []
+        async with async_session() as session:
+            rows = (await session.execute(
+                select(Organization).where(Organization.owner_id == owner)
+            )).scalars().all()
+            return [{
+                "id": r.id, "name": r.name, "slug": r.slug, "plan": r.plan,
+                "is_active": r.is_active,
+                "created_at": r.created_at.isoformat() if r.created_at else "",
+            } for r in rows]
     except Exception:
-        _memory_orgs.append(fallback)
-        return OrganizationResponse(**fallback)
+        return []
 
 
 @router.get("/")
 async def list_organizations(user: dict = Depends(require_user)):
     owner = _identity(user)
-    mine = [OrganizationResponse(**o) for o in _memory_orgs if o.get("owner_id") == owner]
-    return {"organizations": mine}
+    seen: dict[str, dict] = {}
+    for o in _memory_orgs:
+        if o.get("owner_id") == owner:
+            seen[o["id"]] = o
+    for o in await _db_orgs(owner):
+        seen.setdefault(o["id"], o)
+    return {"organizations": [OrganizationResponse(**o) for o in seen.values()]}
 
 
 @router.get("/{org_id}", response_model=OrganizationResponse)
@@ -65,5 +101,8 @@ async def get_organization(org_id: str, user: dict = Depends(require_user)):
     owner = _identity(user)
     for o in _memory_orgs:
         if o.get("id") == org_id and o.get("owner_id") == owner:
+            return OrganizationResponse(**o)
+    for o in await _db_orgs(owner):
+        if o.get("id") == org_id:
             return OrganizationResponse(**o)
     raise HTTPException(status_code=404, detail=f"Organization {org_id} not found")

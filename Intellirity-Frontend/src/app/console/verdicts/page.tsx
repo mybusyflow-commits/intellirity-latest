@@ -26,12 +26,23 @@ function actionTone(a: Action) {
   return "text-dim border-line bg-white/[0.02]";
 }
 
+function ago(iso: string | undefined): string {
+  const ts = Date.parse(iso ?? "");
+  if (Number.isNaN(ts)) return "now";
+  const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
+  if (s < 5) return "now";
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  return `${Math.floor(m / 60)}h ago`;
+}
+
 function toVerdict(t: Threat): Verdict {
   const sev = t.severity.toLowerCase();
   const action: Action = sev === "high" ? "BLOCK" : sev === "medium" ? "FLAG" : "ALLOW";
   return {
     id: t.id,
-    time: (t.created_at ?? "").slice(11, 16) || "now",
+    time: ago(t.created_at),
     action,
     rule: t.threat_type,
     model: t.source,
@@ -58,7 +69,12 @@ export default function VerdictsPage() {
     setError("");
     try {
       const page = await getThreatsPage({ limit: PAGE_SIZE, severity: FILTER_SEVERITY[filter] });
-      setRows(page.items.map(toVerdict));
+      const fresh = page.items.map(toVerdict);
+      // Merge: newest first, loaded-more rows survive refreshes.
+      setRows((prev) => {
+        const seen = new Set(fresh.map((v) => v.id));
+        return [...fresh, ...prev.filter((v) => !seen.has(v.id))];
+      });
       setCursor(page.next_cursor);
       setHasMore(page.has_more);
     } catch (e) {
@@ -88,7 +104,7 @@ export default function VerdictsPage() {
 
   useEffect(() => {
     load();
-    const id = setInterval(load, 15000);
+    const id = setInterval(load, 5000);
     return () => clearInterval(id);
   }, [load]);
 
@@ -123,7 +139,7 @@ export default function VerdictsPage() {
   return (
     <div className="panel overflow-hidden rounded-lg">
       <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3.5">
-        <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)}>
+        <Tabs value={filter} onValueChange={(v) => { setRows([]); setCursor(null); setFilter(v as Filter); }}>
           <TabsList>
             {(["ALL", "BLOCK", "FLAG", "ALLOW"] as Filter[]).map((f) => (
               <TabsTrigger key={f} value={f}>

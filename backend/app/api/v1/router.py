@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from app.api.v1 import scans, threats, users, organizations, modules, system, reasoning, realtime, jobs
+from app.api.v1 import scans, threats, users, organizations, modules, system, reasoning, realtime, jobs, billing, proxy
 from app.core.security import require_user
 
 # Deploy posture: every router requires a valid session EXCEPT system
@@ -18,3 +18,5 @@ api_router.include_router(system.router, prefix="/system", tags=["system"])
 api_router.include_router(reasoning.router, prefix="/reasoning", tags=["reasoning"], dependencies=AUTH)
 api_router.include_router(realtime.router, prefix="/realtime", tags=["realtime"], dependencies=AUTH)
 api_router.include_router(jobs.router, prefix="/jobs", tags=["jobs"], dependencies=AUTH)
+api_router.include_router(billing.router, prefix="/billing", tags=["billing"])
+api_router.include_router(proxy.router, prefix="/proxy", tags=["proxy"], dependencies=AUTH)
