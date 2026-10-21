@@ -2,6 +2,7 @@ import base64
 import hashlib
 import hmac
 import json
+import os
 import time
 import urllib.request
 from typing import Optional
@@ -115,16 +116,113 @@ def verify_clerk_token(token: str, secret: str) -> dict:
     return payload
 
 
-def require_user(authorization: Optional[str] = Header(default=None)) -> dict:
+def require_user(
+    authorization: Optional[str] = Header(default=None),
+    x_api_key: Optional[str] = Header(default=None, alias="X-API-Key"),
+) -> dict:
     """
-    Dependency that enforces a valid Clerk session for protected routes.
+    Enforce a valid identity for protected routes.
+
+    Two identity paths:
+      1. `Authorization: Bearer <jwt>` — a Clerk session token (humans).
+      2. `X-API-Key: <key>` — a machine key for the SDKs and MCP server.
 
     When CLERK_SECRET_KEY is not configured the backend runs in open mode
-    (development), so the dependency is a no-op and routes stay accessible.
+    (development) and both paths are no-ops, so routes stay accessible.
+    In production, a missing key configuration is a hard error — the
+    service must never silently fall open.
     """
-    if not settings.CLERK_SECRET_KEY:
-        return {}
-    if not authorization or not authorization.lower().startswith("bearer "):
-        raise HTTPException(status_code=401, detail="Missing bearer token")
-    token = authorization.split(" ", 1)[1].strip()
-    return verify_clerk_token(token, settings.CLERK_SECRET_KEY)
+    # 1. Machine key (SDK / MCP / server-to-server).
+    if x_api_key:
+        identity = verify_api_key(x_api_key)
+        if identity is not None:
+            return identity
+        # A key was presented but is not valid. Reject it even in open
+        # mode: a client with a stale or mistyped key must never silently
+        # continue unauthenticated.
+        raise HTTPException(status_code=401, detail="Invalid API key")
+
+    # 2. Clerk session token.
+    if settings.CLERK_SECRET_KEY:
+        if not authorization or not authorization.lower().startswith("bearer "):
+            raise HTTPException(status_code=401, detail="Missing bearer token")
+        token = authorization.split(" ", 1)[1].strip()
+        return verify_clerk_token(token, settings.CLERK_SECRET_KEY)
+
+    # 3. Open mode (no auth configured at all).
+    if settings.ENVIRONMENT == "production":
+        raise HTTPException(
+            status_code=503,
+            detail="Authentication is not configured on this deployment",
+        )
+    if authorization:
+        # A token was presented but this deployment cannot validate it
+        # (CLERK_SECRET_KEY missing). Silently treating the request as
+        # anonymous would hide a broken deployment — fail loudly instead.
+        raise HTTPException(
+            status_code=503,
+            detail="This deployment cannot validate session tokens: CLERK_SECRET_KEY is not set",
+        )
+    return {}
+
+
+# ─── Machine API keys ─────────────────────────────────────────────────────────
+# Keys are matched by SHA-256 so the stored value is not the secret itself.
+#
+#   INTELLIRITY_API_KEYS        raw keys, comma separated (dev convenience)
+#   INTELLIRITY_API_KEY_HASHES  sha256 hex of each key, comma separated (prod)
+
+def _sha256_hex(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _api_keys_configured() -> bool:
+    return bool(_raw_api_keys() or _api_key_hashes())
+
+
+def _raw_api_keys() -> list[str]:
+    raw = os.getenv("INTELLIRITY_API_KEYS", "")
+    return [k.strip() for k in raw.split(",") if k.strip()]
+
+
+def _api_key_hashes() -> list[str]:
+    raw = os.getenv("INTELLIRITY_API_KEY_HASHES", "")
+    return [h.strip().lower() for h in raw.split(",") if h.strip()]
+
+
+def verify_api_key(key: str) -> Optional[dict]:
+    """Validate an X-API-Key. Returns a machine identity or None.
+
+    The identity is stable per key: `sub` is the key's fingerprint, so
+    ownership (orgs, billing, workspace) is consistent across requests
+    without ever storing the secret.
+    """
+    if not key or not isinstance(key, str):
+        return None
+    key = key.strip()
+    if not key:
+        return None
+
+    digest = _sha256_hex(key)
+    matched = False
+    for raw in _raw_api_keys():
+        if hmac.compare_digest(_sha256_hex(raw), digest):
+            matched = True
+            break
+    if not matched:
+        for h in _api_key_hashes():
+            if hmac.compare_digest(h, digest):
+                matched = True
+                break
+    if not matched:
+        return None
+
+    fingerprint = digest[:16]
+    return {
+        "sub": f"apikey:{fingerprint}",
+        "api_key_id": fingerprint,
+        "auth_mode": "api_key",
+        "email": None,
+        "name": f"API key {fingerprint[:8]}",
+        "role": "service",
+    }

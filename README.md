@@ -99,12 +99,37 @@ model is genuinely required (reasoning endpoint, reverse proxy upstream).
 | `OPENCODEZEN_BASE_URL` | backend | Any OpenAI-compatible gateway |
 | `OPENCODEZEN_MODEL` | backend | Pin a model (auto-discovered otherwise) |
 | `BACKEND_INTERNAL_URL` | frontend | Where `/backend/*` proxies to |
-| `CLERK_SECRET_KEY` | backend | Enables JWT auth; unset = open mode |
+| `CLERK_SECRET_KEY` | backend | Enables Clerk session auth; unset = open mode (dev) |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | frontend | Clerk UI |
+| `INTELLIRITY_API_KEYS` | backend | Machine keys for SDK/MCP, comma separated (dev) |
+| `INTELLIRITY_API_KEY_HASHES` | backend | SHA-256 hex of each machine key (production) |
 | `VPI_SIGNING_KEY` | backend | HMAC key for proof-of-intent certs |
 | `BILLING_ENFORCED` | backend | `true` enforces plan entitlements |
 | `TURNSTILE_SECRET` | backend | Cloudflare Turnstile on the contact form |
 | `INTELLIRITY_BASE_URL` / `INTELLIRITY_API_KEY` | SDK/MCP | Client targeting |
+
+## Authentication
+
+Two independent identity paths, both enforced by `require_user`:
+
+1. **Humans** — `Authorization: Bearer <Clerk session JWT>`. Verified by
+   RS256 against the Clerk JWKS (cached 1h) or HS256 with
+   `CLERK_SECRET_KEY`. The JWT payload is the identity (`sub`, email, org).
+2. **Machines** — `X-API-Key: <key>`, used by the Python/JS SDKs and the MCP
+   server. Keys are matched by SHA-256, so the stored value is not the
+   secret. A machine key gets a stable service identity
+   (`sub: apikey:<fingerprint>`) and owns its own workspace, orgs and
+   billing — it is never written to the `users` table.
+
+Failure behaviour is deliberate:
+
+| Situation | Result |
+|---|---|
+| No credentials, no auth configured (dev) | 200, open mode, identity `local-dev` |
+| Invalid `X-API-Key` | 401 (never silently anonymous) |
+| Bearer token present but `CLERK_SECRET_KEY` unset | 503 (loud misconfiguration) |
+| No auth configured and `ENVIRONMENT=production` | 503 (never open in prod) |
+| Expired / forged / unsigned JWT | 401 |
 
 ## Security notes
 

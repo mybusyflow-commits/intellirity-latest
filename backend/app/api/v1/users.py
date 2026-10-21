@@ -39,14 +39,18 @@ async def get_current_user(user: dict = Depends(require_user)):
     role = roles[0] if isinstance(roles, list) and roles else (roles if isinstance(roles, str) else "member")
 
     # Sync the identity into the users table so clerk_id is populated and
-    # the org/billing ownership has a durable owner.
-    from app.db.persist import upsert_user
-    row = await upsert_user({
-        "id": uid,
-        "email": email,
-        "name": full_name,
-        "organization_id": user.get("organization_id") or user.get("org_id"),
-    })
+    # the org/billing ownership has a durable owner. Machine keys are not
+    # users — they get their own service identity.
+    auth_mode = user.get("auth_mode", "verified")
+    row = None
+    if auth_mode != "api_key":
+        from app.db.persist import upsert_user
+        row = await upsert_user({
+            "id": uid,
+            "email": email,
+            "name": full_name,
+            "organization_id": user.get("organization_id") or user.get("org_id"),
+        })
 
     return {
         "id": row["id"] if row else uid,
@@ -55,7 +59,7 @@ async def get_current_user(user: dict = Depends(require_user)):
         "full_name": (row or {}).get("full_name") or full_name,
         "role": role,
         "organization": user.get("organization_id") or user.get("org_id"),
-        "auth_mode": "verified",
+        "auth_mode": auth_mode,
     }
 
 
