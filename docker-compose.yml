@@ -24,6 +24,9 @@ services:
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
       SECRET_KEY: ${SECRET_KEY:-your-super-secret-key-change-in-production}
+      VPI_SIGNING_KEY: ${VPI_SIGNING_KEY:-}
+      OPENCODEZEN_API_KEY: ${OPENCODEZEN_API_KEY:-}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
       ENVIRONMENT: development
     volumes:
       - ./backend:/app
@@ -33,16 +36,17 @@ services:
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: ./Intellirity-Frontend
     ports:
-      - "5173:5173"
+      - "3000:3000"
     environment:
-      VITE_CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
-      VITE_API_URL: http://localhost:8000
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      # Next.js reads env vars at build time for rewrites, so the backend URL
+      # is passed as a build arg as well as a runtime env var.
+      BACKEND_INTERNAL_URL: http://backend:8000/api/v1
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
+    depends_on:
+      - backend
     command: npm run dev
 
 volumes:

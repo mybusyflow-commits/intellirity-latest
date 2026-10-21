@@ -16,6 +16,17 @@ def denial_of_wallet_protector(payload: dict) -> dict:
     token_usage = payload.get("token_usage", {})
     config = payload.get("config", {})
 
+    # Callers send token_usage as a number or as {"total": n}; accept both.
+    if isinstance(token_usage, (int, float)):
+        token_usage = {"total": token_usage}
+    elif not isinstance(token_usage, dict):
+        token_usage = {}
+    if not isinstance(api_calls, list):
+        api_calls = []
+    api_calls = [c for c in api_calls if isinstance(c, dict)]
+    if not isinstance(config, dict):
+        config = {}
+
     alerts = []
     risk_score = 0.0
 
@@ -24,17 +35,19 @@ def denial_of_wallet_protector(payload: dict) -> dict:
     max_cost_per_session = config.get("max_cost_per_session", 50.0)
 
     total_tokens = token_usage.get("total", 0)
+    if not isinstance(total_tokens, (int, float)):
+        total_tokens = 0
     if total_tokens > max_tokens_per_session:
         alerts.append({"type": "token_limit", "detail": f"Used {total_tokens} tokens (limit: {max_tokens_per_session})", "severity": "high"})
         risk_score += 0.6
 
-    total_cost = sum(call.get("cost", 0) for call in api_calls)
+    total_cost = sum(call.get("cost", 0) or 0 for call in api_calls)
     if total_cost > max_cost_per_session:
         alerts.append({"type": "cost_limit", "detail": f"Cost ${total_cost:.2f} exceeds limit ${max_cost_per_session:.2f}", "severity": "high"})
         risk_score += 0.7
 
     if len(api_calls) >= 5:
-        costs = [call.get("cost", 0) for call in api_calls]
+        costs = [call.get("cost", 0) or 0 for call in api_calls]
         avg_cost = sum(costs) / len(costs)
         max_call_cost = max(costs)
         if max_call_cost > avg_cost * 5:
@@ -42,7 +55,7 @@ def denial_of_wallet_protector(payload: dict) -> dict:
             risk_score += 0.3
 
     if len(api_calls) >= 2:
-        timestamps = [c.get("timestamp", 0) for c in api_calls]
+        timestamps = [c.get("timestamp", 0) or 0 for c in api_calls]
         intervals = [timestamps[i+1] - timestamps[i] for i in range(len(timestamps)-1)]
         if intervals:
             avg_interval = sum(intervals) / len(intervals)

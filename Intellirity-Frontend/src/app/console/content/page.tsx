@@ -18,12 +18,13 @@ interface ContentResult {
   recommendation?: string;
 }
 
+// Category ids exactly as the engine emits them in findings[].category.
 const CATEGORIES = [
   { id: "spam", name: "Spam & scams", desc: "Bulk, phishing and fraud text" },
-  { id: "abuse", name: "Abuse & hate", desc: "Harassment, hate and threats" },
-  { id: "sexual", name: "Sexual content", desc: "Adult and exploitative material" },
+  { id: "abuse", name: "Abuse & hate", desc: "Harassment, hate, threats, severe profanity" },
+  { id: "sexual", name: "Sexual content", desc: "Adult content and minor-safety framing" },
   { id: "self-harm", name: "Self-harm", desc: "Suicide and injury content" },
-  { id: "violence", name: "Violence", desc: "Gore and extremist content" },
+  { id: "violence", name: "Violence", desc: "Gore and violent threats" },
 ];
 
 export default function ContentPage() {
@@ -119,7 +120,7 @@ export default function ContentPage() {
 
         <div className="panel flex flex-col overflow-hidden rounded-lg">
           <div className="border-b border-line px-5 py-3.5 font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
-            categories · 7 scored
+            categories · 5 scored
           </div>
           <ul>
             {CATEGORIES.map((c) => {

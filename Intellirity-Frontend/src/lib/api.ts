@@ -42,6 +42,9 @@ export interface Summary {
   compliance_score: number;
   total_scans: number;
   average_risk_score: number;
+  synthetic_threats?: number;
+  sample_threats?: number;
+  demo_feed?: boolean;
 }
 
 export interface Threat {
@@ -52,6 +55,7 @@ export interface Threat {
   description: string;
   is_resolved: boolean;
   created_at: string;
+  origin?: "detection" | "synthetic" | "sample";
 }
 
 export interface ScanRun {
@@ -166,3 +170,64 @@ export function ledger(action: string, payload: Record<string, unknown> = {}) {
     body: JSON.stringify({ action, ...payload }),
   });
 }
+
+/* ---------- workspace (model endpoints + policy packs) ---------- */
+
+export interface ModelEndpoint {
+  id: string;
+  kind: string;
+  paused: boolean;
+  last_risk: number | null;
+  last_scan: string | null;
+  created_at: string;
+}
+
+export interface PolicyPack {
+  id: string;
+  name: string;
+  desc: string;
+  version: string;
+  rules: number;
+  enabled: boolean;
+  updated_at: string;
+  promoted_at: string | null;
+  promoted_by: string | null;
+  approved_by?: string[];
+  promotions?: number;
+  yaml: string;
+}
+
+export const getModelEndpoints = () =>
+  req<{ models: ModelEndpoint[] }>("/workspace/models");
+
+export const registerModelEndpoint = (id: string, kind = "Custom") =>
+  req<{ model: ModelEndpoint }>("/workspace/models", {
+    method: "POST",
+    body: JSON.stringify({ id, kind }),
+  });
+
+export const setModelEndpointStatus = (id: string, paused: boolean) =>
+  req<{ model: ModelEndpoint }>(`/workspace/models/${encodeURIComponent(id)}/status`, {
+    method: "POST",
+    body: JSON.stringify({ paused }),
+  });
+
+export const recordModelScan = (id: string, riskScore: number) =>
+  req<{ model: ModelEndpoint }>(`/workspace/models/${encodeURIComponent(id)}/scan-result`, {
+    method: "POST",
+    body: JSON.stringify({ risk_score: riskScore }),
+  });
+
+export const getPolicyPacks = () => req<{ policies: PolicyPack[] }>("/workspace/policies");
+
+export const setPolicyEnabled = (id: string, enabled: boolean) =>
+  req<{ policy: PolicyPack }>(`/workspace/policies/${encodeURIComponent(id)}`, {
+    method: "POST",
+    body: JSON.stringify({ enabled }),
+  });
+
+export const promotePolicyPack = (id: string) =>
+  req<{ policy: PolicyPack; approved: boolean; approvals?: number; needs_second_approver?: boolean }>(
+    `/workspace/policies/${encodeURIComponent(id)}/promote`,
+    { method: "POST" }
+  );

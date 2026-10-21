@@ -28,6 +28,9 @@ class Settings(BaseSettings):
             pass
         return v
     SECRET_KEY: str = "dev-secret-key"
+    # Dedicated key for signing proof-of-intent certificates. When empty the
+    # app falls back to SECRET_KEY — set a real one in production.
+    VPI_SIGNING_KEY: str = ""
     CLERK_SECRET_KEY: str = ""
     CLERK_PUBLISHABLE_KEY: str = ""
     ENVIRONMENT: str = "development"

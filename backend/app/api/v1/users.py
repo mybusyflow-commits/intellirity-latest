@@ -4,18 +4,58 @@ from app.db.session import get_db
 from app.schemas.schemas import DashboardStats
 from app.api.v1.threats import get_threats_store
 from app.api.v1.scans import get_scans_store
+from app.core.security import require_user
 
 router = APIRouter()
 
 
 @router.get("/me")
-async def get_current_user():
+async def get_current_user(user: dict = Depends(require_user)):
+    """Identity of the caller, derived from the verified token.
+
+    In open mode (no CLERK_SECRET_KEY) the token is absent, so we say so
+    explicitly instead of pretending to be an admin.
+    """
+    if not user:
+        return {
+            "id": "local-dev",
+            "email": None,
+            "full_name": "Local developer",
+            "role": "owner",
+            "organization": None,
+            "auth_mode": "open",
+        }
+
+    uid = str(user.get("sub") or user.get("user_id") or "")
+    email = user.get("email") or user.get("primary_email_address")
+    full_name = (
+        user.get("name")
+        or user.get("full_name")
+        or " ".join(p for p in [user.get("first_name"), user.get("last_name")] if p)
+        or email
+        or uid
+    )
+    roles = user.get("roles") or user.get("role") or []
+    role = roles[0] if isinstance(roles, list) and roles else (roles if isinstance(roles, str) else "member")
+
+    # Sync the identity into the users table so clerk_id is populated and
+    # the org/billing ownership has a durable owner.
+    from app.db.persist import upsert_user
+    row = await upsert_user({
+        "id": uid,
+        "email": email,
+        "name": full_name,
+        "organization_id": user.get("organization_id") or user.get("org_id"),
+    })
+
     return {
-        "id": "usr-admin-01",
-        "email": "security@intellirity.com",
-        "full_name": "Intellirity Admin",
-        "role": "Security Officer",
-        "organization": "Enterprise Defense Corp",
+        "id": row["id"] if row else uid,
+        "clerk_id": uid,
+        "email": (row or {}).get("email") or email,
+        "full_name": (row or {}).get("full_name") or full_name,
+        "role": role,
+        "organization": user.get("organization_id") or user.get("org_id"),
+        "auth_mode": "verified",
     }
 
 

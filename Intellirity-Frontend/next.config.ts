@@ -1,12 +1,24 @@
 import type { NextConfig } from "next";
 
+// Where the Next server proxies /backend/* to. Local dev points at the
+// uvicorn process; in Docker Compose it is the "backend" service; on a
+// hosted deploy set BACKEND_INTERNAL_URL to the public API origin.
+const BACKEND_INTERNAL_URL =
+  process.env.BACKEND_INTERNAL_URL ?? "http://127.0.0.1:8000/api/v1";
+
+// On Vercel the API is the serverless function in this same project, and
+// vercel.json rewrites /backend/* to it. A next.config rewrite would
+// loop back on itself, so it is skipped there.
+const isVercel = Boolean(process.env.VERCEL);
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   async rewrites() {
+    if (isVercel) return [];
     return [
       {
         source: "/backend/:path*",
-        destination: "http://127.0.0.1:8000/api/v1/:path*",
+        destination: `${BACKEND_INTERNAL_URL}/:path*`,
       },
     ];
   },

@@ -105,10 +105,12 @@ function JsonLd() {
         operatingSystem: "Web",
         description: SITE_DESCRIPTION,
         offers: {
-          "@type": "Offer",
-          price: "99",
+          "@type": "AggregateOffer",
           priceCurrency: "INR",
-          description: "Starter workspace, per month",
+          lowPrice: "79",
+          highPrice: "399",
+          offerCount: "9",
+          description: "Per-module pricing, billed monthly. Prices are served live by the billing API.",
         },
       },
       {

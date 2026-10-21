@@ -16,6 +16,13 @@ def behavioral_analysis_engine(payload: dict) -> dict:
     current_action = payload.get("current_action", {})
     session_history = payload.get("session_history", [])
 
+    # Defensive normalization — malformed traces must not crash the engine.
+    if not isinstance(session_history, list):
+        session_history = []
+    session_history = [h for h in session_history if isinstance(h, dict)]
+    if not isinstance(current_action, dict):
+        current_action = {}
+
     anomalies = []
     risk_score = 0.0
 
@@ -151,12 +158,22 @@ def mcp_security_monitor(payload: dict) -> dict:
     raw_servers = payload.get("mcp_servers", [])
     agent_permissions = payload.get("agent_permissions", [])
 
+    if not isinstance(raw_calls, list):
+        raw_calls = []
+    if not isinstance(raw_servers, list):
+        raw_servers = []
+    if not isinstance(agent_permissions, list):
+        agent_permissions = []
+
     # Normalize: accept plain strings ("fs-local") as well as full dicts.
     tool_calls = [c if isinstance(c, dict) else {"tool": str(c)} for c in raw_calls]
     mcp_servers = [
         s if isinstance(s, dict) else {"name": str(s), "tools": []}
         for s in raw_servers
     ]
+    for s in mcp_servers:
+        if not isinstance(s.get("tools"), list):
+            s["tools"] = []
 
     findings = []
     risk_score = 0.0
@@ -176,8 +193,15 @@ def mcp_security_monitor(payload: dict) -> dict:
                 risk_score += 0.8
 
     for call in tool_calls:
-        tool_name = call.get("tool", "")
-        params = call.get("parameters", {})
+        # Accept "tool" (agent traces), "name" (MCP wire format) and
+        # "function.name" (OpenAI-style) as the tool identifier.
+        tool_name = call.get("tool") or call.get("name") or ""
+        fn = call.get("function")
+        if not tool_name and isinstance(fn, dict):
+            tool_name = fn.get("name", "")
+        params = call.get("parameters") or call.get("params") or call.get("args") or {}
+        if not isinstance(params, dict):
+            params = {}
 
         if tool_name not in agent_permissions and agent_permissions:
             findings.append({

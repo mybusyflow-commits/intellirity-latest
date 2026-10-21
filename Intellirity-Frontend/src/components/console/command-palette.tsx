@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpRight, Search } from "lucide-react";
-import { MODELS, POLICY_PACKS } from "@/lib/console-data";
+import { getModelEndpoints, getPolicyPacks, type ModelEndpoint, type PolicyPack } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type Entry = { label: string; hint: string; href: string; group: string };
@@ -33,8 +33,25 @@ export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(0);
+  const [models, setModels] = useState<ModelEndpoint[]>([]);
+  const [packs, setPacks] = useState<PolicyPack[]>([]);
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // The palette indexes what is actually registered on the engine — not a
+  // hardcoded list of model names with invented status.
+  useEffect(() => {
+    let alive = true;
+    getModelEndpoints()
+      .then((d) => alive && setModels(d.models))
+      .catch(() => undefined);
+    getPolicyPacks()
+      .then((d) => alive && setPacks(d.policies))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const setOpenWithReset = (v: boolean) => {
     if (v) {
@@ -63,20 +80,20 @@ export function CommandPalette() {
   const entries: Entry[] = useMemo(
     () => [
       ...PAGES,
-      ...MODELS.map((m) => ({
-        label: m.name,
-        hint: `${m.status} · ${m.vendor}`,
+      ...models.map((m) => ({
+        label: m.id,
+        hint: `${m.paused ? "paused" : "guarded"} · ${m.kind}`,
         href: "/console/models",
         group: "Models",
       })),
-      ...POLICY_PACKS.map((p) => ({
+      ...packs.map((p) => ({
         label: p.name,
         hint: `${p.version} · ${p.enabled ? "enforced" : "disabled"}`,
         href: "/console/policies",
         group: "Policies",
       })),
     ],
-    []
+    [models, packs]
   );
 
   const results = useMemo(() => {

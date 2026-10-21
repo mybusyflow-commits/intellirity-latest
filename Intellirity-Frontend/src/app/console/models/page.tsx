@@ -1,7 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { runScan, scanModule } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
+import {
+  runScan,
+  scanModule,
+  getModelEndpoints,
+  registerModelEndpoint,
+  setModelEndpointStatus,
+  recordModelScan,
+  type ModelEndpoint,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface SupplyResult {
@@ -11,23 +19,9 @@ interface SupplyResult {
   recommendation?: string;
 }
 
-interface Endpoint {
-  id: string;
-  kind: string;
-  paused: boolean;
-  lastRisk: number | null;
-  lastTime: string;
-  scanning: boolean;
-}
-
-const STARTERS: Endpoint[] = [
-  { id: "gpt-prod-01", kind: "OpenAI", paused: false, lastRisk: null, lastTime: "-", scanning: false },
-  { id: "claude-prod", kind: "Anthropic", paused: false, lastRisk: null, lastTime: "-", scanning: false },
-  { id: "chatbot-cust", kind: "Custom", paused: false, lastRisk: null, lastTime: "-", scanning: false },
-];
-
 export default function ModelsPage() {
-  const [models, setModels] = useState<Endpoint[]>(STARTERS);
+  const [models, setModels] = useState<ModelEndpoint[]>([]);
+  const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const [src, setSrc] = useState("huggingface.co/acmeprod/llama-guard-8b");
@@ -35,6 +29,22 @@ export default function ModelsPage() {
   const [supply, setSupply] = useState<SupplyResult | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [supplyError, setSupplyError] = useState("");
+  const [scanning, setScanning] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const data = await getModelEndpoints();
+      setModels(data.models);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load endpoints");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   async function verifySupply() {
     const s = src.trim();
@@ -54,42 +64,42 @@ export default function ModelsPage() {
     }
   }
 
-  function add() {
+  async function add() {
     const id = draft.trim();
     if (!id) return;
-    if (models.some((m) => m.id === id)) {
-      setError("That endpoint is already registered.");
-      return;
-    }
     setError("");
-    setModels((ms) => [...ms, { id, kind: "Custom", paused: false, lastRisk: null, lastTime: "-", scanning: false }]);
-    setDraft("");
+    try {
+      const data = await registerModelEndpoint(id);
+      setModels((ms) => [...ms, data.model]);
+      setDraft("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Registration failed");
+    }
   }
 
-  function togglePause(id: string) {
-    setModels((ms) => ms.map((m) => (m.id === id ? { ...m, paused: !m.paused } : m)));
+  async function togglePause(id: string) {
+    setError("");
+    try {
+      const current = models.find((m) => m.id === id);
+      if (!current) return;
+      const data = await setModelEndpointStatus(id, !current.paused);
+      setModels((ms) => ms.map((m) => (m.id === id ? data.model : m)));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Status change failed");
+    }
   }
 
   async function scan(id: string) {
-    setModels((ms) => ms.map((m) => (m.id === id ? { ...m, scanning: true } : m)));
+    setScanning(id);
     setError("");
     try {
       const data = await runScan(id);
-      setModels((ms) =>
-        ms.map((m) =>
-          m.id === id
-            ? {
-                ...m,
-                scanning: false,
-                lastRisk: Math.round(data.max_risk_score * 100),
-                lastTime: new Date().toLocaleTimeString("en-GB", { hour12: false }),
-              }
-            : m
-        )
-      );
+      const rec = await recordModelScan(id, data.max_risk_score);
+      setModels((ms) => ms.map((m) => (m.id === id ? rec.model : m)));
     } catch (e) {
-      setModels((ms) => ms.map((m) => (m.id === id ? { ...m, scanning: false } : m)));
       setError(e instanceof Error ? e.message : "Scan failed");
+    } finally {
+      setScanning(null);
     }
   }
 
@@ -113,6 +123,9 @@ export default function ModelsPage() {
       </div>
       {error !== "" && <p className="mb-4 font-mono text-[11.5px] text-crit">{error}</p>}
 
+      {loading ? (
+        <p className="font-mono text-[11.5px] text-faint">loading endpoints…</p>
+      ) : (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {models.map((m) => (
           <article key={m.id} className="panel card flex flex-col rounded-lg p-5">
@@ -132,22 +145,26 @@ export default function ModelsPage() {
               <div>
                 <dt className="text-[10px] uppercase tracking-[0.1em] text-faint">last risk</dt>
                 <dd className="mt-1 text-[14px] tabular-nums">
-                  {m.lastRisk === null ? "-" : `${m.lastRisk}/100`}
+                  {m.last_risk === null || m.last_risk === undefined
+                    ? "-"
+                    : `${Math.round(m.last_risk * 100)}/100`}
                 </dd>
               </div>
               <div>
                 <dt className="text-[10px] uppercase tracking-[0.1em] text-faint">last scan</dt>
-                <dd className="mt-1 text-[14px] tabular-nums">{m.lastTime}</dd>
+                <dd className="mt-1 text-[14px] tabular-nums">
+                  {m.last_scan ? new Date(m.last_scan).toLocaleTimeString("en-GB", { hour12: false }) : "-"}
+                </dd>
               </div>
             </dl>
 
             <div className="mt-4 flex gap-2">
               <button
                 onClick={() => scan(m.id)}
-                disabled={m.scanning || m.paused}
+                disabled={scanning === m.id || m.paused}
                 className="inline-flex h-9 flex-1 items-center justify-center rounded bg-ink text-[12.5px] font-medium text-bg transition-colors hover:bg-white disabled:opacity-50"
               >
-                {m.scanning ? "scanning…" : "run scan"}
+                {scanning === m.id ? "scanning…" : "run scan"}
               </button>
               <button
                 onClick={() => togglePause(m.id)}
@@ -162,6 +179,7 @@ export default function ModelsPage() {
           </article>
         ))}
       </div>
+      )}
       <div className="panel mt-4 overflow-hidden rounded-lg">
         <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
           <span className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
@@ -225,7 +243,7 @@ export default function ModelsPage() {
         )}
       </div>
       <p className="mt-4 font-mono text-[11px] text-faint">
-        endpoints are workspace-local · scan results stream from the live engine
+        endpoints are stored per workspace on the engine · scan results stream from the live engine
       </p>
     </div>
   );

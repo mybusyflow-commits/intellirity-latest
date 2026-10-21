@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends
-from app.api.v1 import scans, threats, users, organizations, modules, system, reasoning, realtime, jobs, billing, proxy
+from app.api.v1 import scans, threats, users, organizations, modules, system, reasoning, realtime, jobs, billing, proxy, workspace
 from app.core.security import require_user
 
 # Deploy posture: every router requires a valid session EXCEPT system
 # (contact must stay public for pre-signup reachout; status stays public
-# for uptime monitors). With no CLERK_SECRET_KEY configured the dependency
-# is a no-op, so local dev is unaffected.
+# for uptime monitors) and billing (product catalogue must render before
+# sign-in). With no CLERK_SECRET_KEY configured the dependency is a no-op,
+# so local dev is unaffected.
 AUTH = [Depends(require_user)]
 
 api_router = APIRouter()
@@ -20,3 +21,4 @@ api_router.include_router(realtime.router, prefix="/realtime", tags=["realtime"]
 api_router.include_router(jobs.router, prefix="/jobs", tags=["jobs"], dependencies=AUTH)
 api_router.include_router(billing.router, prefix="/billing", tags=["billing"])
 api_router.include_router(proxy.router, prefix="/proxy", tags=["proxy"], dependencies=AUTH)
+api_router.include_router(workspace.router, prefix="/workspace", tags=["workspace"], dependencies=AUTH)

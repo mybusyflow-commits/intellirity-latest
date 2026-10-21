@@ -46,8 +46,10 @@ function toVerdict(t: Threat): Verdict {
     action,
     rule: t.threat_type,
     model: t.source,
-    policy: "default",
+    policy: t.origin ?? "detection",
     ms: 0,
+    origin: t.origin === "synthetic" ? "demo feed" : t.origin === "sample" ? "sample" : "engine",
+    state: t.is_resolved ? "resolved" : "open",
   };
 }
 
@@ -174,9 +176,9 @@ export default function VerdictsPage() {
               <th className="px-5 py-3 font-normal">verdict</th>
               <th className="px-3 py-3 font-normal">rule / reason</th>
               <th className="px-3 py-3 font-normal">model</th>
-              <th className="px-3 py-3 font-normal">policy</th>
+              <th className="px-3 py-3 font-normal">source</th>
               <th className="px-3 py-3 font-normal">time</th>
-              <th className="px-5 py-3 text-right font-normal">latency</th>
+              <th className="px-5 py-3 text-right font-normal">state</th>
             </tr>
           </thead>
           <tbody>
@@ -201,9 +203,11 @@ export default function VerdictsPage() {
                   </td>
                   <td className="max-w-[320px] truncate px-3 py-2.5 font-mono text-[12.5px] text-ink/85">{v.rule}</td>
                   <td className="px-3 py-2.5 font-mono text-[12px] text-dim">{v.model}</td>
-                  <td className="px-3 py-2.5 font-mono text-[12px] text-faint">{v.policy}</td>
+                  <td className="px-3 py-2.5 font-mono text-[12px] text-faint">{v.origin}</td>
                   <td className="px-3 py-2.5 font-mono text-[12px] tabular-nums text-faint">{v.time}</td>
-                  <td className="px-5 py-2.5 text-right font-mono text-[12px] tabular-nums text-steel">live</td>
+                  <td className="px-5 py-2.5 text-right font-mono text-[12px] tabular-nums text-steel">
+                    {v.state}
+                  </td>
                 </motion.tr>
               ))}
             </AnimatePresence>
@@ -232,7 +236,7 @@ export default function VerdictsPage() {
         )}
       </div>
       <div className="border-t border-line px-5 py-3 font-mono text-[10.5px] uppercase tracking-[0.12em] text-faint">
-        live from engine · page size {PAGE_SIZE} · refreshes every 15s · click any row for evidence
+        live from engine · page size {PAGE_SIZE} · refreshes every 5s · click any row for evidence
       </div>
       <VerdictDrawer
         verdict={selected}

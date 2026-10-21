@@ -153,3 +153,82 @@ async def load_escrow_hold(escrow_id: str) -> dict | None:
     except Exception as exc:
         log.warning("escrow load skipped: %s", str(exc)[:160])
         return None
+
+
+async def upsert_user(identity: dict) -> dict | None:
+    """Sync an authenticated identity into the users table (Clerk -> DB).
+
+    First sighting creates the row, later calls refresh the mutable fields.
+    Best-effort: a DB failure never breaks the request. Returns the row dict.
+    """
+    if not DB_CONNECTED or not isinstance(identity, dict):
+        return None
+    clerk_id = str(identity.get("id") or identity.get("sub") or identity.get("user_id") or "").strip()
+    if not clerk_id:
+        return None
+    email = identity.get("email") or identity.get("primary_email_address") or ""
+    full_name = (
+        identity.get("name")
+        or identity.get("full_name")
+        or " ".join(p for p in [identity.get("first_name"), identity.get("last_name")] if p)
+        or ""
+    )
+    org_id = identity.get("organization_id") or identity.get("org_id")
+    try:
+        from app.db.session import async_session
+        from app.models.models import User
+        from sqlalchemy import select
+
+        async with async_session() as session:
+            row = (await session.execute(
+                select(User).where(User.clerk_id == clerk_id)
+            )).scalars().first()
+            if row is None:
+                row = User(clerk_id=clerk_id)
+                session.add(row)
+            if email:
+                row.email = email
+            if full_name:
+                row.full_name = full_name
+            if org_id:
+                row.organization_id = str(org_id)
+            row.is_active = True
+            await session.commit()
+            await session.refresh(row)
+            return {
+                "id": row.id,
+                "clerk_id": row.clerk_id,
+                "email": row.email,
+                "full_name": row.full_name,
+                "organization_id": row.organization_id,
+                "is_active": row.is_active,
+            }
+    except Exception as exc:
+        log.warning("user persist skipped: %s", str(exc)[:160])
+        return None
+    if not DB_CONNECTED or not escrow_id:
+        return None
+    try:
+        from app.db.session import async_session
+        from app.models.models import EscrowHold
+        from app.services.modules import blackbox_ledger as ledger_mod
+
+        async with async_session() as session:
+            row = await session.get(EscrowHold, escrow_id)
+            if not row:
+                return None
+            hold = {
+                "escrow_id": row.id,
+                "status": row.status,
+                "amount": row.amount,
+                "agent_id": row.agent_id,
+                "oracle_id": "",
+                "criteria": {},
+                "created_at": row.created_at.isoformat() if row.created_at else "",
+                "decided_at": row.decided_at.isoformat() if row.decided_at else None,
+            }
+            ledger_mod.escrow_put_hold(hold)
+            return hold
+    except Exception as exc:
+        log.warning("escrow load skipped: %s", str(exc)[:160])
+        return None

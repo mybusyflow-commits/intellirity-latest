@@ -14,12 +14,24 @@ def data_flow_tracker(payload: dict) -> dict:
     data_classification = payload.get("data_classification", "unknown")
     backend_monitor = payload.get("backend_monitor", {})
 
+    # Defensive normalization — a malformed payload must not crash the engine.
+    if not isinstance(pipeline_stages, list):
+        pipeline_stages = []
+    if not isinstance(data_classification, str):
+        data_classification = "unknown"
+    if not isinstance(backend_monitor, dict):
+        backend_monitor = {}
+
     tracked = []
     flagged = []
     risk_score = 0.0
 
-    trusted = payload.get("trusted_domains", [])
-    blocked = payload.get("blocked_domains", [])
+    trusted = payload.get("trusted_domains", []) or []
+    blocked = payload.get("blocked_domains", []) or []
+    if not isinstance(trusted, list):
+        trusted = []
+    if not isinstance(blocked, list):
+        blocked = []
 
     for stage in pipeline_stages:
         if not isinstance(stage, dict):

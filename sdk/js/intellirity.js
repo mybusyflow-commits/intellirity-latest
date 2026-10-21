@@ -4,14 +4,20 @@
    const shield = new Shield("http://localhost:8000");
    console.log(await shield.checkJailbreak("Ignore all previous instructions")); */
 
-const DEFAULT_BASE_URL = "http://localhost:8000";
+const DEFAULT_BASE_URL =
+  (typeof process !== "undefined" && process.env && process.env.INTELLIRITY_BASE_URL) ||
+  "http://localhost:8000";
 const API_PREFIX = "/api/v1";
 const TIMEOUT_MS = 10000;
 
 export class Shield {
-  constructor(baseUrl = DEFAULT_BASE_URL, apiKey = null) {
+  constructor(baseUrl = null, apiKey = null) {
+    const envKey =
+      typeof process !== "undefined" && process.env
+        ? process.env.INTELLIRITY_API_KEY || null
+        : null;
     this.baseUrl = (baseUrl || DEFAULT_BASE_URL).replace(/\/$/, "");
-    this.apiKey = apiKey;
+    this.apiKey = apiKey || envKey;
   }
 
   async #req(method, path, body) {
@@ -62,6 +68,10 @@ export class Shield {
     return this.#module("content_moderation", { text, direction });
   }
 
+  checkAdvanced(text, agentId = "js-agent", direction = "input") {
+    return this.#module("advanced_threat_intelligence", { text, agent_id: agentId, direction });
+  }
+
   scan(text, modules = ["jailbreak_injection_protection", "vibe_code_security", "data_loss_prevention"]) {
     return this.#post(`${API_PREFIX}/scans/run`, { text, target: text, modules });
   }
@@ -70,24 +80,79 @@ export class Shield {
     return this.#module("ai_action_policy_enforcer", { action, agent_id: agentId, tool_calls: toolCalls });
   }
 
-  trackFlow(dataId, stages, classification = "internal") {
+  scoreSession(agentId, sessionHistory = [], sessionId = "", currentAction = null) {
+    const history = sessionHistory || [];
+    return this.#module("behavioral_analysis_engine", {
+      agent_id: agentId,
+      session_id: sessionId,
+      current_action: currentAction || history[history.length - 1] || {},
+      session_history: history,
+    });
+  }
+
+  auditMcp(toolCalls = [], mcpServers = [], agentPermissions = []) {
+    const servers = (mcpServers || []).map((s) =>
+      typeof s === "string" ? { name: s, tools: [] } : s
+    );
+    return this.#module("mcp_security_monitor", {
+      tool_calls: toolCalls || [],
+      mcp_servers: servers,
+      agent_permissions: agentPermissions || [],
+    });
+  }
+
+  scoreWorkflow(actions = [], workflowId = "", config = {}) {
+    return this.#module("workflow_anomaly_detector", {
+      workflow_id: workflowId,
+      actions: actions || [],
+      config: config || {},
+    });
+  }
+
+  trackFlow(dataId, stages, classification = "internal", trustedDomains = [], blockedDomains = []) {
     return this.#module("data_flow_tracker", {
       data_id: dataId,
       pipeline_stages: (stages || []).map((s) => (typeof s === "string" ? { destination: s } : s)),
       data_classification: classification,
+      trusted_domains: trustedDomains || [],
+      blocked_domains: blockedDomains || [],
     });
   }
 
-  auditWallet(sessionId, tokenUsage = {}, apiCalls = []) {
-    return this.#module("denial_of_wallet_protector", { session_id: sessionId, token_usage: tokenUsage, api_calls: apiCalls });
+  auditWallet(sessionId, tokenUsage = {}, apiCalls = [], config = {}) {
+    return this.#module("denial_of_wallet_protector", {
+      session_id: sessionId,
+      token_usage: tokenUsage,
+      api_calls: apiCalls,
+      config,
+    });
   }
 
-  verifySupply(modelSource, modelFormat = "unknown") {
-    return this.#module("model_supply_chain_security", { model_source: modelSource, model_format: modelFormat });
+  verifySupply(modelSource, modelFormat = "unknown", expectedHash = "") {
+    return this.#module("model_supply_chain_security", {
+      model_source: modelSource,
+      model_format: modelFormat,
+      expected_hash: expectedHash,
+    });
   }
 
-  issueIntent(humanId, instruction, scope = []) {
-    return this.#module("verifiable_proof_of_intent", { human_id: humanId, instruction, action_scope: scope });
+  issueIntent(humanId, instruction, scope = [], expiryMinutes = 30, proposedAction = "") {
+    return this.#module("verifiable_proof_of_intent", {
+      human_id: humanId,
+      instruction,
+      action_scope: scope,
+      expiry_minutes: expiryMinutes,
+      proposed_action: proposedAction,
+    });
+  }
+
+  /** Verify a proof-of-intent certificate (signature + expiry + scope). */
+  verifyIntent(certificate, proposedAction = "") {
+    return this.#module("verifiable_proof_of_intent", {
+      action: "verify",
+      certificate,
+      proposed_action: proposedAction,
+    });
   }
 
   ledgerLog(decision, extra = {}) {
@@ -128,6 +193,14 @@ export class Shield {
 
   createOrg(name, slug) {
     return this.#post(`${API_PREFIX}/organizations/`, { name, slug });
+  }
+
+  ingestEvent(event) {
+    return this.#post(`${API_PREFIX}/realtime/ingest`, event);
+  }
+
+  realtimeFeed() {
+    return this.#get(`${API_PREFIX}/realtime/feed`);
   }
 
   proxyChat(messages, opts = {}) {

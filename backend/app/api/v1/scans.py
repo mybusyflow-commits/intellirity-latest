@@ -20,6 +20,8 @@ _INITIAL_SCANS = [
         "risk_score": 0.03,
         "created_at": datetime.now(timezone.utc),
         "completed_at": datetime.now(timezone.utc),
+        "origin": "sample",
+        "findings_count": 0,
     },
     {
         "id": "SCAN-9041",
@@ -29,6 +31,8 @@ _INITIAL_SCANS = [
         "risk_score": 0.12,
         "created_at": datetime.now(timezone.utc),
         "completed_at": datetime.now(timezone.utc),
+        "origin": "sample",
+        "findings_count": 0,
     },
     {
         "id": "SCAN-9040",
@@ -38,10 +42,21 @@ _INITIAL_SCANS = [
         "risk_score": 0.05,
         "created_at": datetime.now(timezone.utc),
         "completed_at": datetime.now(timezone.utc),
+        "origin": "sample",
+        "findings_count": 0,
     },
 ]
 
 _memory_scans: list[dict] = list(_INITIAL_SCANS)
+
+# Monotonic scan counter — ids must never collide between the two write paths.
+_scan_seq = 9100
+
+
+def _next_scan_id() -> str:
+    global _scan_seq
+    _scan_seq += 1
+    return f"SCAN-{_scan_seq}"
 
 
 def get_scans_store() -> list[dict]:
@@ -76,18 +91,34 @@ async def code_security_scan(payload: dict):
 async def create_scan(
     scan: SecurityScanCreate,
 ):
+    """Record a scan by actually running the detectors against the target.
+
+    A scan row that claims a risk score without running an engine is fiction,
+    so the score here is computed by the same module set the sweep uses.
+    """
     now = datetime.now(timezone.utc)
-    new_scan = {
-        "id": f"SCAN-{len(_memory_scans) + 9043}",
-        "scan_type": scan.scan_type,
+    sweep = run_full_scan_sync({
+        "text": scan.target,
+        "target": scan.target,
+        "modules": ["jailbreak_injection_protection", "vibe_code_security", "data_loss_prevention"],
+    })
+    record = sweep["scan"]
+    record.update({
+        "id": _next_scan_id(),
+        "scan_type": scan.scan_type or "Security Scan",
         "target": scan.target,
         "status": "completed",
-        "risk_score": 0.02,
         "created_at": now,
         "completed_at": now,
-    }
-    _memory_scans.insert(0, new_scan)
-    return SecurityScanResponse(**new_scan)
+        "origin": "detection",
+        "findings_count": sweep.get("total_findings", 0),
+    })
+    # run_full_scan_sync already inserted a row; replace it with the
+    # caller-shaped record rather than keeping two.
+    if _memory_scans and _memory_scans[0].get("scan_type") == "Automated Multi-Module Sweep":
+        _memory_scans.pop(0)
+    _memory_scans.insert(0, record)
+    return SecurityScanResponse(**record)
 
 
 def run_full_scan_sync(payload: dict) -> dict:
@@ -164,13 +195,15 @@ def run_full_scan_sync(payload: dict) -> dict:
         )
 
     scan_record = {
-        "id": f"SCAN-{len(_memory_scans) + 9043}",
+        "id": _next_scan_id(),
         "scan_type": "Automated Multi-Module Sweep",
         "target": target,
         "status": status,
         "risk_score": round(max_risk, 3),
         "created_at": now,
         "completed_at": now,
+        "origin": "detection",
+        "findings_count": len(all_findings),
     }
     _memory_scans.insert(0, scan_record)
 

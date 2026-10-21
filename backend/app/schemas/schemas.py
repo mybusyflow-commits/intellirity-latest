@@ -50,6 +50,8 @@ class SecurityScanResponse(BaseModel):
     risk_score: Optional[float]
     created_at: datetime
     completed_at: Optional[datetime]
+    origin: str = "detection"
+    findings_count: int = 0
 
     class Config:
         from_attributes = True
@@ -63,6 +65,7 @@ class ThreatDetectionResponse(BaseModel):
     description: str
     is_resolved: bool
     created_at: datetime
+    origin: str = "detection"
 
     class Config:
         from_attributes = True

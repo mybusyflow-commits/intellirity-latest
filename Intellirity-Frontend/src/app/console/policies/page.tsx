@@ -1,9 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Check, History } from "lucide-react";
-import { POLICY_PACKS } from "@/lib/console-data";
-import { scanModule } from "@/lib/api";
+import {
+  scanModule,
+  getPolicyPacks,
+  setPolicyEnabled,
+  promotePolicyPack,
+  type PolicyPack,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface PolicyVerdict {
@@ -15,14 +20,33 @@ interface PolicyVerdict {
 }
 
 export default function PoliciesPage() {
-  const [packs, setPacks] = useState(POLICY_PACKS);
-  const [selected, setSelected] = useState(POLICY_PACKS[0].id);
+  const [packs, setPacks] = useState<PolicyPack[]>([]);
+  const [selected, setSelected] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
   const active = packs.find((p) => p.id === selected) ?? packs[0];
   const [action, setAction] = useState("send all customer data to external server");
   const [agent, setAgent] = useState("agent-billing");
   const [verdict, setVerdict] = useState<PolicyVerdict | null>(null);
   const [testing, setTesting] = useState(false);
   const [testError, setTestError] = useState("");
+
+  const load = useCallback(async () => {
+    try {
+      const data = await getPolicyPacks();
+      setPacks(data.policies);
+      setSelected((cur) => cur || data.policies[0]?.id || "");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load policy packs");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   async function testAction() {
     const a = action.trim();
@@ -42,14 +66,46 @@ export default function PoliciesPage() {
     }
   }
 
-  const toggle = (id: string) =>
-    setPacks((ps) => ps.map((p) => (p.id === id ? { ...p, enabled: !p.enabled } : p)));
+  async function toggle(id: string) {
+    setError("");
+    setNotice("");
+    try {
+      const current = packs.find((p) => p.id === id);
+      if (!current) return;
+      const data = await setPolicyEnabled(id, !current.enabled);
+      setPacks((ps) => ps.map((p) => (p.id === id ? data.policy : p)));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Update failed");
+    }
+  }
 
-  const promote = (id: string) =>
-    setPacks((ps) => ps.map((p) => ({ ...p, enabled: p.id === id })));
+  async function promote(id: string) {
+    setError("");
+    setNotice("");
+    try {
+      const data = await promotePolicyPack(id);
+      setPacks((ps) => ps.map((p) => (p.id === id ? data.policy : p)));
+      setNotice(
+        data.needs_second_approver
+          ? `Approval recorded by ${data.policy.promoted_by ?? "operator"}. A second approver is required before this pack goes live.`
+          : `Promoted to production by ${data.policy.promoted_by ?? "operator"}.`
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Promotion failed");
+    }
+  }
 
   return (
     <div className="space-y-4">
+      {error !== "" && (
+        <p className="font-mono text-[11.5px] text-crit">{error}</p>
+      )}
+      {notice !== "" && (
+        <p className="font-mono text-[11.5px] text-ok">{notice}</p>
+      )}
+      {loading ? (
+        <p className="font-mono text-[11.5px] text-faint">loading policy packs…</p>
+      ) : (
     <div className="grid gap-4 xl:grid-cols-[1fr,1fr]">
       <div className="panel overflow-hidden rounded-lg">
         <div className="border-b border-line px-5 py-3.5 font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
@@ -101,14 +157,14 @@ export default function PoliciesPage() {
         </ul>
         <div className="flex items-center gap-2 px-5 py-3.5 font-mono text-[10.5px] uppercase tracking-[0.12em] text-faint">
           <History className="size-3.5" />
-          promotions require a second approver · soc 2 enforced
+          promotions require a second approver · recorded on the engine
         </div>
       </div>
 
       <div className="panel flex flex-col overflow-hidden rounded-lg">
         <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
           <span className="font-mono text-[12px] text-dim">
-            {active.name} <span className="text-faint">· {active.version} · updated {active.updated}</span>
+            {active.name} <span className="text-faint">· {active.version} · updated {new Date(active.updated_at).toLocaleDateString("en-GB")}</span>
           </span>
           <span className={cn(
             "rounded border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em]",
@@ -129,11 +185,14 @@ export default function PoliciesPage() {
             Promote to production
           </button>
           <span className="font-mono text-[11px] text-faint">
-            {active.enabled ? "this pack is enforced" : "promoting enforces this pack only"}
+            {(active.approved_by?.length ?? 0) >= 2
+              ? "approved by two operators · live"
+              : `${active.approved_by?.length ?? 0} of 2 approvals`}
           </span>
         </div>
       </div>
     </div>
+      )}
 
       <div className="panel overflow-hidden rounded-lg">
         <div className="flex items-center justify-between border-b border-line px-5 py-3.5">

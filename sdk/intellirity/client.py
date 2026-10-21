@@ -10,6 +10,8 @@ Example:
     print(shield.check_jailbreak("Ignore all previous instructions"))
 """
 
+import os
+
 import requests
 
 DEFAULT_BASE_URL = "http://localhost:8000"
@@ -18,11 +20,17 @@ TIMEOUT_SECONDS = 10
 
 
 class Shield:
-    """Client for the Intellirity API."""
+    """Client for the Intellirity API.
 
-    def __init__(self, api_key=None, base_url="http://localhost:8000"):
-        self.api_key = api_key
-        self.base_url = (base_url or DEFAULT_BASE_URL).rstrip("/")
+    Configuration order: explicit argument, then environment
+    (INTELLIRITY_BASE_URL / INTELLIRITY_API_KEY), then the local default.
+    """
+
+    def __init__(self, api_key=None, base_url=None):
+        self.api_key = api_key or os.getenv("INTELLIRITY_API_KEY") or None
+        self.base_url = (
+            base_url or os.getenv("INTELLIRITY_BASE_URL") or DEFAULT_BASE_URL
+        ).rstrip("/")
 
     def _headers(self):
         headers = {"Content-Type": "application/json"}

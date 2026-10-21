@@ -37,12 +37,14 @@ export function ProofStrip() {
   );
 }
 
+// Every one of these is a protocol/endpoint shape the screening proxy and
+// SDKs actually speak. Nothing here is a certification claim.
 const PROVIDERS = [
-  { name: "OpenAI", detail: "gpt-4o · o-series", status: "certified" },
-  { name: "Anthropic", detail: "claude-4 · sonnet", status: "certified" },
-  { name: "Google", detail: "gemini-2.5 · vertex", status: "certified" },
-  { name: "Meta", detail: "llama-4 · self-hosted", status: "certified" },
-  { name: "Mistral", detail: "large · mixtral", status: "certified" },
+  { name: "OpenAI", detail: "gpt-4o · o-series", status: "openai-compatible" },
+  { name: "Anthropic", detail: "claude-4 · sonnet", status: "openai-compatible" },
+  { name: "Google", detail: "gemini-2.5 · vertex", status: "openai-compatible" },
+  { name: "Meta", detail: "llama-4 · self-hosted", status: "openai-compatible" },
+  { name: "Mistral", detail: "large · mixtral", status: "openai-compatible" },
   { name: "Bedrock", detail: "aws marketplace", status: "gateway" },
   { name: "LangChain", detail: "callbacks hook", status: "sdk" },
   { name: "Raw HTTP", detail: "any endpoint", status: "proxy" },

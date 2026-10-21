@@ -25,7 +25,7 @@ TIMEOUT = 30.0
 
 class ProxyChatBody(BaseModel):
     messages: list[dict] = []
-    model: str = "space-bunny-free"
+    model: str = ""
     upstream_base: Optional[str] = None
     upstream_key: Optional[str] = None
     max_tokens: int = 512
@@ -42,8 +42,15 @@ def _screen_input(text: str) -> dict:
                 "content_moderation", "advanced_threat_intelligence"):
         try:
             r = _call(key, {"text": text, "direction": "input"})
-        except Exception:
-            continue
+        except Exception as exc:
+            # Fail CLOSED: a screening engine that crashes must never let the
+            # prompt through unscreened. Deny and surface the fault.
+            return {
+                "verdict": "block",
+                "risk_score": 1.0,
+                "details": [{"module": key, "error": f"{type(exc).__name__}: screening unavailable"}],
+                "screening_error": True,
+            }
         risk = float(r.get("risk_score", 0) or 0)
         verdict = str(r.get("verdict") or r.get("threat_level") or r.get("action") or "allow").lower()
         if r.get("findings"):
@@ -66,8 +73,15 @@ def _screen_output(text: str) -> dict:
     for key in ("data_loss_prevention", "content_moderation"):
         try:
             r = _call(key, {"text": text, "direction": "output"})
-        except Exception:
-            continue
+        except Exception as exc:
+            # Fail CLOSED on delivery: withhold the reply rather than ship
+            # an unscreened answer.
+            return {
+                "verdict": "block",
+                "risk_score": 1.0,
+                "details": [{"module": key, "error": f"{type(exc).__name__}: screening unavailable"}],
+                "screening_error": True,
+            }
         risk = float(r.get("risk_score", 0) or 0)
         verdict = str(r.get("verdict") or r.get("action") or "allow").lower()
         if r.get("findings"):
@@ -102,6 +116,8 @@ async def proxy_chat(body: ProxyChatBody, user: dict = Depends(require_user)):
         add_threat_event(threat_type="Proxy Input Block", severity="high",
                          source="reverse-proxy",
                          description=f"Blocked upstream call: {str(gate['details'])[:180]}")
+        if gate.get("screening_error"):
+            raise HTTPException(status_code=503, detail="Screening engine unavailable — request denied (fail closed)")
         return {"verdict": "block", "upstream_called": False,
                 "assistant": None, "input_screen": gate, "output_screen": None}
 
@@ -109,17 +125,43 @@ async def proxy_chat(body: ProxyChatBody, user: dict = Depends(require_user)):
     key = body.upstream_key or os.getenv("UPSTREAM_API_KEY", "") or os.getenv("OPENCODEZEN_API_KEY", "")
     if not key:
         raise HTTPException(status_code=422, detail="No upstream key: pass upstream_key or set UPSTREAM_API_KEY")
+
+    # Resolve the model against the upstream's live catalogue — hardcoded ids
+    # go stale and the gateway then rejects the call.
+    from app.services.reasoning import pick_model
+    model = body.model or os.getenv("OPENCODEZEN_MODEL", "")
+    try:
+        model = await pick_model(model)
+    except Exception:
+        model = model or "minimax-m3.1-flash-free"
+    if not model:
+        raise HTTPException(status_code=422, detail="No upstream model could be resolved")
+
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             resp = await client.post(
                 f"{base}/chat/completions",
                 headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                json={"model": body.model, "messages": body.messages, "max_tokens": body.max_tokens},
+                json={"model": model, "messages": body.messages, "max_tokens": body.max_tokens},
             )
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Upstream unreachable: {type(exc).__name__}")
     if resp.status_code != 200:
-        raise HTTPException(status_code=502, detail=f"Upstream error {resp.status_code}")
+        # Surface the gateway's own reason (402 no funds, 403 free tier is
+        # CLI-only, 404 unknown model) instead of a bare status code.
+        detail = ""
+        try:
+            body = resp.json()
+            err = body.get("error") if isinstance(body, dict) else None
+            if isinstance(err, dict):
+                detail = str(err.get("message") or err.get("type") or "")
+            elif isinstance(err, str):
+                detail = err
+            elif isinstance(body, dict) and body.get("message"):
+                detail = str(body["message"])
+        except Exception:
+            detail = (resp.text or "")[:200]
+        raise HTTPException(status_code=502, detail=f"Upstream error {resp.status_code}: {detail or 'no detail'}")
     try:
         data = resp.json()
         assistant = data["choices"][0]["message"]["content"]
@@ -131,8 +173,10 @@ async def proxy_chat(body: ProxyChatBody, user: dict = Depends(require_user)):
         add_threat_event(threat_type="Proxy Output Block", severity="high",
                          source="reverse-proxy",
                          description=f"Blocked upstream reply: {str(out['details'])[:180]}")
+        if out.get("screening_error"):
+            raise HTTPException(status_code=503, detail="Output screening unavailable — reply withheld (fail closed)")
         return {"verdict": "flag", "upstream_called": True, "assistant": None,
                 "blocked_reason": out, "input_screen": gate, "output_screen": out}
-    return {"verdict": "allow" if out["verdict"] == "allow" and gate["verdict"] == "allow" else "flag",
-            "upstream_called": True, "assistant": assistant,
-            "input_screen": gate, "output_screen": out}
+        return {"verdict": "allow" if out["verdict"] == "allow" and gate["verdict"] == "allow" else "flag",
+                "upstream_called": True, "assistant": assistant, "model": model,
+                "input_screen": gate, "output_screen": out}

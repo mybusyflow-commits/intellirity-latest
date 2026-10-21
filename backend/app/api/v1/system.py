@@ -40,13 +40,19 @@ EVENT_TEMPLATES = [
 
 
 def generate_live_event() -> dict:
-    """Create a plausible random threat event and add it to the store."""
+    """Create a demo threat event and add it to the store.
+
+    These are SYNTHETIC (origin="synthetic") — they exist so the console
+    shows motion in an empty workspace. They are never counted as real
+    detections and are labelled as demo traffic in the API and UI.
+    """
     template = random.choice(EVENT_TEMPLATES)
     t = add_threat_event(
         threat_type=template["threat_type"],
         severity=template["severity"],
         source=template["source"],
         description=template["description"],
+        origin="synthetic",
     )
     # Cap the store so it never grows without bound (keeps API fast + score healthy)
     store = get_threats_store()
@@ -69,11 +75,12 @@ async def live_event_loop():
             # One bad event must never kill the loop.
             log.warning("live event failed: %s", exc)
             continue
-        # Auto-resolve oldest active events (simulates analyst clearing the queue)
+        # Auto-resolve oldest SYNTHETIC events only. Real detections are
+        # resolved by a human through the console — the demo feed must never
+        # clear a genuine finding.
         store = get_threats_store()
-        active = [t for t in store if not t["is_resolved"]]
+        active = [t for t in store if not t["is_resolved"] and t.get("origin") == "synthetic"]
         if len(active) > 40:
-            # Resolve ~30% of the oldest active threats
             to_resolve = active[: max(1, int(len(active) * 0.3))]
             for t in to_resolve:
                 t["is_resolved"] = True
@@ -86,6 +93,7 @@ async def system_status():
     return {
         "backend": "connected",
         "monitoring": "live" if _LIVE_MODE else "paused",
+        "demo_feed": bool(_LIVE_MODE),
         "version": "0.1.0",
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
@@ -99,11 +107,17 @@ async def system_summary():
     threats = get_threats_store()
     scans = get_scans_store()
 
-    active = [t for t in threats if not t["is_resolved"]]
-    resolved = [t for t in threats if t["is_resolved"]]
+    # Split the store: real detections vs demo/sample rows. Headline metrics
+    # are computed from real detections only so the numbers mean something.
+    real = [t for t in threats if t.get("origin", "detection") == "detection"]
+    synthetic = [t for t in threats if t.get("origin") == "synthetic"]
+    sample = [t for t in threats if t.get("origin") == "sample"]
 
-    # Score derived from the most recent window of threat activity (real stored data).
-    recent = sorted(threats, key=lambda t: t["created_at"], reverse=True)[:30]
+    active = [t for t in real if not t["is_resolved"]]
+    resolved = [t for t in real if t["is_resolved"]]
+
+    # Score derived from the most recent window of REAL threat activity.
+    recent = sorted(real, key=lambda t: t["created_at"], reverse=True)[:30]
     recent_high = sum(1 for t in recent if t["severity"] == "high")
     recent_medium = sum(1 for t in recent if t["severity"] == "medium")
     recent_low = sum(1 for t in recent if t["severity"] == "low")
@@ -111,11 +125,12 @@ async def system_summary():
     raw_score = 100.0 - (recent_high * 1.5) - (recent_medium * 0.5) - (recent_low * 0.2)
     score = round(max(0.0, min(100.0, raw_score)), 1)
 
-    risk_scores = [s.get("risk_score", 0.0) for s in scans if s.get("risk_score") is not None]
+    real_scans = [s for s in scans if s.get("origin", "detection") == "detection"]
+    risk_scores = [s.get("risk_score", 0.0) for s in real_scans if s.get("risk_score") is not None]
     avg_risk = round(sum(risk_scores) / len(risk_scores), 3) if risk_scores else 0.0
 
-    # Models actually monitored = distinct model sources observed in the live threat feed.
-    models_monitored = len({t.get("source") for t in threats if t.get("source")})
+    # Models actually monitored = distinct model sources seen in real detections.
+    models_monitored = len({t.get("source") for t in real if t.get("source")})
 
     compliance_score = round(max(0.0, min(100.0, score - 2.0)), 1)
 
@@ -126,8 +141,11 @@ async def system_summary():
         "threats_high": sum(1 for t in active if t["severity"] == "high"),
         "models_monitored": models_monitored,
         "compliance_score": compliance_score,
-        "total_scans": len(scans),
+        "total_scans": len(real_scans),
         "average_risk_score": avg_risk,
+        "synthetic_threats": len(synthetic),
+        "sample_threats": len(sample),
+        "demo_feed": bool(synthetic),
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 

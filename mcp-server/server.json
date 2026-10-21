@@ -13,6 +13,17 @@
     "scan_jailbreak",
     "scan_code",
     "scan_dlp",
-    "full_scan"
+    "full_scan",
+    "moderate",
+    "check_action",
+    "track_flow",
+    "audit_wallet",
+    "verify_supply",
+    "issue_intent",
+    "score_workflow",
+    "threat_intel",
+    "escrow_create",
+    "ledger_log",
+    "ledger_verify"
   ]
 }

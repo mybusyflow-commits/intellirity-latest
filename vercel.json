@@ -1,9 +1,16 @@
 {
-  "buildCommand": null,
-  "outputDirectory": "webapp",
+  "buildCommand": "npm --prefix Intellirity-Frontend run build",
+  "outputDirectory": "Intellirity-Frontend/.next",
+  "framework": "nextjs",
   "functions": {
     "api/index.py": {
       "maxDuration": 30
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/backend/:path*",
+      "destination": "/api/v1/:path*"
+    }
+  ]
 }

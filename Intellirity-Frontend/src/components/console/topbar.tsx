@@ -30,8 +30,14 @@ const TITLES: Record<string, { title: string; sub: string }> = {
 function useClock() {
   const [now, setNow] = useState("--:--:--");
   useEffect(() => {
+    // Real UTC, not the browser's local time relabelled.
     const f = () =>
-      setNow(new Date().toLocaleTimeString("en-GB", { hour12: false }) + " UTC");
+      setNow(
+        new Date().toLocaleTimeString("en-GB", {
+          hour12: false,
+          timeZone: "UTC",
+        }) + " UTC"
+      );
     f();
     const id = setInterval(f, 1000);
     return () => clearInterval(id);
@@ -62,7 +68,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
           <CommandPalette />
           <span className="hidden items-center gap-2 rounded border border-line px-2.5 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.1em] text-dim md:flex">
             <span className="dot animate-status bg-ok" />
-            production
+            {process.env.NEXT_PUBLIC_DEPLOY_ENV || "development"}
           </span>
           <span className="hidden font-mono text-[11.5px] tabular-nums text-faint sm:block">
             {clock}

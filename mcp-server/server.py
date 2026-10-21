@@ -52,6 +52,9 @@ def format_compact(data):
     data = inner
     if "allowed" in data:
         verdict = "allow" if data.get("allowed") else "deny"
+    elif "valid" in data and isinstance(data.get("valid"), bool):
+        # Ledger chain verification.
+        verdict = "valid" if data.get("valid") else "tampered"
     elif data.get("verdict") not in (None, ""):
         verdict = data.get("verdict")
     elif isinstance(data.get("certificate"), dict):
@@ -64,11 +67,16 @@ def format_compact(data):
         verdict = act if act in (
             "block", "flag", "allow", "deny", "monitor", "throttle",
             "redact", "log", "clean", "warning", "critical", "suspicious",
+            "recorded", "held", "released", "rejected",
         ) else "unknown"
     risk = data.get("risk", data.get("risk_score", data.get("score", "unknown")))
+    if "total_records" in data:
+        risk = "records=%d" % data.get("total_records")
     findings = data.get("findings", data.get("results", data.get("issues", data.get("threats", []))))
     if isinstance(findings, dict):
         findings = [findings]
+    if not findings and "tampered_records" in data:
+        findings = data.get("tampered_records") or []
     top = []
     if isinstance(findings, list):
         for item in findings[:3]:
@@ -196,6 +204,17 @@ def tool_escrow(agent_id, amount):
                  "%s %s" % (agent_id, amount))
 
 
+def tool_ledger_log(ai_decision, prompt="", action_taken="", confidence_score=0.0):
+    return _tool("black_box_ledger", "ledger_log",
+                 {"action": "log", "ai_decision": ai_decision, "prompt": prompt,
+                  "action_taken": action_taken, "confidence_score": confidence_score},
+                 ai_decision)
+
+
+def tool_ledger_verify():
+    return _tool("black_box_ledger", "ledger_verify", {"action": "verify"}, "verify")
+
+
 TOOL_DEFS = {
     "scan_jailbreak": {
         "description": "Scan text for injection and jailbreak risk.",
@@ -307,6 +326,23 @@ TOOL_DEFS = {
             "required": ["agent_id", "amount"],
         },
     },
+    "ledger_log": {
+        "description": "Append a sealed, hash-chained record to the black-box audit ledger.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "ai_decision": {"type": "string"},
+                "prompt": {"type": "string"},
+                "action_taken": {"type": "string"},
+                "confidence_score": {"type": "number"},
+            },
+            "required": ["ai_decision"],
+        },
+    },
+    "ledger_verify": {
+        "description": "Verify the integrity of the black-box audit ledger hash chain.",
+        "inputSchema": {"type": "object", "properties": {}},
+    },
 }
 
 
@@ -339,6 +375,11 @@ def dispatch_tool(name, args):
         return tool_threat_intel(args.get("limit", 5))
     if name == "escrow_create":
         return tool_escrow(args.get("agent_id", ""), args.get("amount", 0))
+    if name == "ledger_log":
+        return tool_ledger_log(args.get("ai_decision", ""), args.get("prompt", ""),
+                               args.get("action_taken", ""), args.get("confidence_score", 0.0))
+    if name == "ledger_verify":
+        return tool_ledger_verify()
     raise ValueError("unknown tool: %s" % name)
 
 
@@ -457,6 +498,17 @@ def main():
     def escrow_create(agent_id: str, amount: float) -> str:
         """Hold value in autonomous escrow pending human review."""
         return tool_escrow(agent_id, amount)
+
+    @server.tool()
+    def ledger_log(ai_decision: str, prompt: str = "", action_taken: str = "",
+                   confidence_score: float = 0.0) -> str:
+        """Append a sealed, hash-chained record to the black-box audit ledger."""
+        return tool_ledger_log(ai_decision, prompt, action_taken, confidence_score)
+
+    @server.tool()
+    def ledger_verify() -> str:
+        """Verify the integrity of the black-box audit ledger hash chain."""
+        return tool_ledger_verify()
 
     server.run()
 

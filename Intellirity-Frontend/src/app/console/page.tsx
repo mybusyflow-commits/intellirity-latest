@@ -295,8 +295,8 @@ export default function OverviewPage() {
       <div className="flex items-center gap-3 rounded-lg border border-dashed border-line-strong px-5 py-4">
         <Separator orientation="vertical" className="hidden h-8 sm:block" />
         <p className="text-[13px] text-dim">
-          Every number on this page streams from the live engine and refreshes
-          every 15 seconds. Full history lives in the audit log.
+            Every number on this page streams from the live engine and refreshes
+            every 5 seconds. Full history lives in the audit log.
         </p>
         <Link
           href="/console/audit"
