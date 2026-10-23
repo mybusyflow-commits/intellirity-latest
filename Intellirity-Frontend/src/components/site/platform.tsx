@@ -114,12 +114,16 @@ export function Platform() {
             the platform
           </div>
           <h2 className="reveal max-w-xl font-display text-[clamp(1.9rem,3.8vw,2.9rem)] font-medium leading-[1.08] tracking-[-0.025em]">
-            Nine sentinels. One defensive mesh.
+            Sixteen sentinels. One defensive mesh.
           </h2>
         </div>
         <p className="reveal max-w-sm text-[14.5px] leading-relaxed text-dim">
           A single proxy, sidecar, or gateway in front of your AI stack.
-          Every control below runs inline on the request path.
+          Every control below runs inline on the request path.{" "}
+          <a href="/engines" className="text-ink underline decoration-steel/60 underline-offset-2 transition-colors hover:decoration-ink">
+            See all sixteen engines
+          </a>
+          .
         </p>
       </div>
 

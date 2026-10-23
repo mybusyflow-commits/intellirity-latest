@@ -1,0 +1,98 @@
+[
+  {
+    "id": "advanced_threat_intelligence",
+    "name": "Advanced Threat Intelligence Engine",
+    "description": "Real-time threat intelligence with behavioral analysis, drift detection, and adaptive pattern matching. Outperforms static classifiers.",
+    "tier": "enterprise"
+  },
+  {
+    "id": "ai_action_policy_enforcer",
+    "name": "AI Action Policy Enforcer",
+    "description": "Monitor and enforce policies on AI agent actions in real-time. Detects goal hijacking, tool misuse, privilege escalation, data exfiltration, memory poisoning, and denial-of-wallet attacks.",
+    "tier": "professional"
+  },
+  {
+    "id": "autonomous_escrow",
+    "name": "Autonomous Escrow",
+    "description": "Payment buffer that holds AI agent funds until work is verified by a trusted oracle.",
+    "tier": "premium"
+  },
+  {
+    "id": "behavioral_analysis_engine",
+    "name": "Behavioral Analysis Engine",
+    "description": "Analyze agent behavior patterns over time to detect drift, anomalies, and policy violations. Inspired by Straiker's real-trace approach.",
+    "tier": "professional"
+  },
+  {
+    "id": "black_box_ledger",
+    "name": "Black Box Ledger",
+    "description": "Immutable append-only audit vault using Merkle tree chaining. Records every AI decision with tamper-proof integrity.",
+    "tier": "premium"
+  },
+  {
+    "id": "content_moderation",
+    "name": "Content Moderation",
+    "description": "Screens prompts and responses across 7 categories: spam/scam, sexual content, minor safety, severe profanity, violent threats, self-harm, and hate/harassment. Layered severity scoring keeps mild language unflagged.",
+    "tier": "professional"
+  },
+  {
+    "id": "data_flow_tracker",
+    "name": "Data Flow Tracker",
+    "description": "Map every destination your AI data reaches across the pipeline. Monitor backend behavior, reasoning chains, and detect data exfiltration attempts.",
+    "tier": "professional"
+  },
+  {
+    "id": "data_loss_prevention",
+    "name": "Data Loss Prevention (DLP)",
+    "description": "Advanced data loss prevention for AI systems. Detects PII, credentials, intellectual property, and regulated data in AI inputs and outputs.",
+    "tier": "professional"
+  },
+  {
+    "id": "denial_of_wallet_protector",
+    "name": "Denial of Wallet Protector",
+    "description": "Detect and prevent excessive API usage, runaway loops, and resource exhaustion attacks on AI systems.",
+    "tier": "professional"
+  },
+  {
+    "id": "jailbreak_injection_protection",
+    "name": "Jailbreak & Injection Protection",
+    "description": "Detects jailbreak attempts, prompt injection attacks, and data leakage risks in AI prompts and responses. Layered pattern families across override, persona, encoding, and exfiltration attacks.",
+    "tier": "free"
+  },
+  {
+    "id": "mcp_security_monitor",
+    "name": "MCP Security & Tool Governance",
+    "description": "Monitor MCP servers and tool calls for poisoning, confused deputy attacks, and unauthorized tool usage.",
+    "tier": "enterprise"
+  },
+  {
+    "id": "model_supply_chain_security",
+    "name": "AI Model Supply Chain Security",
+    "description": "Detect poisoned, tampered, or malicious AI models before deployment. Verify model integrity and provenance.",
+    "tier": "enterprise"
+  },
+  {
+    "id": "threat_intelligence_feed",
+    "name": "Threat Intelligence Feed",
+    "description": "Live feed of new AI attack patterns shared across all customers.",
+    "tier": "enterprise"
+  },
+  {
+    "id": "verifiable_proof_of_intent",
+    "name": "Verifiable Proof of Intent (VPI)",
+    "description": "Create tamper-resistant cryptographic certificates linking human identity to AI instructions. Premium only.",
+    "tier": "premium"
+  },
+  {
+    "id": "vibe_code_security",
+    "name": "Vibe Code Security",
+    "description": "Scan web applications and code for 200+ security vulnerabilities including SQLi, XSS, RCE, SSRF, path traversal, deserialization, secrets exposure, and more.",
+    "tier": "professional"
+  },
+  {
+    "id": "workflow_anomaly_detector",
+    "name": "Workflow & Automation Anomaly Detector",
+    "description": "Detect hidden workflows, infinite loops, runaway spend, and cascading side effects in AI automation chains.",
+    "tier": "professional"
+  }
+]

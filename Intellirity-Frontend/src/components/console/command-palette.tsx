@@ -5,26 +5,20 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpRight, Search } from "lucide-react";
 import { getModelEndpoints, getPolicyPacks, type ModelEndpoint, type PolicyPack } from "@/lib/api";
+import { CONSOLE_ROUTES, consoleHref } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 type Entry = { label: string; hint: string; href: string; group: string };
 
+/* Pages come from the shared route registry; the two action entries are
+   shortcuts rather than pages. */
 const PAGES: Entry[] = [
-  { label: "Overview", hint: "fleet status", href: "/console", group: "Go to" },
-  { label: "Scanner", hint: "run a scan", href: "/console/scanner", group: "Go to" },
-  { label: "Verdicts", hint: "live stream", href: "/console/verdicts", group: "Go to" },
-  { label: "Leakage guard", hint: "dlp redactions", href: "/console/leakage", group: "Go to" },
-  { label: "Anomalies", hint: "baselines", href: "/console/anomalies", group: "Go to" },
-  { label: "Proof of intent", hint: "certificates", href: "/console/proof", group: "Go to" },
-  { label: "Data flow", hint: "pipeline trace", href: "/console/flow", group: "Go to" },
-  { label: "Content guard", hint: "moderation", href: "/console/content", group: "Go to" },
-  { label: "Agent behavior", hint: "sessions + mcp", href: "/console/behavior", group: "Go to" },
-  { label: "Threat intel", hint: "feed + probes", href: "/console/intel", group: "Go to" },
-  { label: "Wallet guard", hint: "spend audit", href: "/console/wallet", group: "Go to" },
-  { label: "Models & agents", hint: "coverage", href: "/console/models", group: "Go to" },
-  { label: "Policies", hint: "guardrails", href: "/console/policies", group: "Go to" },
-  { label: "Agent escrow", hint: "custody queue", href: "/console/escrow", group: "Go to" },
-  { label: "Audit log", hint: "evidence", href: "/console/audit", group: "Go to" },
+  ...CONSOLE_ROUTES.map((r) => ({
+    label: r.title,
+    hint: r.sub.toLowerCase(),
+    href: consoleHref(r.path),
+    group: "Go to",
+  })),
   { label: "New scan", hint: "full barrage", href: "/console/scanner", group: "Actions" },
   { label: "Export audit CSV", hint: "filtered view", href: "/console/audit", group: "Actions" },
 ];

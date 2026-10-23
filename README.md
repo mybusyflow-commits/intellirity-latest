@@ -47,12 +47,28 @@ with a hash-chained audit ledger, proof-of-intent certificates and escrow.
 
 | Surface | Path | What it is |
 |---|---|---|
-| Console | `Intellirity-Frontend/` | Next.js 16 app: overview, scanner, verdicts, leakage, anomalies, proof, flow, content, behavior, intel, wallet, models, policies, escrow, audit |
-| Python SDK | `sdk/python` | `from intellirity import Shield` — every module plus the trust machinery |
-| JS SDK | `sdk/js` | `import { Shield } from "@intellirity/shield"` — same surface + `proxyChat` |
+| Marketing site | `Intellirity-Frontend/src/app/` | Next.js 16 app: landing page, `/engines`, `/pricing`, `/privacy`, `/terms`, `/security` |
+| Console | `Intellirity-Frontend/src/app/console/` | Overview, scanner, verdicts, leakage, anomalies, proof, flow, content, behavior, intel, wallet, models, policies, escrow, audit |
+| Python SDK | `sdk/intellirity/` | `from intellirity import Shield` — every module plus the trust machinery |
+| JS SDK | `sdk/js/` | `import { Shield } from "@intellirity/shield"` — same surface + `proxyChat` |
 | MCP server | `mcp-server/` | 15 tools over stdio (Claude Desktop, MCP Inspector) |
 | Chrome extension | `extension/` | MV3 popup that screens a pasted prompt against the live engine |
 | Sidecar | `docker-compose.sidecar.yml` | Screened engine beside your workload in the VPC |
+
+## Public pages (indexed)
+
+| Route | Purpose |
+|---|---|
+| `/` | Landing page — what the product does, live scanner, pricing builder, FAQ |
+| `/engines` | All sixteen detection engines, generated from the engine registry |
+| `/pricing` | Per-module pricing with the live plan builder |
+| `/privacy` · `/terms` · `/security` | The policies, as crawlable pages (not just modals) |
+| `/llms.txt` · `/llms-full.txt` | The same content for AI answer engines |
+| `/robots.txt` · `/sitemap.xml` · `/manifest.webmanifest` | Crawl and install metadata |
+
+The console is `noindex`, disallowed in `robots.txt`, and excluded from the
+sitemap — three independent mechanisms, so a login-walled page can never
+end up in an index.
 
 ## Architecture
 
@@ -93,17 +109,27 @@ model is genuinely required (reasoning endpoint, reverse proxy upstream).
 
 ## Environment variables
 
+See `backend/.env.example` and `Intellirity-Frontend/.env.example` for the
+complete lists, and **[DEPLOYMENT.md](DEPLOYMENT.md)** for a step-by-step
+Vercel, Docker and VPC-sidecar setup.
+
 | Variable | Where | Purpose |
 |---|---|---|
+| `DATABASE_URL` | backend | Postgres. Blank = memory-only |
 | `OPENCODEZEN_API_KEY` | backend | Upstream LLM key for reasoning + proxy |
 | `OPENCODEZEN_BASE_URL` | backend | Any OpenAI-compatible gateway |
 | `OPENCODEZEN_MODEL` | backend | Pin a model (auto-discovered otherwise) |
 | `BACKEND_INTERNAL_URL` | frontend | Where `/backend/*` proxies to |
 | `CLERK_SECRET_KEY` | backend | Enables Clerk session auth; unset = open mode (dev) |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | frontend | Clerk UI |
+| `NEXT_PUBLIC_SITE_URL` | frontend | Canonical origin for SEO + structured data |
+| `NEXT_PUBLIC_GATEWAY_URL` | frontend | Your gateway origin, in the integration snippet |
 | `INTELLIRITY_API_KEYS` | backend | Machine keys for SDK/MCP, comma separated (dev) |
 | `INTELLIRITY_API_KEY_HASHES` | backend | SHA-256 hex of each machine key (production) |
+| `SECRET_KEY` | backend | App secret — the default is refused in production |
 | `VPI_SIGNING_KEY` | backend | HMAC key for proof-of-intent certs |
+| `ALLOWED_ORIGINS` | backend | Comma-separated. Never `*` |
+| `ENVIRONMENT` | backend | `production` enables every fail-closed rule |
 | `BILLING_ENFORCED` | backend | `true` enforces plan entitlements |
 | `TURNSTILE_SECRET` | backend | Cloudflare Turnstile on the contact form |
 | `INTELLIRITY_BASE_URL` / `INTELLIRITY_API_KEY` | SDK/MCP | Client targeting |
@@ -114,7 +140,10 @@ Two independent identity paths, both enforced by `require_user`:
 
 1. **Humans** — `Authorization: Bearer <Clerk session JWT>`. Verified by
    RS256 against the Clerk JWKS (cached 1h) or HS256 with
-   `CLERK_SECRET_KEY`. The JWT payload is the identity (`sub`, email, org).
+   `CLERK_SECRET_KEY`. The token's `org_id` decides the tenant: a member
+   of a Clerk organization reads and writes that organization's billing,
+   model endpoints, policy packs and escrow holds. Without an
+   organization, the user owns a private tenant.
 2. **Machines** — `X-API-Key: <key>`, used by the Python/JS SDKs and the MCP
    server. Keys are matched by SHA-256, so the stored value is not the
    secret. A machine key gets a stable service identity
@@ -128,7 +157,7 @@ Failure behaviour is deliberate:
 | No credentials, no auth configured (dev) | 200, open mode, identity `local-dev` |
 | Invalid `X-API-Key` | 401 (never silently anonymous) |
 | Bearer token present but `CLERK_SECRET_KEY` unset | 503 (loud misconfiguration) |
-| No auth configured and `ENVIRONMENT=production` | 503 (never open in prod) |
+| No auth configured and `ENVIRONMENT=production` | 503, and the engine refuses to start |
 | Expired / forged / unsigned JWT | 401 |
 
 ## Security notes
@@ -137,7 +166,25 @@ Failure behaviour is deliberate:
   request rather than passing it through unscreened.
 - Proof-of-intent certificates are **HMAC-SHA256 signed**; forged or expired
   certificates are rejected.
+- The audit ledger is **database-authoritative**: appends are serialized
+  with an advisory lock and committed to the current database tail, so the
+  chain stays linear across processes and a verification failure means
+  real tampering.
 - The threat feed labels every row `detection` / `synthetic` / `sample`, and
   headline metrics count only real detections.
+- The console and the API are served with a **Content-Security-Policy**,
+  HSTS, COOP/CORP, a denied frame policy, and `Cache-Control: private,
+  no-store` on every engine response.
+- Analytics is **consent-gated** and never loads until the visitor accepts.
 - `.env` files hold live credentials — keep them out of git and rotate keys
   that have been committed or shared.
+
+## Tests
+
+```bash
+cd backend && python -m pytest tests/ -q     # 42 tests
+python sdk/tests/test_sdk_live.py             # 24 live SDK tests
+node sdk/js/tests/sdk.test.mjs                # 25 live SDK tests
+```
+
+The suites run against a live engine, so start the backend first.

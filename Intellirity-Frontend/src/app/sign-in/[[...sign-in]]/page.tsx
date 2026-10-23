@@ -1,16 +1,23 @@
+import type { Metadata } from "next";
+import Link from "next/link";
 import { SignIn } from "@clerk/nextjs";
 import { Logo } from "@/components/site/logo";
+import { SITE_URL } from "@/lib/site";
 
 /* Rendered on demand only: without Clerk keys this route needs no static HTML. */
 export const dynamic = "force-dynamic";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Sign in",
   description: "Sign in to the Intellirity console.",
+  alternates: { canonical: `${SITE_URL}/sign-in` },
+  // A sign-in page is a utility page, not a result to rank.
+  robots: { index: false, follow: false, googleBot: { index: false, follow: false } },
   openGraph: {
     title: "Sign in · Intellirity",
     description: "Sign in to the Intellirity console.",
-    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+    url: `${SITE_URL}/sign-in`,
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Intellirity" }],
   },
   twitter: {
     card: "summary_large_image",
@@ -27,6 +34,7 @@ export default function SignInPage() {
         <div className="mb-8 flex justify-center">
           <Logo />
         </div>
+        <h1 className="sr-only">Sign in to Intellirity</h1>
         {CLERK_KEY ? (
           <SignIn />
         ) : (
@@ -37,12 +45,12 @@ export default function SignInPage() {
             <p className="mt-3 text-[13.5px] leading-relaxed text-faint">
               Add Clerk keys to enable authentication, or continue to the live console.
             </p>
-            <a
+            <Link
               href="/console"
               className="mt-5 inline-flex h-10 items-center rounded bg-ink px-5 text-[13px] font-medium text-bg transition-colors hover:bg-white"
             >
               Open console
-            </a>
+            </Link>
           </div>
         )}
       </div>

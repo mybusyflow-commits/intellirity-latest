@@ -39,6 +39,7 @@ function Big({ end, decimals, suffix }: { end: number; decimals: number; suffix:
 
 export function Metrics() {
   const [vals, setVals] = useState<Record<string, number>>({});
+  const [demo, setDemo] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -51,6 +52,10 @@ export function Metrics() {
           scans: s.total_scans,
           models: s.models_monitored,
         });
+        // An empty workspace shows demo traffic. The numbers below are
+        // real detections only, so if the feed is mostly synthetic we say
+        // so rather than presenting demo rows as attacks blocked.
+        setDemo(Boolean(s.demo_feed) && s.threats_blocked === 0);
       })
       .catch(() => {});
     return () => {
@@ -84,6 +89,13 @@ export function Metrics() {
           </div>
         ))}
       </div>
+      {demo && (
+        <p className="mx-auto max-w-[1240px] px-7 pb-8 font-mono text-[11px] text-faint md:px-9">
+          This is an empty workspace, so the counters above are zero. The
+          activity you see elsewhere on this page is synthetic demo traffic,
+          not real attacks.
+        </p>
+      )}
     </section>
   );
 }

@@ -8,43 +8,44 @@ import {
   DatabaseZap, AudioWaveform, Landmark, Fingerprint, Waypoints, ShieldAlert, Bot, Globe, Wallet,
 } from "lucide-react";
 import { Logo } from "@/components/site/logo";
+import { CONSOLE_ROUTES, consoleHref } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
-const SECTIONS: Array<{
-  title: string;
-  items: Array<{ num: string; href: string; label: string; icon: typeof Radar; hint?: string }>;
-}> = [
-  {
-    title: "Operate",
-    items: [
-      { num: "01", href: "/console", label: "Overview", icon: LayoutDashboard },
-      { num: "02", href: "/console/scanner", label: "Scanner", icon: Radar },
-      { num: "03", href: "/console/verdicts", label: "Verdicts", icon: ScrollText, hint: "live" },
-      { num: "04", href: "/console/leakage", label: "Leakage guard", icon: DatabaseZap },
-      { num: "05", href: "/console/anomalies", label: "Anomalies", icon: AudioWaveform },
-    ],
-  },
-  {
-    title: "Defend",
-    items: [
-      { num: "06", href: "/console/proof", label: "Proof of intent", icon: Fingerprint },
-      { num: "07", href: "/console/flow", label: "Data flow", icon: Waypoints },
-      { num: "08", href: "/console/content", label: "Content guard", icon: ShieldAlert },
-      { num: "09", href: "/console/behavior", label: "Agent behavior", icon: Bot },
-      { num: "10", href: "/console/intel", label: "Threat intel", icon: Globe, hint: "live" },
-      { num: "11", href: "/console/wallet", label: "Wallet guard", icon: Wallet },
-    ],
-  },
-  {
-    title: "Govern",
-    items: [
-      { num: "12", href: "/console/models", label: "Models & agents", icon: Boxes },
-      { num: "13", href: "/console/policies", label: "Policies", icon: ShieldCheck },
-      { num: "14", href: "/console/escrow", label: "Agent escrow", icon: Landmark },
-      { num: "15", href: "/console/audit", label: "Audit log", icon: FileSearch },
-    ],
-  },
-];
+const ICONS: Record<string, typeof Radar> = {
+  overview: LayoutDashboard,
+  scanner: Radar,
+  verdicts: ScrollText,
+  leakage: DatabaseZap,
+  anomalies: AudioWaveform,
+  proof: Fingerprint,
+  flow: Waypoints,
+  content: ShieldAlert,
+  behavior: Bot,
+  intel: Globe,
+  wallet: Wallet,
+  models: Boxes,
+  policies: ShieldCheck,
+  escrow: Landmark,
+  audit: FileSearch,
+};
+
+const HINTS: Record<string, string | undefined> = {
+  verdicts: "live",
+  intel: "live",
+};
+
+/* Built from the shared route registry, so a new console page appears in
+   the nav automatically. Numbers are the global position in that list. */
+const SECTIONS = (["Operate", "Defend", "Govern"] as const).map((group) => ({
+  title: group,
+  items: CONSOLE_ROUTES.filter((r) => r.group === group).map((r) => ({
+    num: String(CONSOLE_ROUTES.indexOf(r) + 1).padStart(2, "0"),
+    href: consoleHref(r.path),
+    label: r.title,
+    icon: ICONS[r.key] ?? Radar,
+    hint: HINTS[r.key],
+  })),
+}));
 
 export function Sidebar({ drawer = false }: { drawer?: boolean }) {
   const pathname = usePathname();

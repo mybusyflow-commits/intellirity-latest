@@ -56,12 +56,25 @@ export OPENAI_API_KEY="$INTELLIRITY_KEY"  # policy: payments-strict
 # every call below is now judged inline, in real time.
 # blocked attacks land in your verdict stream with evidence.`;
 
+/* The gateway host is shown in the terminal and copied by the button, so
+   the two can never disagree. Set NEXT_PUBLIC_GATEWAY_URL to the origin of
+   your deployment; until then the placeholder is shown and clearly
+   labelled as such. */
+const GATEWAY_HOST = process.env.NEXT_PUBLIC_GATEWAY_URL || "https://YOUR-INTELLIRITY-GATEWAY";
+const GATEWAY_IS_PLACEHOLDER = !process.env.NEXT_PUBLIC_GATEWAY_URL;
+
+const TERMINAL_SNIPPET = `# route your traffic through the mesh
+export OPENAI_BASE_URL="${GATEWAY_HOST}/v1"
+export OPENAI_API_KEY="$INTELLIRITY_KEY"  # policy: payments-strict`;
+
 export function Integrate() {
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(SNIPPET);
+      // Copy exactly what the terminal shows, so the snippet and the screen
+      // can never disagree about the gateway host.
+      await navigator.clipboard.writeText(TERMINAL_SNIPPET);
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
     } catch {
@@ -84,7 +97,14 @@ export function Integrate() {
         </div>
         <p className="reveal max-w-sm text-[14.5px] leading-relaxed text-dim">
           Point your existing SDK at the mesh. Policies attach by key prefix.
-          Staging stays permissive while production enforces.
+          Staging stays permissive while production enforces.{" "}
+          {GATEWAY_IS_PLACEHOLDER && (
+            <>
+              Set <code className="font-mono text-[13px]">NEXT_PUBLIC_GATEWAY_URL</code> to
+              your own gateway origin — the host below is a placeholder until
+              you do.
+            </>
+          )}
         </p>
       </div>
 
@@ -106,7 +126,7 @@ export function Integrate() {
               {"\n"}
               <span className="text-steel">export</span> <span className="text-ink">OPENAI_BASE_URL</span>
               <span className="text-faint">=</span>
-              <span className="text-dim">&quot;https://mesh.intellirity.dev/v1&quot;</span>
+              <span className="text-dim">&quot;{GATEWAY_HOST}/v1&quot;</span>
               {"\n"}
               <span className="text-steel">export</span> <span className="text-ink">OPENAI_API_KEY</span>
               <span className="text-faint">=</span>

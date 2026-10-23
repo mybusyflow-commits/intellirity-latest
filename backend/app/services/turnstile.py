@@ -4,6 +4,9 @@ When TURNSTILE_SECRET is unset the check is open (local dev). The moment
 the secret exists, every contact submission must carry a valid token.
 Test keys (always pass): site 1x00000000000000000000AA,
 secret 1x0000000000000000000000000000000-AA.
+
+In production an unconfigured secret is a hard failure: an open contact
+form is an unauthenticated spam relay, so we refuse rather than accept.
 """
 import os
 import urllib.parse
@@ -18,9 +21,16 @@ def _secret() -> str:
     return os.getenv("TURNSTILE_SECRET", "")
 
 
+def _is_production() -> bool:
+    from app.core.config import settings
+    return settings.ENVIRONMENT == "production"
+
+
 def verify_turnstile(token: str, remote_ip: str = "") -> tuple[bool, str]:
     secret = _secret()
     if not secret:
+        if _is_production():
+            return False, "spam protection is not configured on this deployment"
         return True, "unconfigured"
     if not token:
         return False, "missing token"

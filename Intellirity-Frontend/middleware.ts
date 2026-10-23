@@ -10,10 +10,29 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 const WINDOW_MS = 60_000;
 const PROXY_LIMIT = 120; // requests per IP per minute on /backend/*
 const PAGE_LIMIT = 300; // requests per IP per minute on pages/APIs
-const hits = new Map<string, number[]>();
+const MAX_TRACKED_IPS = 20_000;
 
+const hits = new Map<string, number[]>();
+const IS_PROD = process.env.NODE_ENV === "production";
 const HAS_CLERK = Boolean(process.env.CLERK_SECRET_KEY);
 const isProtectedRoute = createRouteMatcher(["/console(.*)"]);
+
+/* On Vercel the platform terminates TLS and sets x-forwarded-for itself.
+   Taking the LAST hop is the safe choice behind a known proxy: a client
+   can prepend its own value, but cannot remove the proxy's. Falling back
+   to the socket address keeps local dev working. */
+function clientIp(req: NextRequest): string {
+  const xff = req.headers.get("x-forwarded-for");
+  if (xff) {
+    const hops = xff.split(",").map((h) => h.trim()).filter(Boolean);
+    if (hops.length > 0) return hops[hops.length - 1];
+  }
+  return (
+    req.headers.get("x-real-ip") ||
+    req.headers.get("cf-connecting-ip") ||
+    "unknown"
+  );
+}
 
 function rateLimited(ip: string, limit: number): boolean {
   const now = Date.now();
@@ -21,10 +40,22 @@ function rateLimited(ip: string, limit: number): boolean {
   const fresh = arr.filter((t) => now - t < WINDOW_MS);
   fresh.push(now);
   hits.set(ip, fresh);
-  // Bound memory: drop buckets that went quiet.
-  if (hits.size > 5000 && Math.random() < 0.01) {
-    for (const [k, v] of hits) {
-      if (v.length === 0 || now - v[v.length - 1] > WINDOW_MS) hits.delete(k);
+
+  // Bound the map: drop the oldest buckets when it grows too large, and
+  // expire quiet entries on every sweep so the map cannot be used as a
+  // memory-exhaustion vector.
+  if (hits.size > MAX_TRACKED_IPS) {
+    const entries = [...hits.entries()].sort(
+      (a, b) => (a[1][a[1].length - 1] ?? 0) - (b[1][b[1].length - 1] ?? 0)
+    );
+    for (const [key] of entries.slice(0, Math.floor(MAX_TRACKED_IPS / 2))) {
+      hits.delete(key);
+    }
+  }
+  if (hits.size > 1000) {
+    for (const [key, value] of hits) {
+      const last = value[value.length - 1] ?? 0;
+      if (now - last >= WINDOW_MS) hits.delete(key);
     }
   }
   return fresh.length > limit;
@@ -34,21 +65,20 @@ function rateLimited(ip: string, limit: number): boolean {
 function guard(req: NextRequest): NextResponse | null {
   const url = req.nextUrl;
 
-  // HTTPS enforcement: only when explicitly enabled (production behind a
-  // proxy that sets x-forwarded-proto). Never redirects localhost.
-  if (
-    process.env.SECURE_REDIRECT === "true" &&
-    req.headers.get("x-forwarded-proto") === "http"
-  ) {
+  // HTTPS enforcement. On by default in production: a deployment that
+  // forgets to set SECURE_REDIRECT must not silently serve over HTTP.
+  // Never redirects localhost, where there is no TLS to speak of.
+  const isLocal =
+    url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "::1";
+  const wantHttps =
+    process.env.SECURE_REDIRECT === "true" || (IS_PROD && process.env.SECURE_REDIRECT !== "false");
+  if (wantHttps && !isLocal && req.headers.get("x-forwarded-proto") === "http") {
     const https = url.clone();
     https.protocol = "https:";
     return NextResponse.redirect(https, 308);
   }
 
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "unknown";
+  const ip = clientIp(req);
   const isProxy = url.pathname.startsWith("/backend/");
   const limit = isProxy ? PROXY_LIMIT : PAGE_LIMIT;
 
@@ -63,7 +93,20 @@ function guard(req: NextRequest): NextResponse | null {
 }
 
 async function baseMiddleware(req: NextRequest) {
-  return guard(req) ?? NextResponse.next();
+  const blocked = guard(req);
+  if (blocked) return blocked;
+
+  // Fail closed in production: without Clerk keys the console would be
+  // publicly readable. The backend already refuses to serve without auth
+  // in production; the UI must refuse too rather than render an empty
+  // shell to anonymous visitors.
+  if (IS_PROD && req.nextUrl.pathname.startsWith("/console")) {
+    return new NextResponse(
+      "Authentication is not configured on this deployment (CLERK_SECRET_KEY is missing).",
+      { status: 503, headers: { "Retry-After": "300" } }
+    );
+  }
+  return NextResponse.next();
 }
 
 export default HAS_CLERK
@@ -78,5 +121,10 @@ export default HAS_CLERK
   : baseMiddleware;
 
 export const config = {
-  matcher: ["/backend/:path*", "/console/:path*", "/((?!_next/static|_next/image|favicon.png|logo.png|og-image.png).*)"],
+  matcher: [
+    "/backend/:path*",
+    "/console/:path*",
+    // Pages and app routes, but not Next's static output.
+    "/((?!_next/static|_next/image|favicon.png|favicon-full.png|logo.png|logo-full.png|og-image.png|robots.txt|sitemap.xml).*)",
+  ],
 };

@@ -6,6 +6,10 @@ import { Logo } from "@/components/site/logo";
 export const metadata: Metadata = {
   title: "Page not found",
   description: "This path is not guarded. Return to Intellirity.",
+  // Next emits its own noindex for the 404 route, so the root layout's
+  // index,follow is never inherited here. Stated explicitly anyway, so a
+  // change to the root policy cannot quietly make the 404 indexable.
+  robots: { index: false, follow: false, googleBot: { index: false, follow: false } },
 };
 
 export default function NotFound() {

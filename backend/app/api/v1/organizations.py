@@ -7,20 +7,19 @@ from app.db.session import get_db
 from app.schemas.schemas import OrganizationCreate, OrganizationResponse
 from app.models.models import Organization
 from app.core.security import require_user
+from app.core.identity import owner as _identity, org_id as _clerk_org_id, role as _role
 
 router = APIRouter()
 
-# Authorization model: organizations are owned by the authenticated user
-# (Clerk `sub` claim). In open mode (no secret = local dev) the identity is
-# "local-dev" and everything created locally is visible locally. A user can
-# only list or fetch their OWN orgs — cross-owner access is a 404 (which
-# also avoids leaking whether an id exists at all: no IDOR enumeration).
+# Authorization model: an organization belongs to the tenant that owns the
+# request — the Clerk organization when the session has one, otherwise the
+# user themselves (a solo tenant). In open mode (no secret = local dev) the
+# identity is "local-dev" and everything created locally is visible locally.
+# A user can only list or fetch their OWN orgs — cross-owner access is a 404
+# (which also avoids leaking whether an id exists at all: no IDOR
+# enumeration).
 
 _memory_orgs: list[dict] = []
-
-
-def _identity(user: dict) -> str:
-    return str(user.get("sub") or user.get("user_id") or "local-dev")
 
 
 @router.post("/", response_model=OrganizationResponse)
@@ -93,7 +92,12 @@ async def list_organizations(user: dict = Depends(require_user)):
             seen[o["id"]] = o
     for o in await _db_orgs(owner):
         seen.setdefault(o["id"], o)
-    return {"organizations": [OrganizationResponse(**o) for o in seen.values()]}
+    return {
+        "organizations": [OrganizationResponse(**o) for o in seen.values()],
+        "owner": owner,
+        "clerk_org_id": _clerk_org_id(user),
+        "role": _role(user),
+    }
 
 
 @router.get("/{org_id}", response_model=OrganizationResponse)

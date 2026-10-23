@@ -1,9 +1,16 @@
 "use client";
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- verbatim port of the
-   Flow Wave scene spec: dynamic CDN modules carry `any` by necessity. */
+   Flow Wave scene spec: the three.js addons carry `any` by necessity. */
 
 import { useEffect, useRef } from "react";
+import * as THREE from "three";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
+import { GammaCorrectionShader } from "three/examples/jsm/shaders/GammaCorrectionShader.js";
+import { CopyShader } from "three/examples/jsm/shaders/CopyShader.js";
 
 /* ================= fixed parameters (baked in, exactly as specified) ================= */
 
@@ -38,29 +45,9 @@ const pointerStrength = 0.9;
 const Lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
-const IMPORTMAP = {
-  imports: {
-    three: "https://unpkg.com/three@0.143.0/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.143.0/examples/jsm/",
-  },
-};
-
-let importmapInjected = false;
-function ensureImportmap() {
-  if (importmapInjected || typeof document === "undefined") return;
-  if (document.querySelector('script[type="importmap"][data-flowwave]')) {
-    importmapInjected = true;
-    return;
-  }
-  const el = document.createElement("script");
-  el.type = "importmap";
-  el.setAttribute("data-flowwave", "1");
-  el.textContent = JSON.stringify(IMPORTMAP);
-  document.head.appendChild(el);
-  importmapInjected = true;
-}
-
-const loadModule = new Function("u", "return import(u)") as (u: string) => Promise<any>;
+/* The scene uses the three.js bundled with the app. Loading it from a CDN
+   at runtime meant an unpinned, four-year-old copy, an extra third-party
+   origin in the CSP, and a `new Function` call that forced 'unsafe-eval'. */
 
 const SNOISE = `
 vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
@@ -193,14 +180,6 @@ export function FlowWave() {
     let cleanup: (() => void) | undefined;
 
     (async () => {
-      ensureImportmap();
-      const THREE = await loadModule("three");
-      const { EffectComposer } = await loadModule("three/addons/postprocessing/EffectComposer.js");
-      const { RenderPass } = await loadModule("three/addons/postprocessing/RenderPass.js");
-      const { UnrealBloomPass } = await loadModule("three/addons/postprocessing/UnrealBloomPass.js");
-      const { ShaderPass } = await loadModule("three/addons/postprocessing/ShaderPass.js");
-      const { GammaCorrectionShader } = await loadModule("three/addons/shaders/GammaCorrectionShader.js");
-      const { CopyShader } = await loadModule("three/addons/shaders/CopyShader.js");
       if (disposed || !canvasRef.current) return;
 
       const hexToVec3 = (hex: string) => {
@@ -208,7 +187,10 @@ export function FlowWave() {
         return new THREE.Vector3(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255);
       };
 
-      const renderer = new THREE.WebGL1Renderer({ canvas, antialias: true });
+      // three merged WebGL1Renderer into WebGLRenderer in r163. The scene
+      // shaders are GLSL1 (gl_FragColor / texture2D), which three still
+      // supports in its default GLSL1 shader mode.
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
       renderer.setPixelRatio(window.devicePixelRatio);
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.VSMShadowMap;

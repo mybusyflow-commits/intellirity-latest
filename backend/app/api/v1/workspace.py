@@ -14,6 +14,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.core.security import require_user
+from app.core.identity import (
+    owner as _owner,
+    user_id as _actor_id,
+    role as _role,
+    org_id as _org_id,
+    is_admin as _is_admin,
+)
 
 router = APIRouter()
 
@@ -65,10 +72,6 @@ SEED_MODELS = [
 
 # owner -> {"models": [...], "policies": [...]}
 _workspaces: dict[str, dict] = {}
-
-
-def _owner(user: dict) -> str:
-    return str((user or {}).get("sub") or (user or {}).get("user_id") or "local-dev")
 
 
 def _now() -> str:
@@ -179,14 +182,20 @@ async def set_policy(pack_id: str, body: PolicyUpdate, user: dict = Depends(requ
 async def promote_policy(pack_id: str, user: dict = Depends(require_user)):
     """Promote a pack to production.
 
-    Two-approver promotion is the intended production behaviour: this
-    endpoint records approvals in a set, so one operator can never approve
-    twice and can never be the second approver on their own promotion.
+    Two-approver promotion: this endpoint records approvals in a set keyed
+    by *actor*, so two members of the same organization can each approve
+    (and one person can never approve twice, nor be the second approver on
+    their own promotion).
     """
+    if not _is_admin(user):
+        raise HTTPException(
+            status_code=403,
+            detail="Only an organization admin can approve a policy promotion",
+        )
     ws = _get_workspace(_owner(user))
     for p in ws["policies"]:
         if p["id"] == pack_id:
-            approver = _owner(user)
+            approver = _actor_id(user)
             approvers = p.setdefault("approved_by", [])
             if approver in approvers:
                 raise HTTPException(

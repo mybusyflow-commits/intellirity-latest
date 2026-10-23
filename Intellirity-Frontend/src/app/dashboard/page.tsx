@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
-export default function DashboardAlias() {
+/* Legacy path kept for bookmarks: the console is the real dashboard. */
+export default function DashboardPage() {
   redirect("/console");
 }

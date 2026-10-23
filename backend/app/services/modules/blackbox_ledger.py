@@ -49,37 +49,56 @@ def black_box_ledger(payload: dict) -> dict:
         return {"error": f"Unknown action: {action}"}
 
 
-def _append(payload: dict) -> dict:
-    global _prev_hash
+def build_record(payload: dict, prev_hash: str) -> dict:
+    """Build the record body that commits to `prev_hash`.
 
-    record = {
-        "record_id": hashlib.sha256(f"{_prev_hash}{datetime.now(timezone.utc).isoformat()}".encode()).hexdigest()[:16],
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+    Split out from sealing so the database-backed append can build the
+    record against the current database tail, under a lock.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    prompt = payload.get("prompt", "")
+    return {
+        "record_id": hashlib.sha256(f"{prev_hash}{now}".encode()).hexdigest()[:16],
+        "timestamp": now,
         "ai_decision": payload.get("ai_decision", ""),
-        "prompt_hash": hashlib.sha256(payload.get("prompt", "").encode()).hexdigest() if payload.get("prompt") else None,
+        "prompt_hash": hashlib.sha256(prompt.encode()).hexdigest() if prompt else None,
         "reasoning_trace": payload.get("reasoning_trace", ""),
         "action_taken": payload.get("action_taken", ""),
         "confidence_score": payload.get("confidence_score", 0.0),
         "vpi_certificate": payload.get("vpi_certificate"),
         "metadata": payload.get("metadata", {}),
-        "previous_hash": _prev_hash,
+        "previous_hash": prev_hash,
     }
 
-    merkle_hash = _merkle_hash(record)
-    record["merkle_hash"] = merkle_hash
-    _prev_hash = merkle_hash
-    _ledger.append(record)
 
+def seal(record: dict) -> dict:
+    """Seal a record with its merkle hash."""
+    record = dict(record)
+    record["merkle_hash"] = _merkle_hash(record)
+    return record
+
+
+def record_response(record: dict) -> dict:
     return {
         "status": "recorded",
         "record_id": record["record_id"],
-        "merkle_hash": merkle_hash,
+        "merkle_hash": record["merkle_hash"],
         "merkle_root": _compute_merkle_root(_ledger),
         "total_records": len(_ledger),
         # Full record included so the API layer can persist it when a
         # database is available. Additive: existing clients ignore it.
         "record": record,
     }
+
+
+def _append(payload: dict) -> dict:
+    global _prev_hash
+
+    record = seal(build_record(payload, _prev_hash))
+    _prev_hash = record["merkle_hash"]
+    _ledger.append(record)
+
+    return record_response(record)
 
 
 def _verify() -> dict:

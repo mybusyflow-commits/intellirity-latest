@@ -5,11 +5,11 @@ services:
     image: postgres:16-alpine
     restart: always
     environment:
-      POSTGRES_USER: intellirity
-      POSTGRES_PASSWORD: intellirity_secret
-      POSTGRES_DB: intellirity_db
+      POSTGRES_USER: ${POSTGRES_USER:-intellirity}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-intellirity_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-intellirity_db}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -20,14 +20,17 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql+asyncpg://intellirity:intellirity_secret@db:5432/intellirity_db
-      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
-      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-intellirity}:${POSTGRES_PASSWORD:-intellirity_secret}@db:5432/${POSTGRES_DB:-intellirity_db}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
+      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
       SECRET_KEY: ${SECRET_KEY:-your-super-secret-key-change-in-production}
       VPI_SIGNING_KEY: ${VPI_SIGNING_KEY:-}
+      INTELLIRITY_API_KEY_HASHES: ${INTELLIRITY_API_KEY_HASHES:-}
       OPENCODEZEN_API_KEY: ${OPENCODEZEN_API_KEY:-}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
-      ENVIRONMENT: development
+      # A production value here makes the backend refuse to start with
+      # insecure defaults (no auth, default secret key).
+      ENVIRONMENT: ${ENVIRONMENT:-development}
     volumes:
       - ./backend:/app
     depends_on:
@@ -45,6 +48,9 @@ services:
       BACKEND_INTERNAL_URL: http://backend:8000/api/v1
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+      NEXT_PUBLIC_GATEWAY_URL: ${NEXT_PUBLIC_GATEWAY_URL:-}
+      NEXT_PUBLIC_DEPLOY_ENV: ${NEXT_PUBLIC_DEPLOY_ENV:-development}
     depends_on:
       - backend
     command: npm run dev

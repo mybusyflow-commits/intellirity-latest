@@ -2,13 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from app.core.security import require_user
+from app.core.identity import owner as _owner, role as _role, org_id as _org_id
 from app.services import billing as store
 
 router = APIRouter()
-
-
-def _owner(user: dict) -> str:
-    return str(user.get("sub") or user.get("user_id") or "local-dev")
 
 
 @router.get("/products")
@@ -44,7 +41,8 @@ async def activate(body: ActivateBody, user: dict = Depends(require_user)):
 @router.get("/entitlements")
 async def entitlements(user: dict = Depends(require_user)):
     owner = _owner(user)
-    return {"owner": owner, "enforced": store.is_enforced(),
+    return {"owner": owner, "org_id": _org_id(user), "role": _role(user),
+            "enforced": store.is_enforced(),
             "owned": sorted(store.owned_products(owner))}
 
 

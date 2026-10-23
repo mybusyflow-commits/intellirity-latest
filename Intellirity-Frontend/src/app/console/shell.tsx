@@ -4,25 +4,14 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/console/sidebar";
 import { Topbar, MobileNav } from "@/components/console/topbar";
+import { CONSOLE_ROUTES, consoleHref } from "@/lib/routes";
 
-/* Per-tab document titles (client pages cannot export metadata). */
-const TAB_TITLES: Record<string, string> = {
-  "/console": "Overview",
-  "/console/scanner": "Scanner",
-  "/console/verdicts": "Verdicts",
-  "/console/leakage": "Leakage guard",
-  "/console/anomalies": "Anomalies",
-  "/console/proof": "Proof of intent",
-  "/console/flow": "Data flow",
-  "/console/content": "Content guard",
-  "/console/behavior": "Agent behavior",
-  "/console/intel": "Threat intel",
-  "/console/wallet": "Wallet guard",
-  "/console/models": "Models & agents",
-  "/console/policies": "Policies",
-  "/console/escrow": "Agent escrow",
-  "/console/audit": "Audit log",
-};
+/* Per-tab document titles. Client pages cannot export metadata, so the tab
+   title is set here — from the same route registry the nav uses, so the
+   two can never disagree. */
+const TAB_TITLES: Record<string, string> = Object.fromEntries(
+  CONSOLE_ROUTES.map((r) => [consoleHref(r.path), r.title])
+);
 
 export function ConsoleShell({ children }: { children: React.ReactNode }) {
   const [navOpen, setNavOpen] = useState(false);

@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.services.feature_registry import FEATURE_REGISTRY, get_customer_features, check_entitlement
 from app.api.v1.threats import add_threat_event
 from app.core.security import require_user
+from app.core.identity import owner as _billing_owner
 
 router = APIRouter()
 
@@ -109,13 +110,22 @@ async def run_module_scan(module_id: str, payload: dict, user: dict = Depends(re
     # Billing enforcement: off in open/dev mode, on with BILLING_ENFORCED.
     from app.services import billing as billing_store
 
-    owner = str((user or {}).get("sub") or (user or {}).get("user_id") or "local-dev")
+    owner = _billing_owner(user)
     allowed, reason = billing_store.engine_allowed(module_id, owner)
     if not allowed:
         raise HTTPException(status_code=403, detail=reason)
 
     module_info = FEATURE_REGISTRY[module_id]
     module_func = module_info["function"]
+
+    # The ledger is one global chain, but the engine may run in more than
+    # one process. Take the records the database has that this process does
+    # not BEFORE the chain is touched, so the sequence stays linear.
+    ledger_db = module_id == "black_box_ledger"
+    if ledger_db:
+        from app.db.persist import sync_ledger_chain
+
+        await sync_ledger_chain(rebuild=True)
 
     # Malformed payloads must fail as 422, never as a 500: the module gets
     # well-formed-but-unexpected shapes (e.g. a string where a list belongs).
@@ -129,18 +139,38 @@ async def run_module_scan(module_id: str, payload: dict, user: dict = Depends(re
 
     result, cached = _cached_scan(module_id, payload, _compute)
 
+    # Ledger append: when a database is available it is the authority for
+    # the chain. The record is sealed against the database tail under a
+    # lock, so concurrent processes cannot fork the sequence.
+    ledger_written = False
+    if ledger_db and str(payload.get("action", "log")) == "log":
+        from app.db.persist import append_ledger_record, is_connected
+        from app.services.modules import blackbox_ledger as ledger_mod
+
+        if is_connected():
+            sealed = await append_ledger_record(payload)
+            if sealed is not None:
+                # Rebuild from the database: the record the module sealed
+                # locally was superseded by the one the database sealed
+                # against its own tail.
+                await sync_ledger_chain(rebuild=True)
+                result = ledger_mod.record_response(sealed)
+                ledger_written = True
+
     # Auto-log threat if high/medium risk score or block verdict.
     # Cache hits never re-log: the event was already recorded on first scan.
     risk_score = result.get("risk_score", 0.0)
     verdict = result.get("verdict", "allow")
     findings = result.get("findings", [])
     _should_log = not cached and (verdict == "block" or risk_score >= 0.6 or verdict == "flag" or risk_score >= 0.3)
-    
-    # Ledger dual-write: sealed records persist to Postgres when available.
-    if module_id == "black_box_ledger" and isinstance(result.get("record"), dict):
+
+    # Ledger write. The locked database append above already stored the
+    # record; this is the fallback for when that path was unavailable.
+    if ledger_db and not ledger_written:
         from app.db.persist import persist_ledger_record
 
-        await persist_ledger_record(result["record"])
+        if isinstance(result.get("record"), dict):
+            await persist_ledger_record(result["record"])
 
     # Escrow statefulness: hydrate unknown ids from Postgres (cross-restart
     # verify/reject), then persist every mutation. Trust the state machine.

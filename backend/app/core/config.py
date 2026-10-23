@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     # localhost set for dev. On deploy, set this to your real domains ONLY
     # (frontend URL + custom domain) — never "*" and never localhost.
     ALLOWED_ORIGINS: str = ""
+    # Machine API keys for the SDKs and MCP server. Comma separated.
+    # Store SHA-256 hashes in production (INTELLIRITY_API_KEY_HASHES).
+    INTELLIRITY_API_KEYS: str = ""
+    INTELLIRITY_API_KEY_HASHES: str = ""
 
     class Config:
         env_file = ".env"
@@ -47,3 +51,27 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def validate_production_secrets() -> list[str]:
+    """Return the list of insecure defaults in a production deployment.
+
+    Called at boot so a misconfigured production deploy fails loudly
+    instead of running with a publicly-known signing key.
+    """
+    problems: list[str] = []
+    if settings.ENVIRONMENT != "production":
+        return problems
+    if not settings.CLERK_SECRET_KEY and not settings.INTELLIRITY_API_KEY_HASHES \
+            and not settings.INTELLIRITY_API_KEYS:
+        problems.append(
+            "no authentication configured: set CLERK_SECRET_KEY (users) "
+            "and/or INTELLIRITY_API_KEY_HASHES (machines)"
+        )
+    if settings.SECRET_KEY == "dev-secret-key":
+        problems.append("SECRET_KEY is still the default dev value")
+    if not settings.VPI_SIGNING_KEY:
+        problems.append("VPI_SIGNING_KEY is not set (proof-of-intent keys fall back to SECRET_KEY)")
+    if not settings.DATABASE_URL:
+        problems.append("DATABASE_URL is not set (running memory-only)")
+    return problems

@@ -2,7 +2,7 @@ import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.api.v1.router import api_router
@@ -42,6 +42,15 @@ _configure_logging()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Refuse to run a production deployment with insecure defaults.
+    from app.core.config import validate_production_secrets
+    problems = validate_production_secrets()
+    if problems:
+        for p in problems:
+            print(f"[FATAL] insecure production configuration: {p}", flush=True)
+        raise RuntimeError(
+            "Refusing to start: insecure production configuration -> " + "; ".join(problems)
+        )
     # Bootstrap Postgres when reachable (tables + indexes); otherwise the
     # app runs memory-first. Never blocks or crashes boot.
     from app.db.persist import init_db, restore_ledger_chain
@@ -56,12 +65,87 @@ async def lifespan(app: FastAPI):
 
 import asyncio
 
+# Set once the database has been bootstrapped in this process.
+_db_bootstrap_done = False
+
 app = FastAPI(
     title="Intellirity",
     description="AI Security Platform — Protecting AI systems from threats",
     version="0.1.0",
     lifespan=lifespan,
 )
+
+
+@app.middleware("http")
+async def _response_headers(request, call_next):
+    """Attach the caching and framing policy to every API response.
+
+    Engine responses are tenant-scoped and often carry an Authorization
+    header, so a shared cache must never store them. This is set here, on
+    the API itself, because a proxy in front (or a rewrite to this
+    service) may pass upstream headers through unchanged.
+    """
+    response = await call_next(request)
+    path = request.url.path
+    if path.startswith("/api/"):
+        response.headers["Cache-Control"] = "private, no-store, max-age=0"
+        response.headers["Vary"] = "Authorization, Cookie"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+
+
+@app.middleware("http")
+async def _ensure_database(request, call_next):
+    """Create tables and restore the ledger chain on the first request.
+
+    Serverless platforms (Vercel functions) start the ASGI app with
+    `lifespan="off"`, so the lifespan hook above never fires and the tables
+    would never be created. This runs once per instance, on the first
+    request, and is a no-op afterwards. It never blocks or fails a request.
+    """
+    global _db_bootstrap_done
+    if not _db_bootstrap_done:
+        _db_bootstrap_done = True
+        try:
+            from app.core.config import validate_production_secrets
+            problems = validate_production_secrets()
+            if problems:
+                for p in problems:
+                    print(f"[FATAL] insecure production configuration: {p}", flush=True)
+                return JSONResponse(
+                    status_code=503,
+                    content={"detail": "insecure production configuration"},
+                )
+        except RuntimeError:
+            raise
+        except Exception:
+            pass
+        try:
+            from app.db.persist import init_db, is_connected, restore_ledger_chain
+            # If the lifespan hook already ran, the database is ready and
+            # the ledger chain has been restored. Re-restoring here would
+            # append historical records to a chain that has since moved on.
+            if not is_connected():
+                await init_db()
+                if is_connected():
+                    await restore_ledger_chain()
+        except Exception:
+            # Memory mode is a valid operating mode — never fail a request.
+            pass
+    return await call_next(request)
+
+
+@app.on_event("startup")
+async def _serverless_bootstrap():
+    """Best-effort bootstrap for platforms that do run startup events."""
+    from app.db.persist import init_db, is_connected, restore_ledger_chain
+    if is_connected():
+        return
+    await init_db()
+    if is_connected():
+        await restore_ledger_chain()
 
 def _allowed_origins() -> list[str]:
     extra = [o.strip() for o in settings.ALLOWED_ORIGINS.split(",") if o.strip()]

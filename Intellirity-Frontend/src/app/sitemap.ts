@@ -1,38 +1,15 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
+import { PUBLIC_ROUTES } from "@/lib/routes";
 
-const CONSOLE_ROUTES = [
-  "",
-  "/scanner",
-  "/verdicts",
-  "/leakage",
-  "/anomalies",
-  "/proof",
-  "/flow",
-  "/content",
-  "/behavior",
-  "/intel",
-  "/wallet",
-  "/models",
-  "/policies",
-  "/escrow",
-  "/audit",
-];
-
+/* Only pages that are meant to be found are listed. The console is
+   authenticated, so it is excluded here (and disallowed in robots.txt and
+   noindex in its metadata). */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
-  return [
-    {
-      url: SITE_URL,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 1,
-    },
-    ...CONSOLE_ROUTES.map((r) => ({
-      url: `${SITE_URL}/console${r}`,
-      lastModified: now,
-      changeFrequency: "weekly" as const,
-      priority: r === "" ? 0.9 : 0.7,
-    })),
-  ];
+  return PUBLIC_ROUTES.map((r) => ({
+    url: `${SITE_URL}${r.path === "/" ? "" : r.path}`,
+    lastModified: new Date(),
+    changeFrequency: r.changeFrequency,
+    priority: r.priority,
+  }));
 }

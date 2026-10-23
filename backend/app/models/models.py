@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import String, DateTime, Boolean, Text
+from sqlalchemy import String, DateTime, Boolean, Text, BigInteger
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.sql import func
 import uuid
@@ -55,6 +55,12 @@ class LedgerRecord(Base):
     __tablename__ = "ledger_records"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
+    # Monotonic position in the chain. Wall-clock timestamps can collide
+    # (or arrive out of order) when two processes append at once, which
+    # would order the rows differently from the sequence they were sealed
+    # in. The sequence is the authority for chain order.
+    seq: Mapped[int] = mapped_column(BigInteger, server_default=func.nextval("ledger_records_seq_seq"),
+                                     nullable=False)
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     ai_decision: Mapped[str] = mapped_column(Text, default="")
     prompt_hash: Mapped[str | None] = mapped_column(String, nullable=True)

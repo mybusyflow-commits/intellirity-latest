@@ -2,9 +2,11 @@
   "buildCommand": "npm --prefix Intellirity-Frontend run build",
   "outputDirectory": "Intellirity-Frontend/.next",
   "framework": "nextjs",
+  "installCommand": "npm --prefix Intellirity-Frontend install",
   "functions": {
     "api/index.py": {
-      "maxDuration": 30
+      "maxDuration": 30,
+      "memory": 1024
     }
   },
   "rewrites": [

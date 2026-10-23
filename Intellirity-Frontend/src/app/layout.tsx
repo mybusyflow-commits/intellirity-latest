@@ -4,6 +4,8 @@ import "./globals.css";
 import { DarkEnforcer } from "@/components/fx/dark-enforcer";
 import { Analytics } from "@/components/site/analytics";
 import { AuthBridge } from "@/components/site/auth-bridge";
+import { ConsentBanner } from "@/components/site/consent-banner";
+import { FAQS, faqAnswerText } from "@/lib/faq";
 
 /* Clerk activates only once NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY exists.
    Until then the app renders exactly as before (keyless local dev). */
@@ -12,6 +14,7 @@ import {
   SITE_DESCRIPTION,
   SITE_KEYWORDS,
   SITE_NAME,
+  SITE_SUMMARY,
   SITE_TAGLINE,
   SITE_URL,
 } from "@/lib/site";
@@ -33,9 +36,10 @@ export const metadata: Metadata = {
   authors: [{ name: SITE_NAME }],
   creator: SITE_NAME,
   publisher: SITE_NAME,
-  alternates: {
-    canonical: SITE_URL,
-  },
+  applicationName: SITE_NAME,
+  // No blanket `alternates.canonical` here: a root canonical is inherited
+  // by every child that does not define its own, which made /sign-in and
+  // /sign-up canonicalise to the homepage. Each page sets its own.
   robots: {
     index: true,
     follow: true,
@@ -44,11 +48,12 @@ export const metadata: Metadata = {
       follow: true,
       "max-image-preview": "large",
       "max-snippet": -1,
+      "max-video-preview": -1,
     },
   },
   openGraph: {
     title: TITLE_DEFAULT,
-    description: "Detect, judge, and neutralize AI threats in real time.",
+    description: SITE_SUMMARY,
     url: SITE_URL,
     siteName: SITE_NAME,
     type: "website",
@@ -65,16 +70,27 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: TITLE_DEFAULT,
-    description: "Detect, judge, and neutralize AI threats in real time.",
+    description: SITE_SUMMARY,
     images: ["/og-image.png"],
   },
   icons: {
-    icon: [{ url: "/favicon.png", type: "image/png" }],
-    apple: [{ url: "/favicon.png", type: "image/png" }],
+    icon: [
+      { url: "/favicon.png", type: "image/png", sizes: "64x64" },
+      { url: "/favicon-full.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/apple-icon.png", type: "image/png", sizes: "180x180" }],
   },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: SITE_NAME,
+    statusBarStyle: "black-translucent",
+  },
+  formatDetection: { telephone: false, address: false, email: false },
   verification: {
-    // TODO: paste the Google Search Console verification token here
-    // once the production domain is connected, e.g. google: "abc123…".
+    // Set NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION to the Google Search Console
+    // token once the production domain is connected.
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
   },
 };
 
@@ -84,7 +100,9 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-/* Server-rendered structured data: Organization + product + FAQ. */
+/* Server-rendered structured data: Organization, product, website and the
+   four-step deployment procedure. The FAQPage lives with the FAQ it
+   describes, so the schema always sits next to the visible answers. */
 function JsonLd() {
   const data = {
     "@context": "https://schema.org",
@@ -94,37 +112,117 @@ function JsonLd() {
         "@id": `${SITE_URL}#org`,
         name: SITE_NAME,
         url: SITE_URL,
-        logo: `${SITE_URL}/logo.png`,
+        logo: {
+          "@type": "ImageObject",
+          url: `${SITE_URL}/logo.png`,
+          width: 480,
+          height: 172,
+        },
         description: SITE_DESCRIPTION,
+        contactPoint: [
+          {
+            "@type": "ContactPoint",
+            contactType: "customer support",
+            email: "security@intellirity.ai",
+            availableLanguage: "en",
+          },
+        ],
       },
       {
         "@type": "SoftwareApplication",
+        "@id": `${SITE_URL}#app`,
         name: SITE_NAME,
         url: SITE_URL,
         applicationCategory: "SecurityApplication",
+        applicationSubCategory: "AI/LLM security",
         operatingSystem: "Web",
-        description: SITE_DESCRIPTION,
+        description: SITE_SUMMARY,
+        featureList: [
+          "Prompt injection and jailbreak detection",
+          "Data loss prevention for prompts and code",
+          "Agent action policy enforcement",
+          "MCP server and tool governance",
+          "Model supply chain verification",
+          "Tamper-evident audit ledger",
+          "Proof-of-intent certificates",
+          "Autonomous escrow",
+          "Screening reverse proxy",
+        ],
         offers: {
           "@type": "AggregateOffer",
           priceCurrency: "INR",
           lowPrice: "79",
           highPrice: "399",
           offerCount: "9",
-          description: "Per-module pricing, billed monthly. Prices are served live by the billing API.",
+          description:
+            "Per-module pricing, billed monthly. Prices are served live by the billing API.",
         },
       },
       {
         "@type": "WebSite",
+        "@id": `${SITE_URL}#website`,
         url: SITE_URL,
         name: SITE_NAME,
+        inLanguage: "en-US",
         publisher: { "@id": `${SITE_URL}#org` },
+      },
+      {
+        "@type": "HowTo",
+        "@id": `${SITE_URL}#howto`,
+        name: "How to deploy Intellirity in four moves",
+        description:
+          "Connect the gateway, compose policy, judge every call, and answer with evidence.",
+        totalTime: "PT11M",
+        step: [
+          {
+            "@type": "HowToStep",
+            position: 1,
+            name: "Connect the mesh",
+            text: "Point your OpenAI-compatible base URL at the Intellirity gateway and set the API key. Two environment variables, no code changes.",
+          },
+          {
+            "@type": "HowToStep",
+            position: 2,
+            name: "Compose policy",
+            text: "Choose the detection engines you need and the policy pack that matches your workload, from payments-strict to code-assist.",
+          },
+          {
+            "@type": "HowToStep",
+            position: 3,
+            name: "Judge every call",
+            text: "Every prompt, code payload and agent action is screened before it reaches a model. Blocked calls are logged with the evidence that produced the verdict.",
+          },
+          {
+            "@type": "HowToStep",
+            position: 4,
+            name: "Answer with evidence",
+            text: "Each verdict is sealed into a hash-chained ledger, so the decision can be reconstructed and verified after the fact.",
+          },
+        ],
+      },
+      {
+        "@type": "FAQPage",
+        "@id": `${SITE_URL}#faq`,
+        mainEntity: FAQS.map((f, i) => ({
+          "@type": "Question",
+          name: f.q,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: faqAnswerText(f.a),
+            url: `${SITE_URL}/#faq-${i + 1}`,
+          },
+        })),
       },
     ],
   };
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{
+        // Escaping "<" prevents a "</script>" inside the data from
+        // breaking out of the script tag.
+        __html: JSON.stringify(data).replace(/</g, "\\u003c"),
+      }}
     />
   );
 }
@@ -137,6 +235,7 @@ export default function RootLayout({
       <DarkEnforcer />
       <Analytics />
       {children}
+      <ConsentBanner />
       <JsonLd />
     </>
   );

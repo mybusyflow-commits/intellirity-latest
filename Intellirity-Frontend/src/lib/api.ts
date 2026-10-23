@@ -24,11 +24,21 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   }
   const r = await fetch(BASE + path, {
     headers,
+    cache: "no-store",
     ...init,
   });
   if (!r.ok) {
     const body = await r.text().catch(() => "");
-    throw new Error(`HTTP ${r.status} ${body.slice(0, 160)}`);
+    // The raw body can contain internal detail (stack fragments, SQL text).
+    // Surface a concise, safe message; the full body stays server-side.
+    let detail = "";
+    try {
+      const parsed = JSON.parse(body);
+      detail = typeof parsed?.detail === "string" ? parsed.detail : "";
+    } catch {
+      /* not JSON */
+    }
+    throw new Error(detail || `Request failed (HTTP ${r.status})`);
   }
   return r.json() as Promise<T>;
 }

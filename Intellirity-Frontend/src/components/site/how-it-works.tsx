@@ -103,7 +103,9 @@ export function HowItWorks() {
               That&apos;s the whole integration.
             </div>
             <p className="mt-3 max-w-xs text-[14px] leading-relaxed text-dim">
-              Median time from signup to first blocked attack: 11 minutes.
+              Two environment variables, one gateway, sixteen engines judging
+              every call. Per-scan latency is measured on your own traffic and
+              reported in the console.
             </p>
             <a
               href="#pricing"

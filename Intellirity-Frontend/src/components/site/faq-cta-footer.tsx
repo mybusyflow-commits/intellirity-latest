@@ -2,6 +2,7 @@
 
 import * as Accordion from "@radix-ui/react-accordion";
 import { useState } from "react";
+import Link from "next/link";
 import { ArrowRight, ArrowUpRight, ChevronDown } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Soffit } from "@/components/fx/soffit";
@@ -10,123 +11,43 @@ import { InfoModal } from "@/components/site/info-modal";
 import { Turnstile } from "@/components/site/turnstile";
 import { Logo } from "@/components/site/logo";
 import { sendContact } from "@/lib/api";
-
-type AnswerSeg = { t: string; href?: string };
-
-const FAQS: Array<{ q: string; a: AnswerSeg[] }> = [
-  {
-    q: "Will Intellirity slow down our AI?",
-    a: [
-      { t: "No. Verdicts compute inline with async enforcement, so users never wait on security. The live round-trip is measured on every page — open the " },
-      { t: "dashboard", href: "/console" },
-      { t: " and watch the mesh-health readout in the sidebar." },
-    ],
-  },
-  {
-    q: "Which models and frameworks are supported?",
-    a: [
-      { t: "Anything that speaks text: OpenAI, Anthropic, Google, Mistral, Llama, plus LangChain, Bedrock, Vertex, and raw HTTP. Register each endpoint under " },
-      { t: "Models & agents", href: "/console/models" },
-      { t: " and scan it against the live engine." },
-    ],
-  },
-  {
-    q: "Can we attack it ourselves before buying?",
-    a: [
-      { t: "Please do. Paste a jailbreak into the " },
-      { t: "live scanner", href: "/console/scanner" },
-      { t: " and watch the verdict stream, or run the full barrage across six detection modules." },
-    ],
-  },
-  {
-    q: "Where does our data live?",
-    a: [
-      { t: "With you. Verdict metadata is yours and we never train on traffic. Every decision lands in the tamper-evident " },
-      { t: "evidence vault", href: "/console/audit" },
-      { t: ", verifiable any time." },
-    ],
-  },
-  {
-    q: "What happens when the AI tries something risky?",
-    a: [
-      { t: "Dangerous actions are held in " },
-      { t: "agent escrow", href: "/console/escrow" },
-      { t: " until a human approves them, and every approval carries a signed " },
-      { t: "proof of intent", href: "/console/proof" },
-      { t: "." },
-    ],
-  },
-  {
-    q: "How is this different from a WAF?",
-    a: [
-      { t: "WAFs understand HTTP. Intellirity understands intent: semantic injection, multi-turn jailbreak chains, agent abuse, and exfiltration. See each control mapped to its live tab on the " },
-      { t: "platform", href: "#platform" },
-      { t: " section." },
-    ],
-  },
-  {
-    q: "How much does it cost?",
-    a: [
-      { t: "Starter workspaces begin at ₹99/month and Growth at ₹3,999. Compare every tier in " },
-      { t: "pricing", href: "#pricing" },
-      { t: "." },
-    ],
-  },
-];
-
-function FaqJsonLd() {
-  const data = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: f.a.map((s) => s.t).join(""),
-      },
-    })),
-  };
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
-    />
-  );
-}
+import { FAQS } from "@/lib/faq";
 
 export function Faq() {
   return (
-    <section className="relative z-10 mx-auto max-w-[860px] px-6 py-24 md:py-32">
-      <FaqJsonLd />
-      <div className="mb-10">
-        <div className="reveal mb-4 flex items-center gap-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-faint">
+    <>
+      <section id="faq" className="relative z-10 mx-auto max-w-[860px] px-6 pt-24 md:pt-32">
+        <div className="mb-10">
+          <div className="reveal mb-4 flex items-center gap-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-faint">
             <span className="text-steel">07</span>
-          <span className="h-px w-8 bg-line-strong" />
-          questions
+            <span className="h-px w-8 bg-line-strong" />
+            questions
+          </div>
+          <h2 className="reveal font-display text-[clamp(1.9rem,3.8vw,2.9rem)] font-medium leading-[1.08] tracking-[-0.025em]">
+            Asked by every security team.
+          </h2>
         </div>
-        <h2 className="reveal font-display text-[clamp(1.9rem,3.8vw,2.9rem)] font-medium leading-[1.08] tracking-[-0.025em]">
-          Asked by every security team.
-        </h2>
-      </div>
+      </section>
 
       <Accordion.Root
         type="single"
         collapsible
-        className="reveal panel overflow-hidden rounded-lg"
+        className="reveal panel mx-auto max-w-[860px] overflow-hidden rounded-lg"
       >
         {FAQS.map((f, i) => (
           <Accordion.Item key={f.q} value={`item-${i}`} className="border-b border-line last:border-b-0">
             <Accordion.Header>
-              <Accordion.Trigger className="group flex w-full items-center justify-between gap-4 px-6 py-5 text-left transition-colors hover:bg-white/[0.02]">
-                <span className="flex items-center gap-4">
-                  <span className="font-mono text-[11px] tabular-nums text-faint">
-                    {String(i + 1).padStart(2, "0")}
+              <h3 id={`faq-${i + 1}`} className="contents">
+                <Accordion.Trigger className="group flex w-full items-center justify-between gap-4 px-6 py-5 text-left transition-colors hover:bg-white/[0.02]">
+                  <span className="flex items-center gap-4">
+                    <span className="font-mono text-[11px] tabular-nums text-faint">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span className="text-[15px] font-medium tracking-[-0.01em]">{f.q}</span>
                   </span>
-                  <span className="text-[15px] font-medium tracking-[-0.01em]">{f.q}</span>
-                </span>
-                <ChevronDown className="size-4 shrink-0 text-faint transition-transform duration-300 group-data-[state=open]:rotate-180 group-data-[state=open]:text-ink" />
-              </Accordion.Trigger>
+                  <ChevronDown className="size-4 shrink-0 text-faint transition-transform duration-300 group-data-[state=open]:rotate-180 group-data-[state=open]:text-ink" />
+                </Accordion.Trigger>
+              </h3>
             </Accordion.Header>
             <Accordion.Content className="overflow-hidden data-[state=closed]:animate-[acc-up_0.25s_ease] data-[state=open]:animate-[acc-down_0.3s_cubic-bezier(0.16,1,0.3,1)]">
               <p className="px-6 pb-6 pl-[3.7rem] text-[14px] leading-relaxed text-dim">
@@ -149,7 +70,7 @@ export function Faq() {
         @keyframes acc-down { from { height: 0; opacity: 0; } to { height: var(--radix-accordion-content-height); opacity: 1; } }
         @keyframes acc-up { from { height: var(--radix-accordion-content-height); opacity: 1; } to { height: 0; opacity: 0; } }
       `}</style>
-    </section>
+    </>
   );
 }
 
@@ -161,7 +82,7 @@ export function FinalCta() {
         <Soffit className="absolute inset-0 block h-full w-full" />
         <div className="relative text-[#14161a]">
           <div className="mx-auto mb-6 font-mono text-[11px] uppercase tracking-[0.2em] text-[#14161a]/60">
-            free recon tier · no card · 11 min to first block
+            free tier · no card · every scan judged inline
           </div>
           <h2 className="mx-auto max-w-2xl font-display text-[clamp(2rem,4.6vw,3.6rem)] font-medium leading-[1.06] tracking-[-0.03em]">
             Arm your AI before it&apos;s used against you.
@@ -307,10 +228,10 @@ const FOOTER_COLS: Array<{ title: string; links: FooterLink[] }> = [
 ];
 
 const LEGAL_LINKS: FooterLink[] = [
-  { label: "Privacy policy", modal: "privacy" },
-  { label: "Terms & conditions", modal: "terms" },
-  { label: "Terms of use", modal: "terms-use" },
-  { label: "Cookie policy", modal: "cookies" },
+  { label: "Privacy policy", href: "/privacy" },
+  { label: "Terms & conditions", href: "/terms" },
+  { label: "Security model", href: "/security" },
+  { label: "Cookie policy", href: "/privacy" },
 ];
 
 export function Footer() {
@@ -327,8 +248,8 @@ export function Footer() {
             The security operations layer for AI. Detect, judge, neutralize,
             with evidence for every verdict.
           </p>
-          <div className="mt-5 flex gap-2 font-mono text-[10px] uppercase tracking-[0.1em] text-faint">
-            {["soc 2", "iso 27001", "gdpr"].map((t) => (
+          <div className="mt-5 flex flex-wrap gap-2 font-mono text-[10px] uppercase tracking-[0.1em] text-faint">
+            {["16 engines", "fail-closed", "signed evidence"].map((t) => (
               <span key={t} className="rounded border border-line px-2 py-1">
                 {t}
               </span>
@@ -343,16 +264,19 @@ export function Footer() {
         </div>
         {FOOTER_COLS.map((col) => (
           <nav key={col.title} aria-label={col.title}>
-            <h6 className="mb-4 font-mono text-[11px] uppercase tracking-[0.16em] text-faint">
+            <h3 className="mb-4 font-mono text-[11px] uppercase tracking-[0.16em] text-faint">
               {col.title}
-            </h6>
+            </h3>
             <ul className="space-y-2.5">
               {col.links.map((l) => (
                 <li key={l.label}>
                   {l.href ? (
-                    <a href={l.href} className="text-[13.5px] text-dim transition-colors hover:text-ink">
+                    <Link
+                      href={l.href}
+                      className="text-[13.5px] text-dim transition-colors hover:text-ink"
+                    >
                       {l.label}
-                    </a>
+                    </Link>
                   ) : (
                     <button
                       onClick={() => l.modal && setOpenDoc(l.modal)}
@@ -370,13 +294,13 @@ export function Footer() {
       <div className="border-t border-line/60">
         <div className="mx-auto flex max-w-[1240px] flex-wrap items-center gap-x-6 gap-y-2 px-6 py-4">
           {LEGAL_LINKS.map((l) => (
-            <button
+            <Link
               key={l.label}
-              onClick={() => l.modal && setOpenDoc(l.modal)}
+              href={l.href ?? "#"}
               className="font-mono text-[11px] text-faint transition-colors hover:text-dim"
             >
               {l.label}
-            </button>
+            </Link>
           ))}
         </div>
       </div>
