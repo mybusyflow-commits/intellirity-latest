@@ -4,7 +4,7 @@
    NEXT_PUBLIC_SITE_URL to the live production origin (Vercel sets it
    automatically) — the fallback is the marketing domain. */
 export const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL || "https://intellirity.ai"
+  process.env.NEXT_PUBLIC_SITE_URL || "https://intellirity.com"
 ).replace(/\/$/, "");
 
 export const SITE_NAME = "Intellirity";
@@ -34,7 +34,7 @@ export const SITE_KEYWORDS = [
 /* Support and legal addresses. These must be real inboxes — the privacy
    and terms pages link to them, and a dead address in a legal document is
    a compliance problem, not a cosmetic one. */
-export const CONTACT_EMAIL = "security@intellirity.ai";
-export const PRIVACY_EMAIL = "privacy@intellirity.ai";
-export const LEGAL_EMAIL = "legal@intellirity.ai";
-export const SECURITY_EMAIL = "security@intellirity.ai";
+export const CONTACT_EMAIL = "security@intellirity.com";
+export const PRIVACY_EMAIL = "privacy@intellirity.com";
+export const LEGAL_EMAIL = "legal@intellirity.com";
+export const SECURITY_EMAIL = "security@intellirity.com";

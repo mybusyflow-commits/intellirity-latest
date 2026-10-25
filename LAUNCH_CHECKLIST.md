@@ -99,12 +99,12 @@ SECRET_KEY=<generated>
 VPI_SIGNING_KEY=<generated>
 CLERK_SECRET_KEY=sk_live_...
 CLERK_ISSUER=https://your-app.clerk.accounts.dev
-CLERK_AUTHORIZED_PARTIES=https://your-domain.com
+CLERK_AUTHORIZED_PARTIES=https://intellirity.com
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
-NEXT_PUBLIC_SITE_URL=https://your-domain.com
-NEXT_PUBLIC_GATEWAY_URL=https://your-domain.com
+NEXT_PUBLIC_SITE_URL=https://intellirity.com
+NEXT_PUBLIC_GATEWAY_URL=https://intellirity.com
 NEXT_PUBLIC_DEPLOY_ENV=production
-ALLOWED_ORIGINS=https://your-domain.com
+ALLOWED_ORIGINS=https://intellirity.com
 ENVIRONMENT=production
 ```
 
@@ -115,8 +115,8 @@ OPENCODEZEN_API_KEY=<gateway key>
 OPENCODEZEN_BASE_URL=https://api.groq.com/openai/v1
 TURNSTILE_SECRET=...
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=...
-CONTACT_INBOX=security@intellirity.ai
-EMAIL_FROM="Intellirity <noreply@intellirity.ai>"
+CONTACT_INBOX=security@intellirity.com
+EMAIL_FROM="Intellirity <noreply@intellirity.com>"
 RESEND_API_KEY=re_...            # or SMTP_* below
 # SMTP_HOST=... SMTP_PORT=587 SMTP_USER=... SMTP_PASSWORD=...
 RAZORPAY_KEY_ID=rzp_live_...

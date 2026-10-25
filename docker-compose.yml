@@ -65,8 +65,8 @@ services:
       BILLING_ENFORCED: ${BILLING_ENFORCED:-false}
       # Public contact form + notifications
       TURNSTILE_SECRET: ${TURNSTILE_SECRET:-}
-      CONTACT_INBOX: ${CONTACT_INBOX:-security@intellirity.ai}
-      EMAIL_FROM: ${EMAIL_FROM:-Intellirity <noreply@intellirity.ai>}
+      CONTACT_INBOX: ${CONTACT_INBOX:-security@intellirity.com}
+      EMAIL_FROM: ${EMAIL_FROM:-Intellirity <noreply@intellirity.com>}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}

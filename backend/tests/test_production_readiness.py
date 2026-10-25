@@ -143,7 +143,7 @@ def _settings(**overrides):
         "INTELLIRITY_API_KEYS": "",
         "RESEND_API_KEY": "re_test",
         "TURNSTILE_SECRET": "ts",
-        "ALLOWED_ORIGINS": "https://intellirity.ai",
+        "ALLOWED_ORIGINS": "https://intellirity.com",
     }
     base.update(overrides)
     return config.Settings(**base)

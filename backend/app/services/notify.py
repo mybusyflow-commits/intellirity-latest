@@ -39,11 +39,11 @@ def _env(name: str, default: str = "") -> str:
 
 
 def contact_inbox() -> str:
-    return _env("CONTACT_INBOX", "security@intellirity.ai")
+    return _env("CONTACT_INBOX", "security@intellirity.com")
 
 
 def email_from() -> str:
-    return _env("EMAIL_FROM", "Intellirity <noreply@intellirity.ai>")
+    return _env("EMAIL_FROM", "Intellirity <noreply@intellirity.com>")
 
 
 def transport() -> str:

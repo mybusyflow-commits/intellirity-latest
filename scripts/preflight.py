@@ -90,7 +90,34 @@ def main() -> int:
     print("\n=== Identity consistency ===")
     frontend = parse_env(FRONTEND_ENV)
     pk = frontend.get("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", "")
+    site_url = frontend.get("NEXT_PUBLIC_SITE_URL", "").rstrip("/")
     issuer = resolve_clerk_issuer()
+
+    if not site_url:
+        print("  NO    NEXT_PUBLIC_SITE_URL (the console would fall back to the built-in domain)")
+        warnings.append("set NEXT_PUBLIC_SITE_URL to the production origin before building")
+    else:
+        print(f"  yes   site origin: {site_url}")
+        if site_url.startswith("http://") and "localhost" not in site_url:
+            blockers.append(f"NEXT_PUBLIC_SITE_URL is not https: {site_url}")
+        if "localhost" in site_url:
+            warnings.append(
+                "NEXT_PUBLIC_SITE_URL is localhost; Vercel must override it with the real origin"
+            )
+
+    if site_url and issuer:
+        from urllib.parse import urlparse
+
+        site_host = (urlparse(site_url).hostname or "").lower()
+        issuer_host = (urlparse(issuer).hostname or "").lower()
+        same_family = issuer_host == site_host or issuer_host.endswith("." + site_host)
+        print(f"  {'yes' if same_family else 'note'}  Clerk host is {issuer_host}")
+        if not same_family:
+            warnings.append(
+                f"Clerk issuer ({issuer_host}) is not on the site domain ({site_host}); "
+                "fine for a Clerk development instance, unexpected for production"
+            )
+
     if not pk:
         print("  NO    console publishable key (NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)")
         warnings.append("console publishable key missing locally; Vercel must provide it at build time")

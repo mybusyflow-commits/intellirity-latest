@@ -71,6 +71,20 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    // One canonical host. Clerk, the sitemap, the canonicals and the CSP all
+    // derive from SITE_URL; letting www serve a second copy splits inbound
+    // links and makes the canonical disagree with the address bar. The host
+    // match means this is inert on localhost and on preview URLs.
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.intellirity.com" }],
+        destination: "https://intellirity.com/:path*",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

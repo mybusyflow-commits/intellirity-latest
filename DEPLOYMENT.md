@@ -72,8 +72,8 @@ OPENCODEZEN_BASE_URL=https://api.groq.com/openai/v1   # any OpenAI-compatible ga
 OPENCODEZEN_MODEL=...                      # pin a model; auto-discovered otherwise
 TURNSTILE_SECRET=...                       # required for the public contact form
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=...         # its public counterpart (build time)
-CONTACT_INBOX=security@intellirity.ai      # where leads are announced
-EMAIL_FROM="Intellirity <noreply@intellirity.ai>"
+CONTACT_INBOX=security@intellirity.com      # where leads are announced
+EMAIL_FROM="Intellirity <noreply@intellirity.com>"
 RESEND_API_KEY=re_...                      # mail transport A
 # SMTP_HOST=... SMTP_PORT=587 SMTP_USER=... SMTP_PASSWORD=...   # mail transport B
 TIMEZONE=Asia/Kolkata                      # presentation only; storage is UTC
@@ -344,8 +344,8 @@ Roles come from `org_role` (`org:admin` is the admin role). Policy-pack
 promotion requires an admin and two different approvers.
 
 **4. Allow the production origin.** Dashboard → *Domains* (or *Paths*) →
-add the production hostname, e.g. `intellirity.ai`. Also set
-`CLERK_AUTHORIZED_PARTIES=https://intellirity.ai` in the engine so a token
+add the production hostname, e.g. `intellirity.com`. Also set
+`CLERK_AUTHORIZED_PARTIES=https://intellirity.com` in the engine so a token
 minted for another origin is refused even if it is validly signed.
 
 **5. Point the app at the pages.** Already wired: `/sign-in` and `/sign-up`

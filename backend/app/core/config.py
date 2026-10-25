@@ -82,8 +82,8 @@ class Settings(BaseSettings):
     # Outbound mail for the public contact form. Either transport works;
     # Resend is a single HTTPS call, SMTP covers a company mail relay.
     # Without one, submissions are still persisted, just not announced.
-    CONTACT_INBOX: str = "security@intellirity.ai"
-    EMAIL_FROM: str = "Intellirity <noreply@intellirity.ai>"
+    CONTACT_INBOX: str = "security@intellirity.com"
+    EMAIL_FROM: str = "Intellirity <noreply@intellirity.com>"
     RESEND_API_KEY: str = ""
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587

@@ -92,7 +92,7 @@ def test_production_without_a_resolvable_issuer_is_a_boot_problem(monkeypatch):
 def test_a_token_minted_for_another_origin_is_rejected(monkeypatch):
     monkeypatch.setattr(
         security, "settings",
-        _fake_settings(CLERK_AUTHORIZED_PARTIES="https://intellirity.ai"),
+        _fake_settings(CLERK_AUTHORIZED_PARTIES="https://intellirity.com"),
     )
 
     def _explode(_url):

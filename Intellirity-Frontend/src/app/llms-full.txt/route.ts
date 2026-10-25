@@ -1,6 +1,6 @@
 import engines from "@/lib/engines.generated.json";
 import { LEGAL_DOCS } from "@/lib/legal";
-import { SITE_NAME, SITE_SUMMARY, SITE_URL } from "@/lib/site";
+import { LEGAL_EMAIL, SECURITY_EMAIL, SITE_NAME, SITE_SUMMARY, SITE_URL } from "@/lib/site";
 
 /* llms-full.txt — the whole site as one plain-text document, for direct
    ingestion by an answer engine. */
@@ -56,9 +56,8 @@ the billing API. The full list with live prices is at ${SITE_URL}/pricing.
 
 ## Contact
 
-Security reports: security@intellirity.ai
-General: hello@intellirity.ai
-Legal and privacy: legal@intellirity.ai
+Security and general: ${SECURITY_EMAIL}
+Legal and privacy: ${LEGAL_EMAIL}
 `;
 
 export async function GET() {

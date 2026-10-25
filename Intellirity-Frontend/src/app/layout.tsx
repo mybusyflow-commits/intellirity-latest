@@ -17,6 +17,7 @@ import {
   SITE_SUMMARY,
   SITE_TAGLINE,
   SITE_URL,
+  SECURITY_EMAIL,
 } from "@/lib/site";
 
 /* Local system font stacks: no network dependency at build or runtime.
@@ -128,7 +129,7 @@ function JsonLd() {
           {
             "@type": "ContactPoint",
             contactType: "customer support",
-            email: "security@intellirity.ai",
+            email: SECURITY_EMAIL,
             availableLanguage: "en",
           },
         ],
