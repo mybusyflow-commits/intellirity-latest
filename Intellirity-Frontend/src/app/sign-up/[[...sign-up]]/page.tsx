@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SignUp } from "@clerk/nextjs";
+import { ClerkSignUp } from "@/components/site/clerk-auth";
 import { Logo } from "@/components/site/logo";
 import { SITE_URL } from "@/lib/site";
 
@@ -36,7 +36,7 @@ export default function SignUpPage() {
         </div>
         <h1 className="sr-only">Create an Intellirity account</h1>
         {CLERK_KEY ? (
-          <SignUp />
+          <ClerkSignUp />
         ) : (
           <div className="panel rounded-lg p-8 text-center">
             <p className="font-mono text-[12px] uppercase tracking-[0.14em] text-dim">

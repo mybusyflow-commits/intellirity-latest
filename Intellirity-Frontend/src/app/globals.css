@@ -28,7 +28,7 @@
   --bg-sunken: #07080a;
   --ink: #e9e7e2;
   --ink-dim: #a6abb3;
-  --ink-faint: #6e747c;
+  --ink-faint: #7a8089;
   --steel: #8b99ad;
   --steel-bright: #c3ccd8;
   --line: rgba(233, 231, 226, 0.09);
@@ -221,10 +221,12 @@ h1, h2 {
   height: 1px;
 }
 
-/* scroll reveal (anime.js animates in) */
+/* Scroll reveal (anime.js animates in).
+   The animation moves content; it never hides it. A marketing page must
+   not depend on an IntersectionObserver callback or a running rAF loop to
+   become readable (background tabs, blocked clients, reduced-motion). */
 .reveal {
-  opacity: 0;
-  will-change: transform, opacity;
+  will-change: transform;
 }
 
 /* headline mask lines */

@@ -51,7 +51,7 @@ export default function EnginesPage() {
   return (
     <main className="mx-auto w-full max-w-[900px] px-5 pb-24 pt-16 sm:px-8 sm:pt-24">
       <nav aria-label="Breadcrumb" className="mb-8 font-mono text-[11px] uppercase tracking-[0.14em] text-faint">
-        <Link href="/" className="transition-colors hover:text-ink">
+        <Link href="/" className="inline-flex min-h-6 items-center transition-colors hover:text-ink">
           {SITE_NAME}
         </Link>
         <span className="mx-2">/</span>

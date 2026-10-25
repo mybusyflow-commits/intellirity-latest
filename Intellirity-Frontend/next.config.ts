@@ -13,6 +13,35 @@ const BACKEND_INTERNAL_URL =
 const isVercel = Boolean(process.env.VERCEL);
 const isProd = process.env.NODE_ENV === "production";
 
+// The Clerk instance origin.
+//
+// A Clerk publishable key is `pk_<env>_<base64(frontend-api-host$)>`. A
+// custom Clerk domain (clerk.example.com) is NOT a subdomain of clerk.com,
+// so a policy that only allows *.clerk.com blocks the SDK and the sign-in
+// UI never loads -- and a failed ClerkProvider also stops hydration.
+// Derive the exact origin from the key that the build is using.
+function clerkOrigin(): string {
+  const pk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
+  try {
+    const parts = pk.split("_");
+    if (parts.length < 3 || parts[0] !== "pk") return "";
+    const host = Buffer.from(parts.slice(2).join("_"), "base64")
+      .toString("utf8")
+      .replace(/\$$/, "")
+      .trim();
+    return host ? `https://${host}` : "";
+  } catch {
+    return "";
+  }
+}
+
+const CLERK_ORIGIN = clerkOrigin();
+const CLERK_ORIGINS = [
+  "https://clerk.com",
+  "https://*.clerk.com",
+  ...(CLERK_ORIGIN ? [CLERK_ORIGIN] : []),
+];
+
 // Content-Security-Policy.
 //
 // The page loads scripts from three external origins: the Clerk SDK
@@ -27,8 +56,7 @@ const scriptSrc = [
   "'self'",
   "'unsafe-inline'",
   ...(isProd ? [] : ["'unsafe-eval'"]),
-  "https://clerk.com",
-  "https://*.clerk.com",
+  ...CLERK_ORIGINS,
   "https://challenges.cloudflare.com",
   "https://checkout.razorpay.com",
   "https://www.googletagmanager.com",
@@ -41,9 +69,9 @@ const csp = [
   // Tailwind and the vendored component styles are injected at runtime.
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
-  "img-src 'self' data: blob: https:",
-  `connect-src 'self'${isProd ? "" : " ws: wss:"} https://challenges.cloudflare.com https://www.google-analytics.com https://*.clerk.com https://clerk.com`,
-  `frame-src 'self' https://challenges.cloudflare.com https://api.razorpay.com`,
+  "img-src 'self' data: blob: https: https://cdn.razorpay.com",
+  `connect-src 'self'${isProd ? "" : " ws: wss:"} https://challenges.cloudflare.com https://www.google-analytics.com ${CLERK_ORIGINS.join(" ")} https://api.razorpay.com https://lumberjack.razorpay.com`,
+  `frame-src 'self' https://challenges.cloudflare.com https://api.razorpay.com https://checkout.razorpay.com ${CLERK_ORIGINS.join(" ")}`,
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",

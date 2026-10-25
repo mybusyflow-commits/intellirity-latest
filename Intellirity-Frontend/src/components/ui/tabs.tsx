@@ -29,6 +29,12 @@ const TabsTrigger = React.forwardRef<
       className
     )}
     {...props}
+    /* These tabs are filter chips: the page renders the panel, not
+       TabsContent. Radix still points aria-controls at a generated panel id
+       that never mounts, which is a dangling reference for assistive tech
+       (and fails axe's aria-valid-attr-value). aria-controls is optional
+       for role="tab", so it is dropped rather than pointed at nothing. */
+    aria-controls={undefined}
   />
 ));
 TabsTrigger.displayName = TabsPrimitive.Trigger.displayName;

@@ -5,6 +5,7 @@ import { DarkEnforcer } from "@/components/fx/dark-enforcer";
 import { Analytics } from "@/components/site/analytics";
 import { AuthBridge } from "@/components/site/auth-bridge";
 import { ConsentBanner } from "@/components/site/consent-banner";
+import { RevealProvider } from "@/components/site/reveal-provider";
 import { FAQS, faqAnswerText } from "@/lib/faq";
 
 /* Clerk activates only once NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY exists.
@@ -237,6 +238,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const bodyInner = (
     <>
+      <RevealProvider />
       <DarkEnforcer />
       <Analytics />
       {children}

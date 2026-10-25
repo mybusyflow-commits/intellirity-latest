@@ -9,7 +9,7 @@ POST /api/v1/proxy/chat with OpenAI-style {messages, model}:
 """
 import os
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 import httpx
 
@@ -19,16 +19,32 @@ from app.services.feature_registry import FEATURE_REGISTRY
 
 router = APIRouter()
 
-UPSTREAM_DEFAULT = os.getenv("UPSTREAM_BASE_URL", "https://opencode.ai/zen/v1")
 TIMEOUT = 30.0
 
 
 class ProxyChatBody(BaseModel):
     messages: list[dict] = []
     model: str = ""
-    upstream_base: Optional[str] = None
+    # The upstream is operator-configured on purpose. Accepting a
+    # client-supplied base URL turns this endpoint into an authenticated
+    # SSRF primitive (internal services, cloud metadata) and would send the
+    # caller's key to a host they choose.
     upstream_key: Optional[str] = None
-    max_tokens: int = 512
+    max_tokens: int = Field(default=512, ge=1, le=8192)
+
+
+def _upstream_base() -> str:
+    """The one upstream this deployment will talk to.
+
+    Falls back to the reasoning gateway so the proxy and model discovery can
+    never point at two different providers (which would send one provider's
+    key to another).
+    """
+    return (
+        os.getenv("UPSTREAM_BASE_URL")
+        or os.getenv("OPENCODEZEN_BASE_URL")
+        or "https://opencode.ai/zen/v1"
+    ).rstrip("/")
 
 
 def _call(key: str, payload: dict) -> dict:
@@ -110,6 +126,12 @@ async def proxy_chat(body: ProxyChatBody, user: dict = Depends(require_user)):
     prompt = user_texts[-1]
     if len(prompt) > 50_000:
         raise HTTPException(status_code=422, detail="Prompt too long (max 50,000 chars)")
+    total_chars = sum(
+        len(m.get("content", "")) for m in body.messages
+        if isinstance(m, dict) and isinstance(m.get("content"), str)
+    )
+    if total_chars > 200_000:
+        raise HTTPException(status_code=413, detail="Conversation too large (max 200,000 chars)")
 
     gate = _screen_input(prompt)
     if gate["verdict"] == "block":
@@ -121,7 +143,7 @@ async def proxy_chat(body: ProxyChatBody, user: dict = Depends(require_user)):
         return {"verdict": "block", "upstream_called": False,
                 "assistant": None, "input_screen": gate, "output_screen": None}
 
-    base = (body.upstream_base or UPSTREAM_DEFAULT).rstrip("/")
+    base = _upstream_base()
     key = body.upstream_key or os.getenv("UPSTREAM_API_KEY", "") or os.getenv("OPENCODEZEN_API_KEY", "")
     if not key:
         raise HTTPException(status_code=422, detail="No upstream key: pass upstream_key or set UPSTREAM_API_KEY")

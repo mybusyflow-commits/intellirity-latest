@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SignIn } from "@clerk/nextjs";
+import { ClerkSignIn } from "@/components/site/clerk-auth";
 import { Logo } from "@/components/site/logo";
 import { SITE_URL } from "@/lib/site";
 
@@ -36,7 +36,7 @@ export default function SignInPage() {
         </div>
         <h1 className="sr-only">Sign in to Intellirity</h1>
         {CLERK_KEY ? (
-          <SignIn />
+          <ClerkSignIn />
         ) : (
           <div className="panel rounded-lg p-8 text-center">
             <p className="font-mono text-[12px] uppercase tracking-[0.14em] text-dim">

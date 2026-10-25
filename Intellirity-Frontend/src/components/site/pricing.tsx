@@ -55,10 +55,28 @@ export function Pricing() {
     fetch("/backend/billing/products")
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => {
-        if (on && j && Array.isArray(j.products) && j.products.length > 0) {
-          setProducts(j.products);
-          setLive(true);
-        }
+        if (!on || !j || !Array.isArray(j.products) || j.products.length === 0) return;
+        // Merge live prices onto the local catalogue. The API carries no
+        // `tier` or `href`, so replacing the list with it left every card
+        // filtered out -- an empty pricing page once the request succeeded.
+        const liveById = new Map<string, Partial<Product>>(
+          (j.products as Product[]).map((p) => [p.id, p])
+        );
+        setProducts(
+          FALLBACK.map((p) => {
+            const live = liveById.get(p.id);
+            return live
+              ? {
+                  ...p,
+                  name: live.name ?? p.name,
+                  price: live.price ?? p.price,
+                  blurb: live.blurb ?? p.blurb,
+                  engines: live.engines ?? p.engines,
+                }
+              : p;
+          })
+        );
+        setLive(true);
       })
       .catch(() => {});
     return () => {
@@ -205,14 +223,14 @@ function ModuleCard({ p, on, onToggle }: { p: Product; on: boolean; onToggle: ()
           aria-label={`${on ? "Remove" : "Add"} ${p.name}`}
           onClick={onToggle}
           className={cn(
-            "relative h-5 w-9 shrink-0 rounded-full border transition-colors",
+            "relative h-6 w-11 shrink-0 rounded-full border transition-colors",
             on ? "border-ink/60 bg-ink" : "border-line-strong bg-sunken"
           )}
         >
           <span
             className={cn(
               "absolute top-1/2 size-3.5 -translate-y-1/2 rounded-full transition-all",
-              on ? "left-[18px] bg-bg" : "left-[3px] bg-faint"
+              on ? "left-[27px] bg-bg" : "left-[3px] bg-faint"
             )}
           />
         </button>
@@ -228,7 +246,7 @@ function ModuleCard({ p, on, onToggle }: { p: Product; on: boolean; onToggle: ()
         <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-faint">
           {p.engines.length > 0 ? `${p.engines.length} engines` : "live module"}
         </span>
-        <a href={p.href} className="inline-flex items-center gap-1 text-[12.5px] text-dim transition-colors hover:text-ink">
+        <a href={p.href} className="inline-flex min-h-6 items-center gap-1 text-[12.5px] text-dim transition-colors hover:text-ink">
           Try live <Check className="size-3.5 text-ok" strokeWidth={2} />
         </a>
       </div>

@@ -171,7 +171,7 @@ function ContactForm() {
           required
           maxLength={200}
           spellCheck={false}
-          className="h-10 flex-1 rounded border border-[#14161a]/25 bg-white/60 px-3 text-[13px] text-[#14161a] placeholder:text-[#14161a]/50 focus:border-[#14161a]/60 focus:outline-none"
+          className="h-10 w-full rounded border border-[#14161a]/25 bg-white/60 px-3 text-[13px] text-[#14161a] placeholder:text-[#14161a]/50 focus:border-[#14161a]/60 focus:outline-none sm:flex-1"
         />
         <input
           value={email}
@@ -184,7 +184,7 @@ function ContactForm() {
           required
           maxLength={320}
           spellCheck={false}
-          className="h-10 flex-1 rounded border border-[#14161a]/25 bg-white/60 px-3 text-[13px] text-[#14161a] placeholder:text-[#14161a]/50 focus:border-[#14161a]/60 focus:outline-none"
+          className="h-10 w-full rounded border border-[#14161a]/25 bg-white/60 px-3 text-[13px] text-[#14161a] placeholder:text-[#14161a]/50 focus:border-[#14161a]/60 focus:outline-none sm:flex-1"
         />
       </div>
       <textarea
@@ -264,7 +264,7 @@ export function Footer() {
     <footer className="relative z-10 border-t border-line bg-raise/40">
       <div className="mx-auto grid max-w-[1240px] gap-10 px-6 py-14 md:grid-cols-[1.4fr,1fr,1fr,1fr]">
         <div>
-          <a href="#top" aria-label="Back to top">
+          <a href="#top" aria-label="Back to top" className="inline-flex min-h-6 items-center">
             <Logo />
           </a>
           <p className="mt-4 max-w-xs text-[13.5px] leading-relaxed text-dim">
@@ -296,14 +296,14 @@ export function Footer() {
                   {l.href ? (
                     <Link
                       href={l.href}
-                      className="text-[13.5px] text-dim transition-colors hover:text-ink"
+                      className="inline-flex min-h-6 items-center text-[13.5px] text-dim transition-colors hover:text-ink"
                     >
                       {l.label}
                     </Link>
                   ) : (
                     <button
                       onClick={() => l.modal && setOpenDoc(l.modal)}
-                      className="text-[13.5px] text-dim transition-colors hover:text-ink"
+                      className="inline-flex min-h-6 items-center text-[13.5px] text-dim transition-colors hover:text-ink"
                     >
                       {l.label}
                     </button>
@@ -320,7 +320,7 @@ export function Footer() {
             <Link
               key={l.label}
               href={l.href ?? "#"}
-              className="font-mono text-[11px] text-faint transition-colors hover:text-dim"
+              className="inline-flex min-h-6 items-center font-mono text-[11px] text-faint transition-colors hover:text-dim"
             >
               {l.label}
             </Link>

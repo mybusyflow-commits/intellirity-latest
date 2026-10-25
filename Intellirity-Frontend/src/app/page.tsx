@@ -13,7 +13,6 @@ import { HowItWorks } from "@/components/site/how-it-works";
 import { Metrics } from "@/components/site/metrics";
 import { Pricing } from "@/components/site/pricing";
 import { Faq, FinalCta, Footer } from "@/components/site/faq-cta-footer";
-import { RevealProvider } from "@/components/site/reveal-provider";
 import { SITE_NAME, SITE_SUMMARY, SITE_TAGLINE, SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -48,7 +47,6 @@ export default function Home() {
       <div className="pointer-events-none fixed inset-0 z-0" aria-hidden>
         <div className="grid-texture absolute inset-0 opacity-40" />
       </div>
-      <RevealProvider />
       <Navbar />
       <main className="relative">
         <Hero />
