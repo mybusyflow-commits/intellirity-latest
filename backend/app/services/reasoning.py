@@ -122,6 +122,12 @@ def _candidate_models(target: str, discovered: list[str]) -> list[str]:
             ordered.append(m)
     if DEFAULT_MODEL and DEFAULT_MODEL not in ordered:
         ordered.insert(0, DEFAULT_MODEL)
+    # Final fallback: any model the gateway actually serves, so a paid
+    # gateway with no free tier (Groq, OpenAI) works out of the box once
+    # its key is set. Free models still win when present.
+    for m in discovered:
+        if m and m not in ordered:
+            ordered.append(m)
     return ordered
 
 

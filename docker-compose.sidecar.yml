@@ -2,7 +2,14 @@
 # Your app sends prompts here (http://intellirity:8000) instead of calling
 # the model directly; the sidecar judges, optionally proxies, and answers.
 # Usage: docker compose -f docker-compose.sidecar.yml up --build
+#
+# Because ENVIRONMENT=production, the engine refuses to start unless these
+# are set: SECRET_KEY, VPI_SIGNING_KEY, DATABASE_URL, and an auth path
+# (CLERK_SECRET_KEY and/or INTELLIRITY_API_KEY_HASHES). That is deliberate:
+# a sidecar that silently runs without evidence storage is not the product.
+#
 # Env (never commit secrets): OPENCODEZEN_API_KEY, CLERK_SECRET_KEY,
+# SECRET_KEY, VPI_SIGNING_KEY, DATABASE_URL,
 # ALLOWED_ORIGINS=https://your-app.internal, BILLING_ENFORCED=true
 services:
   intellirity:
@@ -19,6 +26,9 @@ services:
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
       OPENCODEZEN_API_KEY: ${OPENCODEZEN_API_KEY:-}
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
+      INTELLIRITY_API_KEY_HASHES: ${INTELLIRITY_API_KEY_HASHES:-}
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key}
+      VPI_SIGNING_KEY: ${VPI_SIGNING_KEY:-}
       TURNSTILE_SECRET: ${TURNSTILE_SECRET:-}
       BILLING_ENFORCED: ${BILLING_ENFORCED:-false}
       DATABASE_URL: ${DATABASE_URL:-}

@@ -12,7 +12,11 @@
   "rewrites": [
     {
       "source": "/backend/:path*",
-      "destination": "/api/v1/:path*"
+      "destination": "/api?__path=:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "/api?__health=1"
     }
   ]
 }

@@ -6,14 +6,28 @@ each commit to its own in-memory tail, which forked the chain at that
 point. The records themselves were never altered — only their links were
 wrong — so the chain can be re-linked in sequence order.
 
-Run this once against a database that was written by the old code:
-
+    python scripts/repair_ledger_chain.py --dry-run   # report only
     python scripts/repair_ledger_chain.py
 
-It re-seals every record in sequence order, so each one commits to the
-record before it. New appends are serialized with an advisory lock, so
-this cannot happen again.
+What it changes, per record, in sequence order:
+
+* `previous_hash` is set to the previous record's `merkle_hash`;
+* the record is re-sealed from its own content, with any stale
+  `merkle_hash` removed first. Sealing a dict that still contains its old
+  hash produces a hash of the old hash, which looks like tampering to
+  anyone who recomputes it later. That mistake is why this script exists
+  in its current form.
+
+Nothing else in the payload is touched. If the *content* of a record
+changed, this tool will happily re-seal it — which is why
+`scripts/verify_ledger.py` distinguishes `broken_link` (safe to repair)
+from `content_tampered` (investigate first). Run verify before repairing
+in anger.
+
+New appends are serialized with an advisory lock, so the fork cannot
+happen again.
 """
+import argparse
 import asyncio
 import json
 import os
@@ -26,7 +40,7 @@ os.chdir(os.path.join(ROOT, "backend"))
 from app.db.persist import init_db, is_connected  # noqa: E402
 
 
-async def main() -> int:
+async def main(dry_run: bool = False) -> int:
     await init_db()
     if not is_connected():
         print("database unavailable — nothing to repair")
@@ -55,22 +69,34 @@ async def main() -> int:
                 record = {}
             if not isinstance(record, dict):
                 record = {}
-            if record.get("previous_hash") == prev and record.get("merkle_hash"):
-                prev = record["merkle_hash"]
+
+            # Hash the content, not the content plus its previous hash.
+            body = {k: v for k, v in record.items() if k != "merkle_hash"}
+            body["previous_hash"] = prev
+            resealed = ledger_mod.seal(body)
+
+            if (record.get("previous_hash") == prev
+                    and record.get("merkle_hash") == resealed["merkle_hash"]):
+                prev = resealed["merkle_hash"]
                 continue
-            record["previous_hash"] = prev
-            record = ledger_mod.seal(record)
-            prev = record["merkle_hash"]
-            row.previous_hash = record["previous_hash"]
-            row.merkle_hash = record["merkle_hash"]
-            row.record_json = json.dumps(record, default=str)
+
+            if not dry_run:
+                row.previous_hash = resealed["previous_hash"]
+                row.merkle_hash = resealed["merkle_hash"]
+                row.record_json = json.dumps(resealed, default=str)
+            prev = resealed["merkle_hash"]
             repaired += 1
 
-        await session.commit()
+        if not dry_run:
+            await session.commit()
 
-    print(f"repaired {repaired} of {len(rows)} records")
+    verb = "would repair" if dry_run else "repaired"
+    print(f"{verb} {repaired} of {len(rows)} records")
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(asyncio.run(main()))
+    parser = argparse.ArgumentParser(description="Re-link and re-seal the ledger chain.")
+    parser.add_argument("--dry-run", action="store_true", help="report without writing")
+    args = parser.parse_args()
+    sys.exit(asyncio.run(main(dry_run=args.dry_run)))

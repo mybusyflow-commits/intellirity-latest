@@ -1,59 +1,121 @@
 version: "3.9"
 
+# Whole-stack deployment for a single host.
+#
+# Production posture: set ENVIRONMENT=production and every required secret
+# in a .env file next to this one. The backend refuses to start with
+# insecure defaults, so a half-configured stack fails at boot instead of
+# serving anonymously.
+#
+#   cp .env.example .env   # fill it in
+#   docker compose up -d --build
+
 services:
   db:
     image: postgres:16-alpine
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-intellirity}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-intellirity_secret}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-intellirity_db}
+      TZ: ${TIMEZONE:-Asia/Kolkata}
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-intellirity}:${POSTGRES_PASSWORD:-intellirity_secret}@db:5432/${POSTGRES_DB:-intellirity_db}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-intellirity}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-intellirity_db}
+      TZ: ${TIMEZONE:-Asia/Kolkata}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      # Identity
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
       CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
-      SECRET_KEY: ${SECRET_KEY:-your-super-secret-key-change-in-production}
-      VPI_SIGNING_KEY: ${VPI_SIGNING_KEY:-}
       INTELLIRITY_API_KEY_HASHES: ${INTELLIRITY_API_KEY_HASHES:-}
+      INTELLIRITY_API_KEYS: ${INTELLIRITY_API_KEYS:-}
+      # Secrets. The default is deliberately the value the production guard
+      # rejects, so "I forgot to set SECRET_KEY" is a boot failure, not a
+      # silent vulnerability.
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key}
+      VPI_SIGNING_KEY: ${VPI_SIGNING_KEY:-}
+      # Upstream model gateway
       OPENCODEZEN_API_KEY: ${OPENCODEZEN_API_KEY:-}
+      OPENCODEZEN_BASE_URL: ${OPENCODEZEN_BASE_URL:-https://api.groq.com/openai/v1}
+      OPENCODEZEN_MODEL: ${OPENCODEZEN_MODEL:-}
+      UPSTREAM_BASE_URL: ${UPSTREAM_BASE_URL:-}
+      UPSTREAM_API_KEY: ${UPSTREAM_API_KEY:-}
+      # Payments
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
+      BILLING_ENFORCED: ${BILLING_ENFORCED:-false}
+      # Public contact form + notifications
+      TURNSTILE_SECRET: ${TURNSTILE_SECRET:-}
+      CONTACT_INBOX: ${CONTACT_INBOX:-security@intellirity.ai}
+      EMAIL_FROM: ${EMAIL_FROM:-Intellirity <noreply@intellirity.ai>}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      # Deployment
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
-      # A production value here makes the backend refuse to start with
-      # insecure defaults (no auth, default secret key).
-      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_JSON: ${LOG_JSON:-false}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-60}
     volumes:
       - ./backend:/app
     depends_on:
-      - db
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      db:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4)"]
+      interval: 30s
+      timeout: 8s
+      start_period: 20s
+      retries: 3
 
   frontend:
     build:
       context: ./Intellirity-Frontend
+      dockerfile: Dockerfile
+      args:
+        # Next inlines NEXT_PUBLIC_* at build time, so these must be build
+        # args rather than runtime environment.
+        BACKEND_INTERNAL_URL: http://backend:8000/api/v1
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
+        NEXT_PUBLIC_GATEWAY_URL: ${NEXT_PUBLIC_GATEWAY_URL:-}
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+        NEXT_PUBLIC_GA_ID: ${NEXT_PUBLIC_GA_ID:-}
+        NEXT_PUBLIC_DEPLOY_ENV: ${NEXT_PUBLIC_DEPLOY_ENV:-production}
+    restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
-      # Next.js reads env vars at build time for rewrites, so the backend URL
-      # is passed as a build arg as well as a runtime env var.
-      BACKEND_INTERNAL_URL: http://backend:8000/api/v1
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
+      NODE_ENV: production
+      # Server-only secrets stay runtime values.
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
-      NEXT_PUBLIC_GATEWAY_URL: ${NEXT_PUBLIC_GATEWAY_URL:-}
-      NEXT_PUBLIC_DEPLOY_ENV: ${NEXT_PUBLIC_DEPLOY_ENV:-development}
+      SECURE_REDIRECT: ${SECURE_REDIRECT:-false}
+      BACKEND_INTERNAL_URL: http://backend:8000/api/v1
+      TZ: ${TIMEZONE:-Asia/Kolkata}
     depends_on:
-      - backend
-    command: npm run dev
+      backend:
+        condition: service_healthy
 
 volumes:
   postgres_data:

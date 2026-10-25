@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { checkoutBundle, verifyPayment } from "@/lib/api";
 
 interface Product {
   id: string;
@@ -26,6 +27,20 @@ const FALLBACK: Product[] = [
   { id: "ledger", name: "Evidence Ledger", price: 299, blurb: "Tamper-evident vault for every decision.", engines: [], href: "/console/audit", tier: "core" },
   { id: "vpi", name: "Proof of Intent", price: 299, blurb: "Signed human authorization per action.", engines: [], href: "/console/proof", tier: "core" },
 ];
+
+/* Loads Razorpay's Checkout script on demand. The script is not in the
+   bundle; it is fetched only when the visitor clicks checkout. */
+function loadRazorpay(): Promise<Window["Razorpay"]> {
+  return new Promise((resolve, reject) => {
+    if (window.Razorpay) return resolve(window.Razorpay);
+    const s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.async = true;
+    s.onload = () => resolve(window.Razorpay);
+    s.onerror = () => reject(new Error("Could not load the Razorpay checkout."));
+    document.body.appendChild(s);
+  });
+}
 
 export function Pricing() {
   const [products, setProducts] = useState<Product[]>(FALLBACK);
@@ -65,14 +80,36 @@ export function Pricing() {
     setError("");
     setOrder(null);
     try {
-      const r = await fetch("/backend/billing/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ modules: selected }),
-      });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.detail ?? "Checkout failed");
-      setOrder({ order_id: j.order_id, total_inr: j.total_inr, status: j.status });
+      const j = await checkoutBundle(selected);
+      if (j.razorpay_order_id && j.key_id) {
+        const Rzp = await loadRazorpay();
+        if (!Rzp) throw new Error("Razorpay checkout is not available.");
+        const rzp = new Rzp({
+          key: j.key_id,
+          amount: j.amount ?? 0,
+          currency: j.currency ?? "INR",
+          name: "Intellirity",
+          description: "Security modules · monthly",
+          order_id: j.razorpay_order_id,
+          theme: { color: "#0a0b0d" },
+          handler: async (resp) => {
+            try {
+              await verifyPayment({
+                order_id: j.order_id,
+                razorpay_order_id: resp.razorpay_order_id,
+                razorpay_payment_id: resp.razorpay_payment_id,
+                razorpay_signature: resp.razorpay_signature,
+              });
+              setOrder({ order_id: j.order_id, total_inr: j.total_inr, status: "active" });
+            } catch (e) {
+              setError(e instanceof Error ? e.message : "Payment verification failed");
+            }
+          },
+        });
+        rzp.open();
+      } else {
+        setOrder({ order_id: j.order_id, total_inr: j.total_inr, status: j.status });
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Checkout failed");
     } finally {

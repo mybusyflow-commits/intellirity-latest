@@ -82,6 +82,28 @@ class EscrowHold(Base):
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class ContactSubmission(Base):
+    """A public contact-form submission.
+
+    Written before the notification email is attempted: mail delivery is
+    best effort, losing the lead is not. The console and the operator can
+    always read the table even if the mail provider is down.
+    """
+    __tablename__ = "contact_submissions"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    ticket: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    email: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    subject: Mapped[str] = mapped_column(String, default="")
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    source: Mapped[str] = mapped_column(String, default="landing")
+    client_ip: Mapped[str] = mapped_column(String, default="")
+    user_agent: Mapped[str] = mapped_column(String, default="")
+    notified: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class ThreatDetection(Base):
     __tablename__ = "threat_detections"
 

@@ -89,6 +89,15 @@ def engine_allowed(engine: str, owner: str) -> tuple[bool, str]:
     return False, f"Module '{name}' is not in your plan. Add it to your bundle to enable it."
 
 
+def razorpay_enabled() -> bool:
+    try:
+        from app.services import razorpay
+
+        return razorpay.enabled()
+    except Exception:
+        return False
+
+
 def checkout(owner: str, product_ids: list[str]) -> dict:
     valid = [p for p in PRODUCTS if p["id"] in set(product_ids or [])]
     if not valid:
@@ -107,8 +116,41 @@ def checkout(owner: str, product_ids: list[str]) -> dict:
     return order
 
 
+def attach_payment(order_id: str, razorpay_order_id: str | None = None,
+                   payment_id: str | None = None) -> dict | None:
+    order = _orders.get(order_id)
+    if not order:
+        return None
+    if razorpay_order_id:
+        order["razorpay_order_id"] = razorpay_order_id
+    if payment_id:
+        order["razorpay_payment_id"] = payment_id
+    return order
+
+
+def mark_paid(order_id: str, via: str = "razorpay") -> dict:
+    """Authoritative payment confirmation.
+
+    Only called after a Razorpay signature has verified. Grants the order's
+    modules to its owner. Idempotent: a second confirmation is a no-op.
+    """
+    order = _orders.get(order_id)
+    if not order:
+        return {"error": "Unknown order."}
+    if order["status"] == "active":
+        return {"order": order, "owned": sorted(_entitlements.get(order["owner"], set()))}
+    order["status"] = "active"
+    order["paid_via"] = via
+    _entitlements.setdefault(order["owner"], set()).update(order["modules"])
+    return {"order": order, "owned": sorted(_entitlements[order["owner"]])}
+
+
 def activate(order_id: str, owner: str) -> dict:
-    """Dev/simulated payment confirmation. A real provider webhook replaces this."""
+    """Dev/simulated payment confirmation.
+
+    Only reachable when Razorpay is NOT configured (the activate route is
+    hidden otherwise). A real provider webhook supersedes this in production.
+    """
     order = _orders.get(order_id)
     if not order or order["owner"] != owner:
         return {"error": "Unknown order."}

@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 
 // Where the Next server proxies /backend/* to. Local dev points at the
 // uvicorn process; in Docker Compose it is the "backend" service; on a
@@ -29,6 +30,7 @@ const scriptSrc = [
   "https://clerk.com",
   "https://*.clerk.com",
   "https://challenges.cloudflare.com",
+  "https://checkout.razorpay.com",
   "https://www.googletagmanager.com",
   "https://www.google-analytics.com",
 ].join(" ");
@@ -41,7 +43,7 @@ const csp = [
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",
   `connect-src 'self'${isProd ? "" : " ws: wss:"} https://challenges.cloudflare.com https://www.google-analytics.com https://*.clerk.com https://clerk.com`,
-  "frame-src 'self' https://challenges.cloudflare.com",
+  `frame-src 'self' https://challenges.cloudflare.com https://api.razorpay.com`,
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
@@ -52,6 +54,14 @@ const csp = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Emit a self-contained server for the Docker image. Vercel ignores this
+  // and uses its own build output, so it costs nothing on the hosted path.
+  output: "standalone",
+  // The repository root carries a pnpm-workspace file, so without this Next
+  // treats the monorepo root as the app root and nests the standalone
+  // output under `Intellirity-Frontend/`. Pinning it keeps `server.js` at
+  // the image root and stops the tracer from walking sibling directories.
+  outputFileTracingRoot: path.resolve(process.cwd()),
   async rewrites() {
     if (isVercel) return [];
     return [

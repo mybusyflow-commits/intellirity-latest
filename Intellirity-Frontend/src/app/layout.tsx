@@ -91,6 +91,11 @@ export const metadata: Metadata = {
     // Set NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION to the Google Search Console
     // token once the production domain is connected.
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+    // Bing Webmaster Tools uses the msvalidate.01 meta tag. Bing also
+    // powers Apple's default search results, so it is worth the token.
+    other: process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION
+      ? { "msvalidate.01": process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION }
+      : {},
   },
 };
 
@@ -172,7 +177,6 @@ function JsonLd() {
         name: "How to deploy Intellirity in four moves",
         description:
           "Connect the gateway, compose policy, judge every call, and answer with evidence.",
-        totalTime: "PT11M",
         step: [
           {
             "@type": "HowToStep",

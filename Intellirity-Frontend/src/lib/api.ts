@@ -241,3 +241,50 @@ export const promotePolicyPack = (id: string) =>
     `/workspace/policies/${encodeURIComponent(id)}/promote`,
     { method: "POST" }
   );
+
+/* ---------- billing ---------- */
+
+export interface Product {
+  id: string;
+  name: string;
+  price: number;
+  blurb: string;
+  engines: string[];
+  href: string;
+  tier: "basic" | "core";
+}
+
+export interface CheckoutResult {
+  order_id: string;
+  total_inr: number;
+  status: string;
+  modules: string[];
+  razorpay_order_id?: string;
+  amount?: number;
+  currency?: string;
+  key_id?: string;
+}
+
+export const getProducts = () =>
+  req<{ products: Product[]; currency: string; enforced: boolean; payment: string }>(
+    "/billing/products"
+  );
+
+export const checkoutBundle = (modules: string[]) =>
+  req<CheckoutResult>("/billing/checkout", {
+    method: "POST",
+    body: JSON.stringify({ modules }),
+  });
+
+export interface VerifyPayload {
+  order_id: string;
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
+export const verifyPayment = (payload: VerifyPayload) =>
+  req<{ order: CheckoutResult; owned: string[] }>("/billing/verify", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });

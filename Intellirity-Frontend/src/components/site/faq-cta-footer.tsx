@@ -151,13 +151,25 @@ function ContactForm() {
   }
 
   return (
-    <div className="mx-auto mt-8 max-w-md">
+    <form
+      id="contact-form"
+      className="mx-auto mt-8 max-w-md"
+      aria-label="Contact sales"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void submit();
+      }}
+    >
       <div className="flex flex-col gap-2 sm:flex-row">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Name"
           aria-label="Name"
+          name="name"
+          autoComplete="name"
+          required
+          maxLength={200}
           spellCheck={false}
           className="h-10 flex-1 rounded border border-[#14161a]/25 bg-white/60 px-3 text-[13px] text-[#14161a] placeholder:text-[#14161a]/50 focus:border-[#14161a]/60 focus:outline-none"
         />
@@ -166,7 +178,11 @@ function ContactForm() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Work email"
           aria-label="Work email"
-          inputMode="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          maxLength={320}
           spellCheck={false}
           className="h-10 flex-1 rounded border border-[#14161a]/25 bg-white/60 px-3 text-[13px] text-[#14161a] placeholder:text-[#14161a]/50 focus:border-[#14161a]/60 focus:outline-none"
         />
@@ -176,6 +192,9 @@ function ContactForm() {
         onChange={(e) => setMessage(e.target.value)}
         placeholder="What should we guard for you?"
         aria-label="Message"
+        name="message"
+        required
+        maxLength={10000}
         rows={3}
         spellCheck={false}
         className="mt-2 w-full rounded border border-[#14161a]/25 bg-white/60 p-3 text-[13px] text-[#14161a] placeholder:text-[#14161a]/50 focus:border-[#14161a]/60 focus:outline-none"
@@ -183,15 +202,19 @@ function ContactForm() {
       <div className="mt-3 flex flex-col items-center gap-3">
         <Turnstile onToken={setToken} />
         <button
-          onClick={submit}
+          type="submit"
           disabled={state === "sending"}
           className="inline-flex h-10 items-center rounded bg-[#14161a] px-6 text-[13px] font-medium text-white transition-transform duration-300 hover:scale-[1.02] disabled:opacity-60"
         >
           {state === "sending" ? "sending…" : "Contact sales"}
         </button>
-        {note !== "" && <p className="font-mono text-[11.5px] text-[#a33]">{note}</p>}
+        {note !== "" && (
+          <p role="status" aria-live="polite" className="font-mono text-[11.5px] text-[#a33]">
+            {note}
+          </p>
+        )}
       </div>
-    </div>
+    </form>
   );
 }
 

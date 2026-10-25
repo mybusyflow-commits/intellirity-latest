@@ -1,0 +1,13 @@
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+tests
+.env
+.env.*
+!.env.example
+Dockerfile
+.dockerignore
+*.sqlite3

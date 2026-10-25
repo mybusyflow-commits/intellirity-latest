@@ -7,6 +7,8 @@ created on boot and ledger records dual-write automatically.
 """
 import json
 import logging
+import os
+import uuid
 
 log = logging.getLogger("intellirity.db")
 
@@ -16,6 +18,13 @@ DB_CONNECTED = False
 async def init_db() -> bool:
     """Create tables if Postgres is reachable. Never crashes boot."""
     global DB_CONNECTED
+    # The test suite and any offline tooling must never write to the live
+    # database. Declaring the intent is explicit and greppable; silently
+    # inheriting DATABASE_URL from .env is how a test run deletes data.
+    if os.getenv("INTELLIRITY_DISABLE_DB", "").strip() in ("1", "true", "yes"):
+        DB_CONNECTED = False
+        log.info("database disabled by INTELLIRITY_DISABLE_DB: running memory-only")
+        return False
     try:
         from app.db.session import engine
         from app.models.models import Base
@@ -255,6 +264,114 @@ async def save_escrow_hold(hold: dict) -> bool:
     except Exception as exc:
         log.warning("escrow persist skipped: %s", str(exc)[:160])
         return False
+
+
+async def save_contact_submission(submission: dict) -> bool:
+    """Best-effort persist of a contact-form submission.
+
+    Returns True when the row is committed. A False return means the
+    caller must keep the in-memory copy and tell the operator, because
+    mail alone is not a durable record of a lead.
+    """
+    if not DB_CONNECTED or not isinstance(submission, dict):
+        return False
+    if not submission.get("ticket") or not submission.get("email"):
+        return False
+    try:
+        from app.db.session import async_session
+        from app.models.models import ContactSubmission
+
+        async with async_session() as session:
+            session.add(ContactSubmission(
+                id=str(submission.get("id") or uuid.uuid4()),
+                ticket=str(submission["ticket"]),
+                name=str(submission.get("name", ""))[:200],
+                email=str(submission["email"])[:320],
+                subject=str(submission.get("subject", ""))[:300],
+                message=str(submission.get("message", ""))[:10_000],
+                source=str(submission.get("source", "landing"))[:80],
+                client_ip=str(submission.get("client_ip", ""))[:64],
+                user_agent=str(submission.get("user_agent", ""))[:400],
+                notified=bool(submission.get("notified", False)),
+            ))
+            await session.commit()
+        return True
+    except Exception as exc:
+        log.warning("contact persist skipped: %s", str(exc)[:160])
+        return False
+
+
+async def mark_contact_notified(ticket: str) -> bool:
+    """Flip the notified flag once the mail provider accepted the message."""
+    if not DB_CONNECTED or not ticket:
+        return False
+    try:
+        from sqlalchemy import select
+        from app.db.session import async_session
+        from app.models.models import ContactSubmission
+
+        async with async_session() as session:
+            row = (await session.execute(
+                select(ContactSubmission).where(ContactSubmission.ticket == ticket)
+            )).scalar_one_or_none()
+            if not row:
+                return False
+            row.notified = True
+            await session.commit()
+        return True
+    except Exception as exc:
+        log.warning("contact notify flag skipped: %s", str(exc)[:160])
+        return False
+
+
+async def db_health() -> dict:
+    """Cheap liveness probe for the health endpoint.
+
+    Runs one trivial statement so a pooler that accepts connections but
+    has lost its backend is still reported as unhealthy. Never raises.
+    """
+    if not DB_CONNECTED:
+        return {"connected": False, "latency_ms": None}
+    try:
+        import time
+        from sqlalchemy import text
+        from app.db.session import async_session
+
+        started = time.perf_counter()
+        async with async_session() as session:
+            await session.execute(text("SELECT 1"))
+        return {
+            "connected": True,
+            "latency_ms": round((time.perf_counter() - started) * 1000, 1),
+        }
+    except Exception as exc:
+        log.warning("db health check failed: %s", str(exc)[:160])
+        return {"connected": False, "latency_ms": None}
+
+
+async def ledger_health() -> dict:
+    """Head of the ledger chain and record count, for uptime monitoring."""
+    try:
+        from sqlalchemy import func, select
+        from app.db.session import async_session
+        from app.models.models import LedgerRecord
+
+        if not DB_CONNECTED:
+            from app.services.modules import blackbox_ledger as ledger_mod
+            chain = ledger_mod._ledger  # memory mode: report what we hold
+            return {"stored": len(chain), "head": chain[-1]["merkle_hash"] if chain else None}
+
+        async with async_session() as session:
+            total = (await session.execute(
+                select(func.count()).select_from(LedgerRecord)
+            )).scalar() or 0
+            head = (await session.execute(
+                select(LedgerRecord.merkle_hash).order_by(LedgerRecord.seq.desc()).limit(1)
+            )).scalar_one_or_none()
+        return {"stored": int(total), "head": head}
+    except Exception as exc:
+        log.warning("ledger health check failed: %s", str(exc)[:160])
+        return {"stored": None, "head": None}
 
 
 async def load_escrow_hold(escrow_id: str) -> dict | None:

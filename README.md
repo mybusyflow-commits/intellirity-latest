@@ -116,8 +116,8 @@ Vercel, Docker and VPC-sidecar setup.
 | Variable | Where | Purpose |
 |---|---|---|
 | `DATABASE_URL` | backend | Postgres. Blank = memory-only |
-| `OPENCODEZEN_API_KEY` | backend | Upstream LLM key for reasoning + proxy |
-| `OPENCODEZEN_BASE_URL` | backend | Any OpenAI-compatible gateway |
+| `OPENCODEZEN_API_KEY` | backend | Upstream LLM key for reasoning + proxy (e.g. a Groq key) |
+| `OPENCODEZEN_BASE_URL` | backend | Any OpenAI-compatible gateway (Groq: `https://api.groq.com/openai/v1`) |
 | `OPENCODEZEN_MODEL` | backend | Pin a model (auto-discovered otherwise) |
 | `BACKEND_INTERNAL_URL` | frontend | Where `/backend/*` proxies to |
 | `CLERK_SECRET_KEY` | backend | Enables Clerk session auth; unset = open mode (dev) |
@@ -132,6 +132,8 @@ Vercel, Docker and VPC-sidecar setup.
 | `ENVIRONMENT` | backend | `production` enables every fail-closed rule |
 | `BILLING_ENFORCED` | backend | `true` enforces plan entitlements |
 | `TURNSTILE_SECRET` | backend | Cloudflare Turnstile on the contact form |
+| `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | backend | Live payments. Unset = dev checkout |
+| `RAZORPAY_WEBHOOK_SECRET` | backend | Signs the capture webhook (fail-closed) |
 | `INTELLIRITY_BASE_URL` / `INTELLIRITY_API_KEY` | SDK/MCP | Client targeting |
 
 ## Authentication
@@ -174,17 +176,43 @@ Failure behaviour is deliberate:
   headline metrics count only real detections.
 - The console and the API are served with a **Content-Security-Policy**,
   HSTS, COOP/CORP, a denied frame policy, and `Cache-Control: private,
-  no-store` on every engine response.
+  no-store` on every engine response. API responses are also
+  `X-Robots-Tag: noindex`.
+- Interactive API docs (`/docs`, `/redoc`, `/openapi.json`) are **disabled
+  in production**, so the endpoint map is not published.
+- Contact submissions are written to Postgres **before** the notification
+  is attempted; a mail outage delays an alert instead of losing a lead.
 - Analytics is **consent-gated** and never loads until the visitor accepts.
 - `.env` files hold live credentials — keep them out of git and rotate keys
   that have been committed or shared.
 
+## Operations
+
+```bash
+python scripts/verify_ledger.py        # recompute every seal; exit 1 on a break
+python scripts/backup_db.py            # custom-format pg_dump, pruned to 14
+python scripts/db_maintenance.py       # vacuum + per-table size/row report
+python scripts/repair_ledger_chain.py --dry-run   # re-link report, writes nothing
+python scripts/export_modules.py       # regenerate the engine catalogue JSON
+```
+
+Health probes: `GET /health` (direct engine) and
+`GET /backend/system/health` (through the console). Both return `200` when
+healthy and `503` when a production deployment cannot reach its database.
+
+Deployment, backups, uptime, mail and the full environment matrix:
+[`DEPLOYMENT.md`](DEPLOYMENT.md). Launch status and the owner split:
+[`LAUNCH_CHECKLIST.md`](LAUNCH_CHECKLIST.md).
+
 ## Tests
 
 ```bash
-cd backend && python -m pytest tests/ -q     # 42 tests
+cd backend && python -m pytest tests/ -q     # 64 tests (database disabled)
 python sdk/tests/test_sdk_live.py             # 24 live SDK tests
 node sdk/js/tests/sdk.test.mjs                # 25 live SDK tests
 ```
 
-The suites run against a live engine, so start the backend first.
+The backend suite is self-contained: `backend/tests/conftest.py` sets
+`INTELLIRITY_DISABLE_DB=1`, so a test run can never write to whatever
+`DATABASE_URL` is in `backend/.env`. The SDK suites run against a live
+engine, so start the backend first.

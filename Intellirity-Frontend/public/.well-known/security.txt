@@ -1,0 +1,10 @@
+# Security contact for Intellirity (RFC 9116).
+# A researcher who finds a problem should not have to guess an address.
+Contact: mailto:security@intellirity.ai
+Expires: 2027-12-31T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://intellirity.ai/.well-known/security.txt
+Policy: https://intellirity.ai/security
+Acknowledgments: https://intellirity.ai/security
+# Please include the affected URL, a reproduction, and whether the finding
+# involves customer data. We acknowledge reports within two business days.

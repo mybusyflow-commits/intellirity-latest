@@ -99,6 +99,37 @@ async def system_status():
     }
 
 
+@router.get("/health")
+async def system_health():
+    """Public health probe, reachable through the console's /backend proxy.
+
+    The root /health is only reachable when the API is addressed directly
+    (Docker, a sidecar). On Vercel the API is behind a rewrite, so uptime
+    monitors need a path inside the API router. Same checks, same status
+    codes, and it never requires a session.
+    """
+    from fastapi.responses import JSONResponse as _JSONResponse
+    from app.core.config import settings as _settings
+    from app.db import persist
+    from app.services.notify import notification_configured
+
+    db = await persist.db_health()
+    ledger = await persist.ledger_health()
+    healthy = db["connected"] or _settings.ENVIRONMENT != "production"
+    body = {
+        "status": "healthy" if healthy else "degraded",
+        "service": "intellirity",
+        "environment": _settings.ENVIRONMENT,
+        "database": "connected" if db["connected"] else "memory",
+        "database_latency_ms": db["latency_ms"],
+        "ledger_records": ledger["stored"],
+        "ledger_head": ledger["head"],
+        "contact_notifications": "configured" if notification_configured() else "unconfigured",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    return _JSONResponse(content=body, status_code=200 if healthy else 503)
+
+
 # ─── Live summary / KPIs ──────────────────────────────────────────────────────
 # Operational data: authenticated only (status + contact stay public).
 
@@ -160,29 +191,76 @@ class ContactMessage(BaseModel):
     turnstile_token: str = ""
 
 
+# Bounded fallback buffer. Rows are also written to Postgres; this list is
+# only what the process can still show if the database is unreachable, and
+# it must never grow without bound.
 _contact_store: list[dict] = []
+_CONTACT_BUFFER = 500
+
+
+def _new_ticket() -> str:
+    """Human-readable, collision-resistant ticket id.
+
+    Date prefix makes triage easy; six base-36 characters from a CSPRNG
+    make collisions negligible without a database round-trip.
+    """
+    import secrets
+
+    alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    suffix = "".join(secrets.choice(alphabet) for _ in range(6))
+    return f"INT-{datetime.now(timezone.utc):%Y%m%d}-{suffix}"
 
 
 @router.post("/contact", dependencies=[Depends(contact_limit)])
 async def contact(msg: ContactMessage, request: Request):
     from fastapi import HTTPException
     from app.services.turnstile import verify_turnstile
+    from app.db import persist
+    from app.services.notify import send_contact_email
 
     client_ip = request.client.host if request.client else ""
     ok, reason = verify_turnstile(msg.turnstile_token, client_ip)
     if not ok:
         raise HTTPException(status_code=403, detail=f"Spam check failed: {reason}")
-    # Size caps: the store is in-memory; unbounded bodies are a DoS vector.
-    if len(msg.name) > 200 or len(msg.email) > 320 or len(msg.subject) > 300:
+    # Size caps: the input is persisted and mailed, so an unbounded body is
+    # both a storage and a delivery vector.
+    name, email = msg.name.strip(), msg.email.strip()
+    if len(name) > 200 or len(email) > 320 or len(msg.subject) > 300:
         raise HTTPException(status_code=422, detail="Name/email/subject too long")
     if len(msg.message) > 10_000:
         raise HTTPException(status_code=422, detail="Message too long (max 10,000 chars)")
-    ticket = f"INT-{len(_contact_store) + 1001}"
-    _contact_store.append({
+    if "@" not in email or "." not in email.split("@")[-1]:
+        raise HTTPException(status_code=422, detail="A valid email address is required")
+
+    ticket = _new_ticket()
+    submission = {
         "ticket": ticket,
-        **msg.model_dump(),
+        "name": name,
+        "email": email,
+        "subject": msg.subject.strip() or "Contact",
+        "message": msg.message.strip(),
+        "source": "landing",
+        "client_ip": client_ip,
+        "user_agent": request.headers.get("user-agent", "")[:400],
         "created_at": datetime.now(timezone.utc).isoformat(),
-    })
+    }
+
+    # 1. Durable record first. A mail outage must not lose the lead.
+    stored = await persist.save_contact_submission(submission)
+
+    # 2. Notification second, best effort.
+    notified, _detail = await send_contact_email(submission)
+    if notified and stored:
+        await persist.mark_contact_notified(ticket)
+
+    # 3. Bounded in-process buffer so the operator can still see it when
+    #    the database is down or during local development.
+    _contact_store.append({**submission, "stored": stored, "notified": notified})
+    if len(_contact_store) > _CONTACT_BUFFER:
+        del _contact_store[: len(_contact_store) - _CONTACT_BUFFER]
+
+    # The caller gets the same answer either way: exposing whether mail or
+    # storage failed would tell an attacker how to probe the deployment.
     return {
         "ok": True,
         "ticket": ticket,
