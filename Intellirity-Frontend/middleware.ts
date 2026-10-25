@@ -17,6 +17,13 @@ const IS_PROD = process.env.NODE_ENV === "production";
 const HAS_CLERK = Boolean(process.env.CLERK_SECRET_KEY);
 const isProtectedRoute = createRouteMatcher(["/console(.*)"]);
 
+/* Where an unauthenticated visitor is sent. Without this, Clerk v7's
+   auth.protect() rewrites to its Account Portal handler, which answers 404
+   when the portal is not enabled for the origin (localhost, previews).
+   An explicit in-app URL makes the redirect deterministic. */
+const SIGN_IN_URL = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || "/sign-in";
+const SIGN_UP_URL = process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL || "/sign-up";
+
 /* On Vercel the platform terminates TLS and sets x-forwarded-for itself.
    Taking the LAST hop is the safe choice behind a known proxy: a client
    can prepend its own value, but cannot remove the proxy's. Falling back
@@ -110,14 +117,22 @@ async function baseMiddleware(req: NextRequest) {
 }
 
 export default HAS_CLERK
-  ? clerkMiddleware(async (auth, req) => {
-      const blocked = guard(req);
-      if (blocked) return blocked;
-      // /console/* requires sign-in; landing, sign-in/up, and the engine
-      // proxy stay public (the backend enforces API auth itself).
-      if (isProtectedRoute(req)) await auth.protect();
-      return NextResponse.next();
-    })
+  ? clerkMiddleware(
+      async (auth, req) => {
+        const blocked = guard(req);
+        if (blocked) return blocked;
+        // /console/* requires sign-in; landing, sign-in/up, and the engine
+        // proxy stay public (the backend enforces API auth itself).
+        if (isProtectedRoute(req)) await auth.protect();
+        return NextResponse.next();
+      },
+      {
+        signInUrl: SIGN_IN_URL,
+        signUpUrl: SIGN_UP_URL,
+        afterSignInUrl: "/console",
+        afterSignUpUrl: "/console",
+      }
+    )
   : baseMiddleware;
 
 export const config = {

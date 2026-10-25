@@ -45,7 +45,7 @@ _configure_logging()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Refuse to run a production deployment with insecure defaults.
-    from app.core.config import validate_production_secrets, production_warnings
+    from app.core.config import validate_production_secrets, production_warnings, gateway_warnings
     problems = validate_production_secrets()
     if problems:
         for p in problems:
@@ -55,6 +55,8 @@ async def lifespan(app: FastAPI):
         )
     for w in production_warnings():
         print(f"[WARN] production configuration: {w}", flush=True)
+    for w in gateway_warnings():
+        print(f"[WARN] model gateway: {w}", flush=True)
     # Bootstrap Postgres when reachable (tables + indexes); otherwise the
     # app runs memory-first. Never blocks or crashes boot.
     from app.db.persist import init_db, restore_ledger_chain
@@ -147,10 +149,12 @@ async def _ensure_database(request, call_next):
     if not _config_checked:
         _config_checked = True
         try:
-            from app.core.config import validate_production_secrets, production_warnings
+            from app.core.config import validate_production_secrets, production_warnings, gateway_warnings
             _config_problems[:] = validate_production_secrets()
             for warning in production_warnings():
                 print(f"[WARN] production configuration: {warning}", flush=True)
+            for warning in gateway_warnings():
+                print(f"[WARN] model gateway: {warning}", flush=True)
         except Exception as exc:  # configuration must never 500 a request
             _config_problems[:] = []
             print(f"[WARN] production config check failed: {exc}", flush=True)

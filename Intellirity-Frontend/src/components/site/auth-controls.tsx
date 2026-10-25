@@ -1,11 +1,15 @@
 "use client";
 
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { SignInButton, UserButton, useAuth } from "@clerk/nextjs";
 import { ArrowRight } from "lucide-react";
 
 /* Clerk is enabled only once NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY exists.
    Until then this renders the plain dashboard link, so keyless builds
-   and local dev keep working untouched. */
+   and local dev keep working untouched.
+
+   Clerk Core 3 (v7) removed <SignedIn>/<SignedOut>. Session state comes
+   from useAuth(), and the hook is confined to inner components because it
+   requires a ClerkProvider that keyless builds do not mount. */
 export const AUTH_ENABLED =
   Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
 
@@ -25,24 +29,36 @@ export function NavbarAuth() {
   if (!AUTH_ENABLED) {
     return <DashboardLink className="hidden h-9 px-4 text-[13px] sm:inline-flex" />;
   }
-  return (
-    <>
-      <SignedOut>
+  return <NavbarAuthInner />;
+}
+
+function NavbarAuthInner() {
+  const { isLoaded, isSignedIn } = useAuth();
+
+  // Server and first client render agree on "nothing yet".
+  if (!isLoaded) return null;
+
+  if (!isSignedIn) {
+    return (
+      <>
         <SignInButton mode="modal">
           <button className="hidden h-9 items-center rounded px-3 text-[13px] font-medium text-dim transition-colors hover:text-ink sm:inline-flex">
             Sign in
           </button>
         </SignInButton>
         <DashboardLink className="hidden h-9 px-4 text-[13px] sm:inline-flex" />
-      </SignedOut>
-      <SignedIn>
-        <UserButton
-          appearance={{
-            elements: { avatarBox: "size-8" },
-          }}
-        />
-        <DashboardLink className="hidden h-9 px-4 text-[13px] sm:inline-flex" />
-      </SignedIn>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <UserButton
+        appearance={{
+          elements: { avatarBox: "size-8" },
+        }}
+      />
+      <DashboardLink className="hidden h-9 px-4 text-[13px] sm:inline-flex" />
     </>
   );
 }
@@ -60,9 +76,17 @@ export function MobileAuth({ onDone }: { onDone: () => void }) {
       </a>
     );
   }
-  return (
-    <div className="flex items-center gap-2.5" onClick={onDone}>
-      <SignedOut>
+  return <MobileAuthInner onDone={onDone} />;
+}
+
+function MobileAuthInner({ onDone }: { onDone: () => void }) {
+  const { isLoaded, isSignedIn } = useAuth();
+
+  if (!isLoaded) return null;
+
+  if (!isSignedIn) {
+    return (
+      <div className="flex items-center gap-2.5" onClick={onDone}>
         <SignInButton mode="modal">
           <button className="flex h-11 flex-1 items-center justify-center rounded border border-line-strong text-[14px] font-medium">
             Sign in
@@ -75,10 +99,13 @@ export function MobileAuth({ onDone }: { onDone: () => void }) {
           Open Dashboard
           <ArrowRight className="size-4" />
         </a>
-      </SignedOut>
-      <SignedIn>
-        <UserButton showName />
-      </SignedIn>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2.5" onClick={onDone}>
+      <UserButton showName />
     </div>
   );
 }

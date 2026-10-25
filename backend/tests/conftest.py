@@ -9,12 +9,24 @@
    able to write to whatever DATABASE_URL happens to be in backend/.env.
    `app.db.persist.init_db` honours INTELLIRITY_DISABLE_DB and stays in
    memory mode, which is also what CI runs without a Postgres service.
+
+3. Authentication is disabled for the whole suite. backend/.env holds the
+   real Clerk keys once a developer configures them; without this, the
+   feature tests would suddenly need a signed session token and would fail
+   for the wrong reason.
 """
 import os
 
 import pytest
 
 os.environ["INTELLIRITY_DISABLE_DB"] = "1"
+os.environ["CLERK_SECRET_KEY"] = ""
+os.environ["CLERK_PUBLISHABLE_KEY"] = ""
+os.environ["CLERK_ISSUER"] = ""
+os.environ["CLERK_AUTHORIZED_PARTIES"] = ""
+os.environ["INTELLIRITY_API_KEYS"] = ""
+os.environ["INTELLIRITY_API_KEY_HASHES"] = ""
+os.environ["ENVIRONMENT"] = "development"
 
 
 @pytest.fixture(autouse=True)

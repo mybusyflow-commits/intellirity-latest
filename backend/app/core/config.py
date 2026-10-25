@@ -142,6 +142,40 @@ def resolve_clerk_issuer(config: "Settings | None" = None) -> str:
     return issuer_from_publishable_key(source.CLERK_PUBLISHABLE_KEY)
 
 
+def gateway_warnings() -> list[str]:
+    """Detect a model-gateway key that does not belong to its base URL.
+
+    The classic failure: a key copied into a shell or Windows user
+    environment keeps overriding `.env`, and the request goes to the wrong
+    provider with the wrong credential. The provider answers 401, and the
+    operator debugs the model instead of the variable.
+    """
+    import os
+
+    key = os.getenv("OPENCODEZEN_API_KEY", "") or settings.OPENCODEZEN_API_KEY
+    if not key:
+        return []
+    base = (os.getenv("OPENCODEZEN_BASE_URL", "") or "https://opencode.ai/zen/v1").lower()
+
+    expected = None
+    if "groq.com" in base:
+        expected = ("gsk_", "Groq")
+    elif "api.x.ai" in base:
+        expected = ("xai-", "xAI")
+    elif "opencode.ai" in base:
+        expected = ("oc_", "OpenCode Zen")
+    elif "openai.com" in base:
+        expected = ("sk-", "OpenAI")
+
+    if expected and not key.startswith(expected[0]):
+        return [
+            f"OPENCODEZEN_BASE_URL points at {expected[1]} but OPENCODEZEN_API_KEY is not a "
+            f"{expected[1]} key. A stale OS-level environment variable may be overriding "
+            f"backend/.env; unset it or update it to match."
+        ]
+    return []
+
+
 def validate_production_secrets() -> list[str]:
     """Return the list of insecure defaults in a production deployment.
 
