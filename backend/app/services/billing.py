@@ -57,6 +57,12 @@ PRODUCTS = [
 # Engines free for everyone even when enforcement is on.
 FREE_ENGINES = {"threat_intelligence_feed"}
 
+# Buying the complete catalogue is discounted. This single number is
+# returned by /billing/products and applied by checkout, so the price shown
+# in the browser and the amount charged can never disagree.
+BUNDLE_DISCOUNT_PCT = 20
+ALL_MODULE_IDS = {p["id"] for p in PRODUCTS}
+
 ENGINE_TO_PRODUCT = {}
 for _p in PRODUCTS:
     for _e in _p["engines"]:
@@ -98,17 +104,46 @@ def razorpay_enabled() -> bool:
         return False
 
 
-def checkout(owner: str, product_ids: list[str]) -> dict:
+def quote(product_ids: list[str]) -> dict:
+    """Price a selection, including the full-coverage discount.
+
+    One implementation for the checkout route, the Razorpay amount and any
+    UI that asks the API to price a bundle. Rounding is done on the
+    discount, then the total is a plain subtraction, so the line items add
+    up exactly.
+    """
     valid = [p for p in PRODUCTS if p["id"] in set(product_ids or [])]
     if not valid:
         return {"error": "Select at least one module."}
-    total = sum(p["price"] for p in valid)
+    selected = {p["id"] for p in valid}
+    subtotal = sum(p["price"] for p in valid)
+    is_bundle = selected == ALL_MODULE_IDS
+    discount_pct = BUNDLE_DISCOUNT_PCT if is_bundle else 0
+    discount = round(subtotal * discount_pct / 100)
+    return {
+        "modules": [p["id"] for p in valid],
+        "subtotal_inr": subtotal,
+        "discount_pct": discount_pct,
+        "discount_inr": discount,
+        "total_inr": subtotal - discount,
+        "bundle": is_bundle,
+    }
+
+
+def checkout(owner: str, product_ids: list[str]) -> dict:
+    priced = quote(product_ids)
+    if "error" in priced:
+        return priced
     order_id = f"ORD-{uuid.uuid4().hex[:10].upper()}"
     order = {
         "order_id": order_id,
         "owner": owner,
-        "modules": [p["id"] for p in valid],
-        "total_inr": total,
+        "modules": priced["modules"],
+        "subtotal_inr": priced["subtotal_inr"],
+        "discount_pct": priced["discount_pct"],
+        "discount_inr": priced["discount_inr"],
+        "total_inr": priced["total_inr"],
+        "bundle": priced["bundle"],
         "status": "pending-payment",
         "created_at": time.time(),
     }

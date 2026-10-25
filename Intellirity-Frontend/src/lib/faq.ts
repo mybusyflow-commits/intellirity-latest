@@ -63,7 +63,7 @@ export const FAQS: Array<{ q: string; a: AnswerSeg[] }> = [
   {
     q: "How much does it cost?",
     a: [
-      { t: "Intellirity is billed per detection module, per month: nine modules from ₹79 to ₹399. There are no tiers and no seat counts — you toggle the coverage you need and pay the sum. Compare every module in " },
+      { t: "Intellirity is billed per detection module, per month: nine modules from ₹79 to ₹399. There are no tiers and no seat counts — you toggle the coverage you need and pay the sum. Taking all nine together is 20% off the total. Compare every module in " },
       { t: "pricing", href: "/pricing" },
       { t: "." },
     ],

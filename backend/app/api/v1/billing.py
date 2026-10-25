@@ -14,8 +14,21 @@ router = APIRouter()
 
 @router.get("/products")
 async def products():
-    return {"products": store.PRODUCTS, "currency": "INR", "enforced": store.is_enforced(),
-            "payment": "razorpay" if store.razorpay_enabled() else "dev"}
+    bundle = store.quote([p["id"] for p in store.PRODUCTS])
+    return {
+        "products": store.PRODUCTS,
+        "currency": "INR",
+        "enforced": store.is_enforced(),
+        "payment": "razorpay" if store.razorpay_enabled() else "dev",
+        # The UI renders the discount from this object rather than hardcoding
+        # a percentage, so the displayed and charged totals stay identical.
+        "bundle": {
+            "discount_pct": store.BUNDLE_DISCOUNT_PCT,
+            "module_count": len(store.PRODUCTS),
+            "subtotal_inr": bundle.get("subtotal_inr", 0),
+            "total_inr": bundle.get("total_inr", 0),
+        },
+    }
 
 
 class CheckoutBody(BaseModel):

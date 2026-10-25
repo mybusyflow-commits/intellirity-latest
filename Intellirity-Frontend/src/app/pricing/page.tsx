@@ -6,7 +6,7 @@ import { SITE_NAME, SITE_URL } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "Per-module pricing for Intellirity: nine security modules from ₹79 to ₹399 per month. No tiers, no seat counts — toggle the coverage you need and pay exactly the sum.",
+    "Per-module pricing for Intellirity: nine security modules from ₹79 to ₹399 per month, 20% off when you take all nine. No tiers, no seat counts — toggle the coverage you need and pay exactly the sum.",
   alternates: { canonical: `${SITE_URL}/pricing` },
   robots: { index: true, follow: true },
   openGraph: {

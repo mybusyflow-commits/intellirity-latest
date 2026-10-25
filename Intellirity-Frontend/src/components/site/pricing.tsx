@@ -45,6 +45,8 @@ function loadRazorpay(): Promise<Window["Razorpay"]> {
 export function Pricing() {
   const [products, setProducts] = useState<Product[]>(FALLBACK);
   const [live, setLive] = useState(false);
+  // Mirrors the engine's bundle rule; replaced by the API value on load.
+  const [bundlePct, setBundlePct] = useState(20);
   const [selected, setSelected] = useState<string[]>(["injection-shield", "leakage-guard"]);
   const [order, setOrder] = useState<{ order_id: string; total_inr: number; status: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -77,6 +79,9 @@ export function Pricing() {
           })
         );
         setLive(true);
+        if (j.bundle && typeof j.bundle.discount_pct === "number") {
+          setBundlePct(j.bundle.discount_pct);
+        }
       })
       .catch(() => {});
     return () => {
@@ -84,13 +89,20 @@ export function Pricing() {
     };
   }, []);
 
-  const total = useMemo(
-    () => products.filter((p) => selected.includes(p.id)).reduce((s, p) => s + p.price, 0),
-    [products, selected]
-  );
+  const pricing = useMemo(() => {
+    const chosen = products.filter((p) => selected.includes(p.id));
+    const subtotal = chosen.reduce((sum, p) => sum + p.price, 0);
+    const allSelected = products.length > 0 && chosen.length === products.length;
+    const discountPct = allSelected ? bundlePct : 0;
+    const discount = Math.round((subtotal * discountPct) / 100);
+    return { subtotal, discountPct, discount, total: subtotal - discount, allSelected };
+  }, [products, selected, bundlePct]);
 
   const toggle = (id: string) =>
     setSelected((ss) => (ss.includes(id) ? ss.filter((x) => x !== id) : [...ss, id]));
+
+  const toggleAll = () =>
+    setSelected(pricing.allSelected ? [] : products.map((p) => p.id));
 
   async function checkout() {
     if (selected.length === 0 || busy) return;
@@ -152,18 +164,37 @@ export function Pricing() {
           </h2>
           <p className="reveal mt-4 max-w-lg text-[14.5px] leading-relaxed text-dim">
             No tiers, no seats. Toggle the coverage you need — basics from ₹79,
-            the trust core up to ₹399 — and pay exactly the sum.
+            the trust core up to ₹399 — and pay exactly the sum. Take all{" "}
+            {products.length} modules together and save {bundlePct}%.
             {live ? " Prices live from billing." : ""}
           </p>
         </div>
         <div className="reveal w-full rounded-lg border border-line bg-raise p-5 md:w-72">
-          <div className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-faint">
-            your bundle · {selected.length} module{selected.length === 1 ? "" : "s"}
+          <div className="flex items-baseline justify-between gap-3">
+            <div className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-faint">
+              your bundle · {selected.length} module{selected.length === 1 ? "" : "s"}
+            </div>
+            <button
+              type="button"
+              onClick={toggleAll}
+              className="font-mono text-[10px] uppercase tracking-[0.1em] text-steel transition-colors hover:text-ink"
+            >
+              {pricing.allSelected ? "clear" : `all ${products.length} · −${bundlePct}%`}
+            </button>
           </div>
           <div className="mt-1 font-display text-[40px] font-medium tabular-nums">
-            ₹{total.toLocaleString("en-IN")}
+            ₹{pricing.total.toLocaleString("en-IN")}
             <span className="font-mono text-[12px] text-faint">/mo</span>
           </div>
+          {pricing.allSelected && (
+            <p className="mt-0.5 font-mono text-[10.5px] leading-relaxed text-ok">
+              <span className="text-faint line-through">
+                ₹{pricing.subtotal.toLocaleString("en-IN")}
+              </span>{" "}
+              · full coverage −{pricing.discountPct}% · save ₹
+              {pricing.discount.toLocaleString("en-IN")}/mo
+            </p>
+          )}
           <button
             onClick={checkout}
             disabled={busy || selected.length === 0}

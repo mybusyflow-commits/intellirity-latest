@@ -69,3 +69,43 @@ def test_mark_paid_activates_once_and_is_idempotent():
     assert "content-guard" in first["owned"]
     second = billing.mark_paid(order["order_id"], via="test")
     assert second["order"]["status"] == "active"
+
+
+# --- Bundle discount -------------------------------------------------------
+
+def test_a_partial_bundle_has_no_discount():
+    priced = billing.quote(["content-guard", "wallet-guard"])
+    assert priced["subtotal_inr"] == 158  # 79 + 79
+    assert priced["discount_pct"] == 0
+    assert priced["discount_inr"] == 0
+    assert priced["total_inr"] == 158
+    assert priced["bundle"] is False
+
+
+def test_the_full_catalogue_gets_the_bundle_discount():
+    ids = [p["id"] for p in billing.PRODUCTS]
+    priced = billing.quote(ids)
+    subtotal = sum(p["price"] for p in billing.PRODUCTS)
+    assert priced["bundle"] is True
+    assert priced["subtotal_inr"] == subtotal
+    assert priced["discount_pct"] == billing.BUNDLE_DISCOUNT_PCT
+    assert priced["discount_inr"] == round(subtotal * billing.BUNDLE_DISCOUNT_PCT / 100)
+    assert priced["total_inr"] == priced["subtotal_inr"] - priced["discount_inr"]
+
+
+def test_checkout_charges_the_discounted_total():
+    ids = [p["id"] for p in billing.PRODUCTS]
+    order = billing.checkout("tenant-bundle-test", ids)
+    assert order["bundle"] is True
+    assert order["discount_inr"] > 0
+    assert order["total_inr"] == billing.quote(ids)["total_inr"]
+
+
+def test_products_endpoint_publishes_the_bundle_rule():
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    body = TestClient(app).get("/api/v1/billing/products").json()
+    assert body["bundle"]["discount_pct"] == billing.BUNDLE_DISCOUNT_PCT
+    assert body["bundle"]["module_count"] == len(billing.PRODUCTS)
+    assert body["bundle"]["total_inr"] < body["bundle"]["subtotal_inr"]

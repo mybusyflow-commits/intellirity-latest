@@ -52,7 +52,8 @@ ${docText("cookies")}
 Intellirity is billed per detection module, per month, in Indian rupees.
 There are no tiers and no seat counts. Prices run from ₹79 to ₹399 per
 module per month across nine purchasable modules, and are served live from
-the billing API. The full list with live prices is at ${SITE_URL}/pricing.
+the billing API. All nine modules bought together receive a 20% bundle
+discount. The full list with live prices is at ${SITE_URL}/pricing.
 
 ## Contact
 

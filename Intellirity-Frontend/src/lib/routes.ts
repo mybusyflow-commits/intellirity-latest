@@ -67,7 +67,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
     path: "/pricing",
     title: "Pricing | Intellirity",
     description:
-      "Per-module pricing for Intellirity: nine security modules from ₹79 to ₹399 per month, with a live configurable plan builder.",
+      "Per-module pricing for Intellirity: nine security modules from ₹79 to ₹399 per month, with 20% off when you take all nine and a live configurable plan builder.",
     priority: 0.9,
     changeFrequency: "weekly",
   },
