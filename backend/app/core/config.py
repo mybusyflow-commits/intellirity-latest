@@ -1,5 +1,7 @@
 from pydantic_settings import BaseSettings
 
+import base64
+
 # Environment loading.
 #
 # pydantic-settings reads `.env` into the Settings object, but it does not
@@ -52,6 +54,14 @@ class Settings(BaseSettings):
     VPI_SIGNING_KEY: str = ""
     CLERK_SECRET_KEY: str = ""
     CLERK_PUBLISHABLE_KEY: str = ""
+    # The only token issuer this deployment trusts. When empty it is derived
+    # from CLERK_PUBLISHABLE_KEY. In production it must resolve: trusting the
+    # `iss` claim inside a token would let any domain mint a valid session.
+    CLERK_ISSUER: str = ""
+    # Optional comma-separated allow-list of origins a token may be minted
+    # for (Clerk's `azp` claim). Set it to your site origin to close
+    # cross-application token replay.
+    CLERK_AUTHORIZED_PARTIES: str = ""
     ENVIRONMENT: str = "development"
     API_V1_PREFIX: str = "/api/v1"
     OPENCODEZEN_API_KEY: str = ""
@@ -96,6 +106,42 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
+def issuer_from_publishable_key(publishable: str) -> str:
+    """Recover the Clerk Frontend API origin from a publishable key.
+
+    `pk_live_<base64>` decodes to `<frontend-api-host>$`, which is the
+    instance's token issuer. Kept here, not in `security`, so the boot-time
+    validation and the runtime verifier cannot drift apart.
+    """
+    if not publishable:
+        return ""
+    try:
+        parts = str(publishable).strip().split("_", 2)
+        if len(parts) != 3 or parts[0] != "pk":
+            return ""
+        payload = parts[2] + "=" * (-len(parts[2]) % 4)
+        host = base64.urlsafe_b64decode(payload).decode("utf-8").rstrip("$").strip()
+        if not host or "/" in host or " " in host:
+            return ""
+        return f"https://{host}"
+    except Exception:
+        return ""
+
+
+def resolve_clerk_issuer(config: "Settings | None" = None) -> str:
+    """The only issuer this deployment accepts session tokens from.
+
+    Explicit `CLERK_ISSUER` wins; otherwise it is derived from the
+    publishable key. Empty means it cannot be pinned, which production
+    treats as a hard failure.
+    """
+    source = config or settings
+    explicit = (source.CLERK_ISSUER or "").strip().rstrip("/")
+    if explicit:
+        return explicit
+    return issuer_from_publishable_key(source.CLERK_PUBLISHABLE_KEY)
+
+
 def validate_production_secrets() -> list[str]:
     """Return the list of insecure defaults in a production deployment.
 
@@ -113,6 +159,13 @@ def validate_production_secrets() -> list[str]:
         )
     if settings.SECRET_KEY == "dev-secret-key":
         problems.append("SECRET_KEY is still the default dev value")
+    if settings.CLERK_SECRET_KEY:
+        if not resolve_clerk_issuer(settings):
+            problems.append(
+                "CLERK_SECRET_KEY is set but no Clerk issuer could be resolved: "
+                "set CLERK_ISSUER (e.g. https://your-app.clerk.accounts.dev) so session "
+                "tokens from other domains cannot be accepted"
+            )
     if not settings.VPI_SIGNING_KEY:
         problems.append("VPI_SIGNING_KEY is not set (proof-of-intent keys fall back to SECRET_KEY)")
     if not settings.DATABASE_URL:

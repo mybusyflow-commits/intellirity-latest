@@ -45,6 +45,24 @@ def _verify_rs256(signing_input: bytes, signature: bytes, n: int, e: int) -> boo
     return hmac.compare_digest(em[sep + 1:], _SHA256_DER_PREFIX + digest)
 
 
+def clerk_issuer() -> str:
+    """The only issuer this deployment will accept session tokens from.
+
+    Delegates to `config.resolve_clerk_issuer` so boot-time validation and
+    the request-time verifier cannot disagree.
+    """
+    from app.core.config import resolve_clerk_issuer
+
+    return resolve_clerk_issuer(settings)
+
+
+def _authorized_parties() -> list[str]:
+    raw = (settings.CLERK_AUTHORIZED_PARTIES or "").strip()
+    if not raw:
+        return []
+    return [p.strip().rstrip("/") for p in raw.split(",") if p.strip()]
+
+
 def _get_jwks(jwks_url: str) -> dict:
     now = time.time()
     cached = _jwks_cache.get(jwks_url)
@@ -96,12 +114,37 @@ def verify_clerk_token(token: str, secret: str) -> dict:
         raise HTTPException(status_code=401, detail="Invalid session signature")
 
     if alg == "RS256":
-        issuer = str(payload.get("iss", ""))
+        issuer = str(payload.get("iss", "")).rstrip("/")
         kid = str(header.get("kid", ""))
         if not issuer.startswith("https://") or not kid:
             raise HTTPException(status_code=401, detail="Untrusted token issuer")
+
+        # Pin the issuer BEFORE fetching its keys. Taking `iss` from the
+        # token and trusting it lets anyone with a domain serve their own
+        # JWKS and mint a session; it also turns this endpoint into an SSRF
+        # primitive. One configured issuer, one fetch target.
+        trusted = clerk_issuer()
+        if not trusted:
+            if settings.ENVIRONMENT == "production":
+                raise HTTPException(
+                    status_code=503,
+                    detail="CLERK_ISSUER is not configured, so session tokens cannot be trusted",
+                )
+            # Development without an issuer: the signature still has to
+            # verify against the key set at the token's own issuer.
+        elif issuer != trusted:
+            raise HTTPException(status_code=401, detail="Untrusted token issuer")
+
+        # Optional second pin: the origin the token was minted for. Clerk
+        # puts it in `azp`. Cheap to check and it closes cross-app replay.
+        parties = _authorized_parties()
+        if parties:
+            azp = str(payload.get("azp", "")).rstrip("/")
+            if azp not in parties:
+                raise HTTPException(status_code=401, detail="Token issued for an untrusted origin")
+
         try:
-            keys = _get_jwks(issuer.rstrip("/") + "/.well-known/jwks.json")
+            keys = _get_jwks(issuer + "/.well-known/jwks.json")
         except Exception:
             raise HTTPException(status_code=401, detail="Could not fetch signing keys")
         key = keys.get(kid)

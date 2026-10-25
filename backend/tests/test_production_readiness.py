@@ -138,6 +138,7 @@ def _settings(**overrides):
         "VPI_SIGNING_KEY": "a-real-vpi-key",
         "DATABASE_URL": "postgresql+asyncpg://user:pw@db.internal:5432/app",
         "CLERK_SECRET_KEY": "sk_test_x",
+        "CLERK_ISSUER": "https://example.clerk.accounts.dev",
         "INTELLIRITY_API_KEY_HASHES": "",
         "INTELLIRITY_API_KEYS": "",
         "RESEND_API_KEY": "re_test",

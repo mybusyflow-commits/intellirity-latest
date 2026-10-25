@@ -43,6 +43,8 @@ services:
       # Identity
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
       CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
+      CLERK_ISSUER: ${CLERK_ISSUER:-}
+      CLERK_AUTHORIZED_PARTIES: ${CLERK_AUTHORIZED_PARTIES:-}
       INTELLIRITY_API_KEY_HASHES: ${INTELLIRITY_API_KEY_HASHES:-}
       INTELLIRITY_API_KEYS: ${INTELLIRITY_API_KEYS:-}
       # Secrets. The default is deliberately the value the production guard

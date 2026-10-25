@@ -54,6 +54,8 @@ DATABASE_URL=postgresql+asyncpg://...      # Neon/Supabase pooler URL
 SECRET_KEY=<long random string>            # required; the default is refused
 VPI_SIGNING_KEY=<long random string>       # required in production
 CLERK_SECRET_KEY=sk_live_...               # required in production
+CLERK_ISSUER=https://your-app.clerk.accounts.dev   # required: pins who may issue tokens
+CLERK_AUTHORIZED_PARTIES=https://your-domain.com   # optional azp pin
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
 NEXT_PUBLIC_SITE_URL=https://your-domain.com
 NEXT_PUBLIC_GATEWAY_URL=https://your-domain.com
@@ -306,15 +308,86 @@ describes.
 
 ---
 
+## Clerk setup (the only supported identity provider)
+
+The console and the engine share one Clerk application. There are five
+values to collect and two dashboard settings that must match the deploy.
+
+**1. Create the application.** Clerk dashboard → *Create application* →
+name it, choose the sign-in methods you want (email + password is enough to
+start; Google is one toggle).
+
+**2. Copy the keys.** Dashboard → *API keys*:
+
+| Dashboard value | Environment variable | Where |
+|---|---|---|
+| Publishable key `pk_live_…` | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Vercel (build + runtime) |
+| Secret key `sk_live_…` | `CLERK_SECRET_KEY` | Vercel (server) + engine |
+| Frontend API URL | `CLERK_ISSUER` | engine |
+
+`CLERK_ISSUER` is the origin shown on that page, for example
+`https://your-app.clerk.accounts.dev`. It is what the engine pins: a token
+from any other issuer is rejected before its keys are fetched. The engine
+can derive it from the publishable key, but set it explicitly — production
+refuses to boot without a resolvable issuer.
+
+**3. Enable Organizations.** Dashboard → *Organizations* → enable. Turn
+**off** "Personal accounts" if every user must belong to a team; leave it
+on if solo users are allowed. The engine maps the org claim to a tenant:
+
+| Clerk claim | Engine tenant |
+|---|---|
+| `org_id` present | `org:<org_id>` |
+| no organization | `user:<sub>` |
+
+Roles come from `org_role` (`org:admin` is the admin role). Policy-pack
+promotion requires an admin and two different approvers.
+
+**4. Allow the production origin.** Dashboard → *Domains* (or *Paths*) →
+add the production hostname, e.g. `intellirity.ai`. Also set
+`CLERK_AUTHORIZED_PARTIES=https://intellirity.ai` in the engine so a token
+minted for another origin is refused even if it is validly signed.
+
+**5. Point the app at the pages.** Already wired: `/sign-in` and `/sign-up`
+render Clerk's components, `afterSignOutUrl` is `/`, and the org switcher
+lives in the console topbar.
+
+**6. Verify, in this order:**
+
+```bash
+# a. with no keys, a production console must refuse to render
+curl -i https://your-domain.com/console | head -1        # 503
+
+# b. with keys, it redirects to Clerk
+curl -i https://your-domain.com/console | grep -i location
+
+# c. the engine rejects an unsigned token
+curl -i https://your-domain.com/backend/system/summary \
+  -H "Authorization: Bearer not-a-token" | head -1       # 401/503, never 200
+```
+
+Then sign in in a browser, create an organization, switch to it, and
+confirm the console reloads data for that org.
+
+**Local development.** Put `pk_test_…` / `sk_test_…` in
+`Intellirity-Frontend/.env.local` and the same `sk_test_…` plus
+`CLERK_ISSUER` in `backend/.env`. Without keys the console runs in open
+mode locally, which is intentional — do not copy that state to production.
+
+---
+
 ## Identity model
 
 Two independent paths, both enforced by `require_user`:
 
-1. **Humans** — `Authorization: Bearer <Clerk session JWT>`. Verified by
-   RS256 against the Clerk JWKS, or HS256 with `SECRET_KEY`. The token's
-   `org_id` decides the tenant: a member of a Clerk organization reads and
-   writes that organization's billing, model endpoints, policy packs and
-   escrow holds. Without an organization, the user owns a private tenant.
+1. **Humans** — `Authorization: Bearer <Clerk session JWT>`. The token's
+   signature is verified by RS256 against the JWKS of **one pinned issuer**
+   (`CLERK_ISSUER`, derived from the publishable key if unset); a token from
+   any other issuer is rejected before its keys are fetched. HS256 with
+   `SECRET_KEY` remains available for local tokens. The `org_id` claim
+   decides the tenant: a member of a Clerk organization reads and writes
+   that organization's billing, model endpoints, policy packs and escrow
+   holds. Without an organization, the user owns a private tenant.
 2. **Machines** — `X-API-Key: <key>`, used by the Python and JS SDKs and the
    MCP server. Matched by SHA-256, so the stored value is not the secret.
    A machine key is its own tenant and is never written to the users table.
