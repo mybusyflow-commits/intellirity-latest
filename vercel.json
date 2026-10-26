@@ -1,22 +1,30 @@
 {
-  "buildCommand": "npm --prefix Intellirity-Frontend run build",
-  "outputDirectory": "Intellirity-Frontend/.next",
-  "framework": "nextjs",
-  "installCommand": "npm --prefix Intellirity-Frontend install",
-  "functions": {
-    "api/index.py": {
-      "maxDuration": 30,
-      "memory": 1024
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "web": {
+      "root": "Intellirity-Frontend/",
+      "framework": "nextjs",
+      "installCommand": "npm ci"
+    },
+    "api": {
+      "root": "backend/",
+      "framework": "fastapi",
+      "entrypoint": "app.main:app",
+      "installCommand": "pip install -r requirements.txt"
     }
   },
   "rewrites": [
     {
-      "source": "/backend/:path*",
-      "destination": "/api?__path=:path*"
+      "source": "/backend/(.*)",
+      "destination": { "service": "api" }
     },
     {
       "source": "/health",
-      "destination": "/api?__health=1"
+      "destination": { "service": "api" }
+    },
+    {
+      "source": "/(.*)",
+      "destination": { "service": "web" }
     }
   ]
 }

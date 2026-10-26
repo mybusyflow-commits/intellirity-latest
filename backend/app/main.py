@@ -339,6 +339,16 @@ class PathRewriteMiddleware:
 
     async def __call__(self, scope, receive, send):
         if scope.get("type") == "http":
+            # Vercel Services route /backend/* straight to this app, keeping
+            # the public path. The API router is mounted at /api/v1, so strip
+            # the prefix here. Local dev and the console proxy already send
+            # /api/v1 and are untouched.
+            path = scope.get("path", "")
+            if path == "/backend" or path.startswith("/backend/"):
+                rest = path[len("/backend"):] or "/"
+                scope["path"] = "/api/v1" + rest
+                scope["raw_path"] = scope["path"].encode("latin-1")
+
             raw = scope.get("query_string", b"") or b""
             if b"__path=" in raw or b"__health" in raw:
                 from urllib.parse import parse_qsl, urlencode

@@ -48,6 +48,14 @@ def test_the_health_sentinel_reaches_the_root_health_route():
     assert r.json()["service"] == "intellirity"
 
 
+def test_the_backend_prefix_serves_the_api_directly():
+    # Vercel Services route /backend/* to this app without stripping the
+    # prefix; the middleware maps it back to /api/v1.
+    r = client.get("/backend/system/status")
+    assert r.status_code == 200
+    assert r.json()["backend"] == "connected"
+
+
 # --- Liveness -------------------------------------------------------------
 
 def test_health_reports_the_components_an_operator_needs():
