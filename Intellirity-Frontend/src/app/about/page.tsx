@@ -16,6 +16,7 @@ export const metadata: Metadata = {
       "The AI security company behind Intellirity: what we build, how we operate, and the founder behind it.",
     url: `${SITE_URL}/about`,
     type: "profile",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "About Intellirity" }],
   },
   twitter: {
     card: "summary_large_image",

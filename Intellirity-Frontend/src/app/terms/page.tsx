@@ -16,6 +16,13 @@ export const metadata: Metadata = {
       "Per-module billing, acceptable use, data ownership and liability for the Intellirity platform.",
     url: `${SITE_URL}/terms`,
     type: "article",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Intellirity terms of service" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `AI Security Platform Terms · ${SITE_NAME}`,
+    description: "Per-module billing, acceptable use, data ownership and liability.",
+    images: ["/og-image.png"],
   },
 };
 

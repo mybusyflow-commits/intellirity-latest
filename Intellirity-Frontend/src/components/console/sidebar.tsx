@@ -54,9 +54,13 @@ const SECTIONS = (["Operate", "Defend", "Govern"] as const).map((group) => ({
 
 export function Sidebar({ drawer = false }: { drawer?: boolean }) {
   const pathname = usePathname();
-  const { enforced, owned } = useEntitlements();
+  const { enforced, owned, entitlements } = useEntitlements();
   const [latency, setLatency] = useState("-");
   const [score, setScore] = useState("-");
+  const activeEntitlements = Object.values(entitlements).filter((e) => e.active);
+  const daysLeft = activeEntitlements.length
+    ? Math.min(...activeEntitlements.map((e) => e.days_left ?? 999))
+    : null;
 
   useEffect(() => {
     let live = true;
@@ -171,6 +175,17 @@ export function Sidebar({ drawer = false }: { drawer?: boolean }) {
             </div>
           </div>
         </div>
+        {enforced && activeEntitlements.length > 0 && (
+          <Link
+            href="/pricing#pricing"
+            className="mt-2 flex items-center justify-between rounded border border-line bg-sunken px-3 py-2 font-mono text-[10.5px] uppercase tracking-[0.1em] text-faint transition-colors hover:text-dim"
+          >
+            <span>{activeEntitlements.length} module{activeEntitlements.length === 1 ? "" : "s"}</span>
+            <span className={daysLeft !== null && daysLeft <= 5 ? "text-warn" : ""}>
+              {daysLeft === 0 ? "renews today" : `renews in ${daysLeft}d`}
+            </span>
+          </Link>
+        )}
         <Link
           href="/"
           className="mt-3 flex items-center gap-2 px-1 text-[12.5px] text-faint transition-colors hover:text-dim"

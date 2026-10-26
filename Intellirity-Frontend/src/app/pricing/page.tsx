@@ -17,6 +17,14 @@ export const metadata: Metadata = {
       "Nine AI security modules from ₹79 to ₹399 per month, 20% off all nine. Toggle the coverage you need and pay exactly the sum.",
     url: `${SITE_URL}/pricing`,
     type: "website",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Intellirity AI security pricing" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `AI Security Pricing · ${SITE_NAME}`,
+    description:
+      "Nine modules from ₹79 to ₹399 per month, 20% off all nine. Pay only for the coverage you run.",
+    images: ["/og-image.png"],
   },
 };
 

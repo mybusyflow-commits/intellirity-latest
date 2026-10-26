@@ -16,6 +16,13 @@ export const metadata: Metadata = {
       "What Intellirity collects, what it never trains on, which subprocessors are involved, and how to exercise your rights.",
     url: `${SITE_URL}/privacy`,
     type: "article",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Intellirity privacy policy" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `AI Data Privacy Policy · ${SITE_NAME}`,
+    description: "How Intellirity handles AI data: collection, training, subprocessors, retention and rights.",
+    images: ["/og-image.png"],
   },
 };
 

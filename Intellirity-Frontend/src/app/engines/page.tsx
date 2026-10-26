@@ -17,6 +17,14 @@ export const metadata: Metadata = {
       "Sixteen detection engines for prompt injection, jailbreaks, AI data loss prevention, agent abuse, MCP poisoning and model supply-chain attacks.",
     url: `${SITE_URL}/engines`,
     type: "website",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Intellirity AI security engines" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `AI Security Detection Engines · ${SITE_NAME}`,
+    description:
+      "Sixteen engines covering prompt injection, jailbreaks, AI DLP, agent abuse and model supply-chain attacks.",
+    images: ["/og-image.png"],
   },
 };
 
