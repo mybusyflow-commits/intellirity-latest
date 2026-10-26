@@ -458,8 +458,8 @@ Revoke by removing the hash and redeploying.
 Enforcement is **on by default in production** (`ENVIRONMENT=production`).
 A module is usable only when the workspace owns an active entitlement; the
 engine returns `403` with a human message otherwise, and the console locks
-the route before it mounts. Set `BILLING_ENFORCED=false` only for a demo
-deployment where unpaid modules must stay open.
+the route before it mounts. Production always enforces. A demo deployment can opt out with
+`DEMO_MODE=true`; never set that on the customer site.
 
 Each payment covers **30 days** (`services.billing.PERIOD_DAYS`). A renewal
 is another checkout: `grant_entitlements` extends from the later of now and

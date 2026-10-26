@@ -84,20 +84,28 @@ _orders: dict[str, dict] = {}
 def is_enforced() -> bool:
     """Whether unpaid modules are refused.
 
-    Explicit configuration wins. Otherwise a production deployment enforces
-    by default: shipping a paywall that is off unless someone remembers a
-    second environment variable is how unpaid modules stay free forever.
-    Development and tests stay open unless BILLING_ENFORCED=true is set.
+    Production always enforces. A live site that unlocks every module because
+    an old ``BILLING_ENFORCED=false`` row survived a deploy is not a paywall.
+    A deliberate demo deployment can opt out with ``DEMO_MODE=true`` (never
+    use that on the customer site).
+
+    Development and tests stay open unless ``BILLING_ENFORCED=true`` is set,
+    so local work and the test suite do not need paid fixtures.
     """
-    raw = os.getenv("BILLING_ENFORCED")
-    if raw is not None and raw.strip() != "":
-        return raw.strip().lower() in ("1", "true", "yes", "on")
+    demo = os.getenv("DEMO_MODE", "").strip().lower() in ("1", "true", "yes", "on")
+    if demo:
+        return False
     try:
         from app.core.config import settings
 
-        return settings.ENVIRONMENT == "production"
+        if settings.ENVIRONMENT == "production":
+            return True
     except Exception:
-        return False
+        pass
+    raw = os.getenv("BILLING_ENFORCED")
+    if raw is not None and raw.strip() != "":
+        return raw.strip().lower() in ("1", "true", "yes", "on")
+    return False
 
 
 def _active(expires_at: float | None) -> bool:
