@@ -50,7 +50,7 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   ) {
     await Promise.race([
       authReadySignal(),
-      new Promise<void>((resolve) => setTimeout(resolve, 900)),
+      new Promise<void>((resolve) => setTimeout(resolve, 4000)),
     ]);
   }
   const headers: Record<string, string> = { "Content-Type": "application/json" };
