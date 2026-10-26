@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 declare global {
   interface Window {
@@ -12,11 +12,17 @@ declare global {
 
 /* Cloudflare Turnstile widget. Renders nothing until
    NEXT_PUBLIC_TURNSTILE_SITE_KEY exists (keyless dev stays open,
-   matching the backend). */
+   matching the backend).
+
+   A widget that cannot issue a token used to fail silently: the form
+   simply returned "Spam check failed". The error callback now surfaces the
+   Turnstile error code, which is almost always a hostname missing from the
+   widget's configuration. */
 export function Turnstile({ onToken }: { onToken: (token: string) => void }) {
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const ref = useRef<HTMLDivElement>(null);
   const cb = useRef(onToken);
+  const [error, setError] = useState("");
   cb.current = onToken;
 
   useEffect(() => {
@@ -26,7 +32,16 @@ export function Turnstile({ onToken }: { onToken: (token: string) => void }) {
         ref.current.dataset.done = "1";
         window.turnstile.render(ref.current, {
           sitekey: siteKey,
-          callback: (token: string) => cb.current(token),
+          callback: (token: string) => {
+            setError("");
+            cb.current(token);
+          },
+          "error-callback": (code: unknown) => {
+            setError(String(code || "unknown"));
+            cb.current("");
+          },
+          "expired-callback": () => cb.current(""),
+          "timeout-callback": () => cb.current(""),
         });
       }
     };
@@ -43,5 +58,16 @@ export function Turnstile({ onToken }: { onToken: (token: string) => void }) {
   }, [siteKey]);
 
   if (!siteKey) return null;
-  return <div ref={ref} className="flex justify-center" />;
+
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <div ref={ref} />
+      {error !== "" && (
+        <p role="alert" className="max-w-xs text-center font-mono text-[10px] leading-relaxed text-[#a33]">
+          Spam check unavailable ({error}). Add this hostname to the Turnstile
+          site in Cloudflare.
+        </p>
+      )}
+    </div>
+  );
 }

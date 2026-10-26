@@ -28,6 +28,27 @@ os.environ["INTELLIRITY_API_KEYS"] = ""
 os.environ["INTELLIRITY_API_KEY_HASHES"] = ""
 os.environ["ENVIRONMENT"] = "development"
 
+# 4. Third-party side effects are disabled for the suite. Once real keys
+#    live in backend/.env, the contact tests would call Cloudflare and send
+#    real email -- and fail on the missing Turnstile token. Tests must never
+#    reach a third party or spend money.
+for _name in (
+    "TURNSTILE_SECRET",
+    "RESEND_API_KEY",
+    "SMTP_HOST",
+    "SMTP_USER",
+    "SMTP_PASSWORD",
+    "PAYU_KEY",
+    "PAYU_KEY_ID",
+    "PAYU_SALT",
+    "PAYU_KEY_SECRET",
+    "PAYU_WEBHOOK_SECRET",
+    "RAZORPAY_KEY_ID",
+    "RAZORPAY_KEY_SECRET",
+    "RAZORPAY_WEBHOOK_SECRET",
+):
+    os.environ[_name] = ""
+
 
 @pytest.fixture(autouse=True)
 def _clear_rate_limits():
