@@ -10,6 +10,7 @@ Enforcement is OFF unless BILLING_ENFORCED=true, so local dev stays open.
 When on, module scans 403 unless an engine belongs to a product the
 workspace owns (threat intel feed stays free for everyone).
 """
+import math
 import os
 import time
 import uuid
@@ -127,7 +128,7 @@ def entitlement_details(owner: str) -> dict[str, dict]:
             "expires_at": (
                 time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(exp)) if exp else None
             ),
-            "days_left": max(0, int((exp - now) // 86400)) if active and exp else None,
+            "days_left": max(0, math.ceil((exp - now) / 86400)) if active and exp else None,
         }
     return out
 
