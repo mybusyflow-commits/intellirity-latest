@@ -101,18 +101,16 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
-    // One canonical host. Clerk, the sitemap, the canonicals and the CSP all
-    // derive from SITE_URL; letting www serve a second copy splits inbound
-    // links and makes the canonical disagree with the address bar. The host
-    // match means this is inert on localhost and on preview URLs.
-    return [
-      {
-        source: "/:path*",
-        has: [{ type: "host", value: "www.intellirity.com" }],
-        destination: "https://intellirity.com/:path*",
-        permanent: true,
-      },
-    ];
+    // Host canonicalisation is owned by the platform, not by Next.
+    //
+    // This app used to redirect www -> apex here. Vercel has its own
+    // apex <-> www redirect for the project's primary domain, and when the
+    // two disagree (Vercel primary = www, app redirect = apex) the result is
+    // an infinite 308 loop and the site does not load at all. A second
+    // redirect layer can only ever disagree, so it is removed: set
+    // intellirity.com as the primary domain in Vercel and Vercel redirects
+    // www to it, matching SITE_URL and every canonical tag.
+    return [];
   },
   async headers() {
     return [

@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { LegalPage } from "@/components/site/legal-page";
+import { PAGE_KEYWORDS } from "@/lib/keywords";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Terms of Service",
+  title: "AI Security Platform Terms of Service",
   description:
-    "The terms governing use of the Intellirity platform, SDKs and screening proxy: per-module billing, acceptable use, data ownership and liability.",
+    "The terms governing use of the Intellirity AI security platform, SDKs and screening proxy: per-module billing, acceptable use, data ownership and liability.",
+  keywords: PAGE_KEYWORDS["/terms"],
   alternates: { canonical: `${SITE_URL}/terms` },
   robots: { index: true, follow: true },
   openGraph: {

@@ -1,8 +1,8 @@
 /* Single source of truth for every route in the product.
 
-   The sitemap, the robots policy, the console navigation, the command
-   palette and the page metadata all read from here, so adding a page
-   cannot silently leave it out of the index (or out of the nav). */
+   The sitemap, the robots policy, the console navigation and the command
+   palette all read from here, so adding a page cannot silently leave it
+   out of the index (or out of the nav). */
 
 export interface RouteDef {
   /** Path relative to the console root. "" is the console overview. */
@@ -37,11 +37,12 @@ export const CONSOLE_ROUTES: RouteDef[] = [
 
 export const consoleHref = (path: string) => `/console${path}`;
 
-/* Pages that belong in search results and in answer engines. */
+/* Pages that belong in search results and in answer engines.
+   The page's own `metadata` in app/<route>/page.tsx owns its title and
+   description; duplicating them here only created a second copy that could
+   drift out of sync. This list owns the facts the sitemap needs. */
 export interface PublicRoute {
   path: string;
-  title: string;
-  description: string;
   priority: number;
   changeFrequency: "daily" | "weekly" | "monthly" | "yearly";
 }
@@ -49,57 +50,36 @@ export interface PublicRoute {
 export const PUBLIC_ROUTES: PublicRoute[] = [
   {
     path: "/",
-    title: "AI Security Platform for LLMs & Agents | Intellirity",
-    description:
-      "Intellirity is an AI security platform that screens prompts, code and agent actions for prompt injection, LLM jailbreaks, data exfiltration and agent abuse, with tamper-evident evidence for every verdict.",
     priority: 1.0,
     changeFrequency: "weekly",
   },
   {
     path: "/engines",
-    title: "AI Security Detection Engines | Intellirity",
-    description:
-      "All sixteen Intellirity AI security detection engines: prompt injection, LLM jailbreaks, AI data loss prevention, agent abuse, MCP security, model supply chain and more.",
     priority: 0.9,
     changeFrequency: "weekly",
   },
   {
     path: "/pricing",
-    title: "AI Security Pricing | Intellirity",
-    description:
-      "AI security pricing by module: nine detection modules from ₹79 to ₹399 per month, with 20% off when you take all nine and a live configurable plan builder.",
     priority: 0.9,
     changeFrequency: "weekly",
   },
   {
     path: "/glossary",
-    title: "AI Security Glossary | Intellirity",
-    description:
-      "Definitions for prompt injection, LLM jailbreaks, LLM firewalls, AI guardrails, AI data loss prevention, agent security, MCP security, model supply chain, AI red teaming and AI audit trails.",
     priority: 0.7,
     changeFrequency: "monthly",
   },
   {
     path: "/privacy",
-    title: "Privacy Policy | Intellirity",
-    description:
-      "How Intellirity processes data: what the engine stores, what it never trains on, retention, and your rights.",
     priority: 0.5,
     changeFrequency: "yearly",
   },
   {
     path: "/terms",
-    title: "Terms of Service | Intellirity",
-    description:
-      "The terms governing use of the Intellirity platform, SDKs and screening proxy, including acceptable use and liability.",
     priority: 0.5,
     changeFrequency: "yearly",
   },
   {
     path: "/security",
-    title: "AI Security Model | Intellirity",
-    description:
-      "How the Intellirity AI security model works: fail-closed screening, tamper-evident audit evidence, tenant isolation, no traffic retention and coordinated disclosure.",
     priority: 0.6,
     changeFrequency: "monthly",
   },
