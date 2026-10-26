@@ -132,8 +132,8 @@ Vercel, Docker and VPC-sidecar setup.
 | `ENVIRONMENT` | backend | `production` enables every fail-closed rule |
 | `BILLING_ENFORCED` | backend | `true` enforces plan entitlements |
 | `TURNSTILE_SECRET` | backend | Cloudflare Turnstile on the contact form |
-| `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | backend | Live payments. Unset = dev checkout |
-| `RAZORPAY_WEBHOOK_SECRET` | backend | Signs the capture webhook (fail-closed) |
+| `PAYU_KEY_ID` / `PAYU_KEY_SECRET` | backend | PayU Key + Salt. Unset = dev checkout |
+| `PAYU_MODE` / `PUBLIC_SITE_URL` | backend | test/live gateway and return URLs |
 | `INTELLIRITY_BASE_URL` / `INTELLIRITY_API_KEY` | SDK/MCP | Client targeting |
 
 ## Authentication

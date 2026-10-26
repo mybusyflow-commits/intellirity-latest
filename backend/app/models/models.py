@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import String, DateTime, Boolean, Text, BigInteger
+from sqlalchemy import String, DateTime, Boolean, Text, BigInteger, Integer
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.sql import func
 import uuid
@@ -80,6 +80,41 @@ class EscrowHold(Base):
     status: Mapped[str] = mapped_column(String, default="held")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class Order(Base):
+    """A purchase, stored so a payment callback can find it.
+
+    Serverless deployments run many instances; the checkout and the payment
+    provider's return POST can land on different ones. Memory alone would
+    silently lose paid orders, so every order is written before the buyer is
+    sent to the gateway and read back when the gateway returns.
+    """
+    __tablename__ = "orders"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)  # ORD-XXXXXXXXXX
+    owner: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    modules: Mapped[str] = mapped_column(Text, default="[]")  # JSON list
+    subtotal_inr: Mapped[int] = mapped_column(Integer, default=0)
+    discount_pct: Mapped[int] = mapped_column(Integer, default=0)
+    discount_inr: Mapped[int] = mapped_column(Integer, default=0)
+    total_inr: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String, default="pending-payment", index=True)
+    provider: Mapped[str] = mapped_column(String, default="payu")
+    provider_txnid: Mapped[str] = mapped_column(String, default="", index=True)
+    paid_via: Mapped[str] = mapped_column(String, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class Entitlement(Base):
+    """One purchased module for one tenant. Survives restarts."""
+    __tablename__ = "entitlements"
+
+    owner: Mapped[str] = mapped_column(String, primary_key=True)
+    product_id: Mapped[str] = mapped_column(String, primary_key=True)
+    order_id: Mapped[str] = mapped_column(String, default="")
+    granted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class ContactSubmission(Base):

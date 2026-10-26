@@ -1,65 +1,144 @@
-"""Razorpay payment signature rules.
+"""PayU hashes, bundle pricing, and activation.
 
-Both confirmation paths (the Checkout callback and the server webhook) must
-verify an HMAC before an order is activated. These tests pin that, plus the
-fail-closed behaviour when no webhook secret is configured.
+PayU signs the checkout form with SHA-512 and signs the return with the
+same fields in reverse. Getting either order wrong means every payment
+fails, so both are pinned here against an independent computation.
 """
 import hashlib
-import hmac
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.services import razorpay  # noqa: E402
-from app.services import billing  # noqa: E402
+from types import SimpleNamespace  # noqa: E402
+
+from app.services import billing, payu  # noqa: E402
 
 
-class _Cfg:
-    RAZORPAY_KEY_ID = "rzp_test_key"
-    RAZORPAY_KEY_SECRET = "merchant-secret"
-    RAZORPAY_WEBHOOK_SECRET = "webhook-secret"
+def _configure(monkeypatch, key="testkey", salt="testsalt", mode="test"):
+    monkeypatch.setattr(
+        payu,
+        "settings",
+        SimpleNamespace(
+            PAYU_KEY_ID=key,
+            PAYU_KEY_SECRET=salt,
+            PAYU_MODE=mode,
+            PUBLIC_SITE_URL="https://intellirity.com",
+        ),
+    )
 
 
-def _enable(monkeypatch):
-    monkeypatch.setattr(razorpay, "_cfg", lambda: _Cfg())
+def _sha(value: str) -> str:
+    return hashlib.sha512(value.encode("utf-8")).hexdigest()
 
 
-def test_checkout_signature_is_accepted(monkeypatch):
-    _enable(monkeypatch)
-    sig = hmac.new(b"merchant-secret", b"order_1|pay_1", hashlib.sha256).hexdigest()
-    assert razorpay.verify_payment_signature("order_1", "pay_1", sig) is True
+# --- Hashes ---------------------------------------------------------------
+
+def test_request_hash_matches_the_documented_field_order(monkeypatch):
+    _configure(monkeypatch)
+    # key|txnid|amount|productinfo|firstname|email|udf1..udf5||||||salt
+    expected = _sha("|".join([
+        "testkey", "T1", "10.00", "Product", "Ada", "ada@example.com",
+        "ORD-1", "", "", "", "",
+        "", "", "", "", "",
+        "testsalt",
+    ]))
+    assert payu.request_hash("T1", "10.00", "Product", "Ada", "ada@example.com",
+                             udf1="ORD-1") == expected
 
 
-def test_checkout_signature_is_rejected_when_wrong(monkeypatch):
-    _enable(monkeypatch)
-    assert razorpay.verify_payment_signature("order_1", "pay_1", "deadbeef") is False
+def test_response_hash_matches_the_documented_reverse_order(monkeypatch):
+    _configure(monkeypatch)
+    data = {
+        "status": "success",
+        "udf1": "ORD-1",
+        "email": "ada@example.com",
+        "firstname": "Ada",
+        "productinfo": "Product",
+        "amount": "10.00",
+        "txnid": "T1",
+    }
+    # salt|status||||||udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key
+    expected = _sha("|".join([
+        "testsalt", "success",
+        "", "", "", "", "",
+        "", "", "", "", "ORD-1",
+        "ada@example.com", "Ada", "Product", "10.00", "T1", "testkey",
+    ]))
+    assert payu.response_hash(data) == expected
 
 
-def test_webhook_signature_is_accepted(monkeypatch):
-    _enable(monkeypatch)
-    body = b'{"event":"payment.captured"}'
-    sig = hmac.new(b"webhook-secret", body, hashlib.sha256).hexdigest()
-    assert razorpay.verify_webhook_signature(body, sig) is True
+def test_verify_accepts_a_correct_hash(monkeypatch):
+    _configure(monkeypatch)
+    data = {
+        "status": "success", "udf1": "ORD-1", "email": "ada@example.com",
+        "firstname": "Ada", "productinfo": "Product", "amount": "10.00", "txnid": "T1",
+    }
+    data["hash"] = payu.response_hash(data)
+    assert payu.verify_response(data) is True
 
 
-def test_webhook_fails_closed_without_a_secret(monkeypatch):
-    class NoHook(_Cfg):
-        RAZORPAY_WEBHOOK_SECRET = ""
+def test_verify_rejects_a_tampered_amount(monkeypatch):
+    _configure(monkeypatch)
+    data = {
+        "status": "success", "udf1": "ORD-1", "email": "ada@example.com",
+        "firstname": "Ada", "productinfo": "Product", "amount": "10.00", "txnid": "T1",
+    }
+    data["hash"] = payu.response_hash(data)
+    data["amount"] = "1.00"
+    assert payu.verify_response(data) is False
 
-    monkeypatch.setattr(razorpay, "_cfg", lambda: NoHook())
-    body = b"{}"
-    sig = hmac.new(b"", body, hashlib.sha256).hexdigest()
-    assert razorpay.verify_webhook_signature(body, sig) is False
+
+def test_verify_fails_closed_without_credentials(monkeypatch):
+    _configure(monkeypatch, key="", salt="")
+    assert payu.verify_response({"status": "success", "hash": "x"}) is False
 
 
-def test_payment_is_disabled_without_keys(monkeypatch):
-    class NoKeys(_Cfg):
-        RAZORPAY_KEY_ID = ""
-        RAZORPAY_KEY_SECRET = ""
+def test_fields_carry_two_decimal_amount_and_the_callback(monkeypatch):
+    _configure(monkeypatch)
+    fields = payu.fields(
+        txnid="ORD-1", total_inr=1241, order_id="ORD-1",
+        firstname="Ada", email="ada@example.com", phone="9876543210",
+    )
+    assert fields["amount"] == "1241.00"
+    assert fields["surl"] == "https://intellirity.com/backend/billing/payu/callback"
+    assert fields["furl"] == fields["surl"]
+    assert len(fields["hash"]) == 128
 
-    monkeypatch.setattr(razorpay, "_cfg", lambda: NoKeys())
-    assert razorpay.enabled() is False
+
+def test_live_mode_selects_the_live_endpoint(monkeypatch):
+    _configure(monkeypatch, mode="live")
+    assert payu.endpoint() == "https://secure.payu.in/_payment"
+    _configure(monkeypatch, mode="test")
+    assert payu.endpoint() == "https://test.payu.in/_payment"
+
+
+# --- Bundle pricing -------------------------------------------------------
+
+def test_a_partial_bundle_has_no_discount():
+    priced = billing.quote(["content-guard", "wallet-guard"])
+    assert priced["subtotal_inr"] == 158
+    assert priced["discount_pct"] == 0
+    assert priced["total_inr"] == 158
+    assert priced["bundle"] is False
+
+
+def test_the_full_catalogue_gets_the_bundle_discount():
+    ids = [p["id"] for p in billing.PRODUCTS]
+    priced = billing.quote(ids)
+    subtotal = sum(p["price"] for p in billing.PRODUCTS)
+    assert priced["bundle"] is True
+    assert priced["discount_pct"] == billing.BUNDLE_DISCOUNT_PCT
+    assert priced["discount_inr"] == round(subtotal * billing.BUNDLE_DISCOUNT_PCT / 100)
+    assert priced["total_inr"] == subtotal - priced["discount_inr"]
+
+
+def test_checkout_charges_the_discounted_total():
+    ids = [p["id"] for p in billing.PRODUCTS]
+    order = billing.checkout("tenant-bundle-test", ids)
+    assert order["bundle"] is True
+    assert order["discount_inr"] > 0
+    assert order["total_inr"] == billing.quote(ids)["total_inr"]
 
 
 def test_mark_paid_activates_once_and_is_idempotent():
@@ -71,36 +150,6 @@ def test_mark_paid_activates_once_and_is_idempotent():
     assert second["order"]["status"] == "active"
 
 
-# --- Bundle discount -------------------------------------------------------
-
-def test_a_partial_bundle_has_no_discount():
-    priced = billing.quote(["content-guard", "wallet-guard"])
-    assert priced["subtotal_inr"] == 158  # 79 + 79
-    assert priced["discount_pct"] == 0
-    assert priced["discount_inr"] == 0
-    assert priced["total_inr"] == 158
-    assert priced["bundle"] is False
-
-
-def test_the_full_catalogue_gets_the_bundle_discount():
-    ids = [p["id"] for p in billing.PRODUCTS]
-    priced = billing.quote(ids)
-    subtotal = sum(p["price"] for p in billing.PRODUCTS)
-    assert priced["bundle"] is True
-    assert priced["subtotal_inr"] == subtotal
-    assert priced["discount_pct"] == billing.BUNDLE_DISCOUNT_PCT
-    assert priced["discount_inr"] == round(subtotal * billing.BUNDLE_DISCOUNT_PCT / 100)
-    assert priced["total_inr"] == priced["subtotal_inr"] - priced["discount_inr"]
-
-
-def test_checkout_charges_the_discounted_total():
-    ids = [p["id"] for p in billing.PRODUCTS]
-    order = billing.checkout("tenant-bundle-test", ids)
-    assert order["bundle"] is True
-    assert order["discount_inr"] > 0
-    assert order["total_inr"] == billing.quote(ids)["total_inr"]
-
-
 def test_products_endpoint_publishes_the_bundle_rule():
     from fastapi.testclient import TestClient
     from app.main import app
@@ -109,3 +158,19 @@ def test_products_endpoint_publishes_the_bundle_rule():
     assert body["bundle"]["discount_pct"] == billing.BUNDLE_DISCOUNT_PCT
     assert body["bundle"]["module_count"] == len(billing.PRODUCTS)
     assert body["bundle"]["total_inr"] < body["bundle"]["subtotal_inr"]
+
+
+# --- Enforcement and the free tier ---------------------------------------
+
+def test_the_advertised_free_engine_stays_free(monkeypatch):
+    monkeypatch.setenv("BILLING_ENFORCED", "true")
+    ok, reason = billing.engine_allowed("jailbreak_injection_protection", "owner-with-nothing")
+    assert ok is True
+    assert reason == "free"
+
+
+def test_a_paid_engine_is_denied_without_a_purchase(monkeypatch):
+    monkeypatch.setenv("BILLING_ENFORCED", "true")
+    ok, reason = billing.engine_allowed("autonomous_escrow", "owner-with-nothing")
+    assert ok is False
+    assert "not in your plan" in reason

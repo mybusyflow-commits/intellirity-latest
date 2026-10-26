@@ -60,7 +60,7 @@ production:
 - [x] Independent ledger verifier (`scripts/verify_ledger.py`); 119/119 intact
 - [x] HMAC-SHA256 proof-of-intent certificates
 - [x] Autonomous escrow state machine
-- [x] Razorpay checkout: create order → verify callback → signed webhook (fail-closed)
+- [x] PayU checkout: signed form → reverse-hash callback → modules granted (orders persisted)
 - [x] Reverse proxy fails closed when a screening engine errors
 - [x] CSP, HSTS (prod only), COOP/CORP, `X-Frame-Options: DENY`, `private, no-store` + `X-Robots-Tag: noindex` on the API
 - [x] API docs disabled in production
@@ -82,7 +82,7 @@ production:
 - [you] Buy the domain and point DNS at Vercel
 - [you] Clerk: create app, enable Organizations, copy `sk_live_…` + `pk_live_…`, allow the production origin
 - [you] Postgres (Neon/Supabase): create DB, copy the pooled `DATABASE_URL`, enable point-in-time recovery
-- [you] Razorpay: account, `rzp_live_…` + secret, webhook to `/backend/billing/webhook`
+- [you] PayU: merchant Key + Salt, `PAYU_MODE=live`
 - [you] Groq (or any OpenAI-compatible gateway): key
 - [you] Cloudflare Turnstile: site key + secret
 - [you] Mail transport: Resend key **or** SMTP credentials, plus `CONTACT_INBOX`
@@ -119,9 +119,10 @@ CONTACT_INBOX=security@intellirity.com
 EMAIL_FROM="Intellirity <noreply@intellirity.com>"
 RESEND_API_KEY=re_...            # or SMTP_* below
 # SMTP_HOST=... SMTP_PORT=587 SMTP_USER=... SMTP_PASSWORD=...
-RAZORPAY_KEY_ID=rzp_live_...
-RAZORPAY_KEY_SECRET=...
-RAZORPAY_WEBHOOK_SECRET=...
+PAYU_KEY_ID=<merchant key>
+PAYU_KEY_SECRET=<salt, 32 chars>
+PAYU_MODE=live
+PUBLIC_SITE_URL=https://intellirity.com
 INTELLIRITY_API_KEY_HASHES=<sha256 of each machine key>
 BILLING_ENFORCED=true
 LOG_JSON=true
@@ -192,7 +193,7 @@ account, a domain, a payment or a physical device.
 
 ### Yours (accounts and decisions)
 
-1. Domains, DNS, Clerk app, Postgres, Razorpay, gateway key, Turnstile, mail.
+1. Domains, DNS, Clerk app, Postgres, PayU, gateway key, Turnstile, mail.
 2. Rotate the secrets currently in `backend/.env`.
 3. Enable database PITR and schedule `scripts/backup_db.py`.
 4. Create the uptime monitor on `/backend/system/health`, alert on non-200
@@ -202,8 +203,8 @@ account, a domain, a payment or a physical device.
 
 ### Known limitations (unchanged, stated honestly)
 
-- Threat feed, workspace caches and entitlements are memory-first; a restart
-  resets them. The ledger and contact submissions are the durable stores.
-- Razorpay confirms capture; recurring renewals are not automated.
+- Threat feed, workspace caches and policy state are memory-first; a restart
+  resets them. The ledger, orders, entitlements and contact submissions are
+- PayU confirms a one-off payment; recurring renewals are not automated.
 - No per-page OG images (one strong site-wide card instead).
 - Admin views for `contact_submissions` are SQL, not a console page.

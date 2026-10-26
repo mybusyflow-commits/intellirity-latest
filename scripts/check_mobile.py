@@ -26,6 +26,11 @@ except ImportError:
     print("error: pip install websocket-client", file=sys.stderr)
     raise SystemExit(2)
 
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 CHROME_CANDIDATES = [
     r"C:\Program Files\Google\Chrome\Application\chrome.exe",
     r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",

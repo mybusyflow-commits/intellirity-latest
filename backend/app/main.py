@@ -59,9 +59,10 @@ async def lifespan(app: FastAPI):
         print(f"[WARN] model gateway: {w}", flush=True)
     # Bootstrap Postgres when reachable (tables + indexes); otherwise the
     # app runs memory-first. Never blocks or crashes boot.
-    from app.db.persist import init_db, restore_ledger_chain
+    from app.db.persist import init_db, restore_entitlements, restore_ledger_chain
     await init_db()
     await restore_ledger_chain()
+    await restore_entitlements()
     # Start the live monitoring simulator on startup
     from app.api.v1.system import live_event_loop
     task = asyncio.create_task(live_event_loop())
@@ -172,7 +173,7 @@ async def _ensure_database(request, call_next):
 
     if not _db_bootstrap_done and time.monotonic() >= _db_retry_at:
         try:
-            from app.db.persist import init_db, is_connected, restore_ledger_chain
+            from app.db.persist import init_db, is_connected, restore_entitlements, restore_ledger_chain
             # If the lifespan hook already ran, the database is ready and
             # the ledger chain has been restored. Re-restoring here would
             # append historical records to a chain that has since moved on.
@@ -180,6 +181,7 @@ async def _ensure_database(request, call_next):
                 await init_db()
                 if is_connected():
                     await restore_ledger_chain()
+                    await restore_entitlements()
             _db_bootstrap_done = is_connected()
         except Exception:
             # Memory mode is a valid operating mode — never fail a request.

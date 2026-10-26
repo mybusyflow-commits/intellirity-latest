@@ -324,6 +324,125 @@ async def mark_contact_notified(ticket: str) -> bool:
         return False
 
 
+async def save_order(order: dict) -> bool:
+    """Write a checkout before the buyer leaves for the gateway.
+
+    Without this, a serverless callback can land on an instance that never
+    saw the checkout and would report "unknown order".
+    """
+    if not DB_CONNECTED or not isinstance(order, dict) or not order.get("order_id"):
+        return False
+    try:
+        from app.db.session import async_session
+        from app.models.models import Order
+
+        async with async_session() as session:
+            row = await session.get(Order, order["order_id"])
+            if row is None:
+                row = Order(id=order["order_id"])
+                session.add(row)
+            row.owner = str(order.get("owner", ""))
+            row.modules = json.dumps(order.get("modules", []))
+            row.subtotal_inr = int(order.get("subtotal_inr", 0))
+            row.discount_pct = int(order.get("discount_pct", 0))
+            row.discount_inr = int(order.get("discount_inr", 0))
+            row.total_inr = int(order.get("total_inr", 0))
+            row.status = str(order.get("status", "pending-payment"))
+            row.provider = str(order.get("provider", "payu"))
+            row.provider_txnid = str(order.get("provider_txnid", ""))
+            row.paid_via = str(order.get("paid_via", ""))
+            await session.commit()
+        return True
+    except Exception as exc:
+        log.warning("order persist skipped: %s", str(exc)[:160])
+        return False
+
+
+async def load_order(order_id: str) -> dict | None:
+    """Read an order back, for a callback that arrived on another instance."""
+    if not DB_CONNECTED or not order_id:
+        return None
+    try:
+        from app.db.session import async_session
+        from app.models.models import Order
+
+        async with async_session() as session:
+            row = await session.get(Order, order_id)
+            if row is None:
+                return None
+            try:
+                modules = json.loads(row.modules or "[]")
+            except Exception:
+                modules = []
+            return {
+                "order_id": row.id,
+                "owner": row.owner,
+                "modules": modules if isinstance(modules, list) else [],
+                "subtotal_inr": row.subtotal_inr,
+                "discount_pct": row.discount_pct,
+                "discount_inr": row.discount_inr,
+                "total_inr": row.total_inr,
+                "status": row.status,
+                "provider": row.provider,
+                "provider_txnid": row.provider_txnid,
+                "paid_via": row.paid_via,
+                "created_at": row.created_at.timestamp() if row.created_at else 0,
+                "paid_at": row.paid_at.isoformat() if row.paid_at else None,
+            }
+    except Exception as exc:
+        log.warning("order load skipped: %s", str(exc)[:160])
+        return None
+
+
+async def update_order(order: dict) -> bool:
+    """Persist a status change (activation, failure)."""
+    return await save_order(order)
+
+
+async def grant_entitlements(owner: str, product_ids: list[str], order_id: str) -> bool:
+    """Record purchased modules durably. Idempotent."""
+    if not DB_CONNECTED or not owner or not product_ids:
+        return False
+    try:
+        from app.db.session import async_session
+        from app.models.models import Entitlement
+
+        async with async_session() as session:
+            for product_id in product_ids:
+                row = await session.get(Entitlement, (owner, product_id))
+                if row is None:
+                    session.add(Entitlement(
+                        owner=owner,
+                        product_id=product_id,
+                        order_id=order_id,
+                    ))
+            await session.commit()
+        return True
+    except Exception as exc:
+        log.warning("entitlement persist skipped: %s", str(exc)[:160])
+        return False
+
+
+async def restore_entitlements() -> int:
+    """Load purchased modules into the in-process cache on boot."""
+    if not DB_CONNECTED:
+        return 0
+    try:
+        from sqlalchemy import select
+        from app.db.session import async_session
+        from app.models.models import Entitlement
+        from app.services import billing
+
+        async with async_session() as session:
+            rows = (await session.execute(select(Entitlement))).scalars().all()
+        for row in rows:
+            billing._entitlements.setdefault(row.owner, set()).add(row.product_id)
+        return len(rows)
+    except Exception as exc:
+        log.warning("entitlement restore skipped: %s", str(exc)[:160])
+        return 0
+
+
 async def db_health() -> dict:
     """Cheap liveness probe for the health endpoint.
 

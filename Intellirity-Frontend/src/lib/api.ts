@@ -259,32 +259,36 @@ export interface CheckoutResult {
   total_inr: number;
   status: string;
   modules: string[];
-  razorpay_order_id?: string;
-  amount?: number;
-  currency?: string;
-  key_id?: string;
+  provider?: "payu" | "dev";
+  payu_mode?: "test" | "live" | null;
+  /** PayU: where the browser must POST, and the signed fields. */
+  action?: string;
+  fields?: Record<string, string>;
 }
 
 export const getProducts = () =>
-  req<{ products: Product[]; currency: string; enforced: boolean; payment: string }>(
-    "/billing/products"
-  );
+  req<{
+    products: Product[];
+    currency: string;
+    enforced: boolean;
+    payment: string;
+    payu_mode?: "test" | "live" | null;
+  }>("/billing/products");
 
-export const checkoutBundle = (modules: string[]) =>
+export const checkoutBundle = (
+  modules: string[],
+  details?: { phone?: string; firstname?: string; email?: string }
+) =>
   req<CheckoutResult>("/billing/checkout", {
     method: "POST",
-    body: JSON.stringify({ modules }),
+    body: JSON.stringify({ modules, ...(details ?? {}) }),
   });
 
-export interface VerifyPayload {
-  order_id: string;
-  razorpay_order_id: string;
-  razorpay_payment_id: string;
-  razorpay_signature: string;
-}
-
-export const verifyPayment = (payload: VerifyPayload) =>
-  req<{ order: CheckoutResult; owned: string[] }>("/billing/verify", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+export const getOrder = (orderId: string) =>
+  req<{
+    order_id: string;
+    status: string;
+    total_inr: number;
+    modules: string[];
+    paid_via: string;
+  }>(`/billing/orders/${encodeURIComponent(orderId)}`);

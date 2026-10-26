@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { checkoutBundle, verifyPayment } from "@/lib/api";
+import { checkoutBundle } from "@/lib/api";
 
 interface Product {
   id: string;
@@ -28,18 +28,22 @@ const FALLBACK: Product[] = [
   { id: "vpi", name: "Proof of Intent", price: 299, blurb: "Signed human authorization per action.", engines: [], href: "/console/proof", tier: "core" },
 ];
 
-/* Loads Razorpay's Checkout script on demand. The script is not in the
-   bundle; it is fetched only when the visitor clicks checkout. */
-function loadRazorpay(): Promise<Window["Razorpay"]> {
-  return new Promise((resolve, reject) => {
-    if (window.Razorpay) return resolve(window.Razorpay);
-    const s = document.createElement("script");
-    s.src = "https://checkout.razorpay.com/v1/checkout.js";
-    s.async = true;
-    s.onload = () => resolve(window.Razorpay);
-    s.onerror = () => reject(new Error("Could not load the Razorpay checkout."));
-    document.body.appendChild(s);
-  });
+/* PayU is a redirect flow: the server returns a signed form and the browser
+   POSTs it to PayU. Building it here keeps the salt off the client. */
+function submitPayuForm(action: string, fields: Record<string, string>) {
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = action;
+  form.style.display = "none";
+  for (const [name, value] of Object.entries(fields)) {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = name;
+    input.value = value;
+    form.appendChild(input);
+  }
+  document.body.appendChild(form);
+  form.submit();
 }
 
 export function Pricing() {
@@ -47,8 +51,13 @@ export function Pricing() {
   const [live, setLive] = useState(false);
   // Mirrors the engine's bundle rule; replaced by the API value on load.
   const [bundlePct, setBundlePct] = useState(20);
-  // Which provider the engine says is live: "razorpay" | "payu" | "dev".
-  const [paymentMode, setPaymentMode] = useState<"razorpay" | "payu" | "dev">("dev");
+  // Which provider the engine says is live: "payu" | "dev".
+  const [paymentMode, setPaymentMode] = useState<"payu" | "dev">("dev");
+  const [payuMode, setPayuMode] = useState<"test" | "live" | null>(null);
+  const [firstname, setFirstname] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [result, setResult] = useState<{ kind: "success" | "failed"; order: string } | null>(null);
   const [selected, setSelected] = useState<string[]>(["injection-shield", "leakage-guard"]);
   const [order, setOrder] = useState<{ order_id: string; total_inr: number; status: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -84,14 +93,25 @@ export function Pricing() {
         if (j.bundle && typeof j.bundle.discount_pct === "number") {
           setBundlePct(j.bundle.discount_pct);
         }
-        if (j.payment === "razorpay" || j.payment === "payu") {
-          setPaymentMode(j.payment);
-        }
+        if (j.payment === "payu") setPaymentMode("payu");
+        if (j.payu_mode === "test" || j.payu_mode === "live") setPayuMode(j.payu_mode);
       })
       .catch(() => {});
     return () => {
       on = false;
     };
+  }, []);
+
+  // PayU returns the browser here with the outcome. The server has already
+  // verified the reverse hash and activated the order; this only reports it.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const payment = params.get("payment");
+    if (!payment) return;
+    setResult({
+      kind: payment === "success" ? "success" : "failed",
+      order: params.get("order") || "",
+    });
   }, []);
 
   const pricing = useMemo(() => {
@@ -119,37 +139,20 @@ export function Pricing() {
     setBusy(true);
     setError("");
     setOrder(null);
+    setResult(null);
     try {
-      const j = await checkoutBundle(selected);
-      if (j.razorpay_order_id && j.key_id) {
-        const Rzp = await loadRazorpay();
-        if (!Rzp) throw new Error("Razorpay checkout is not available.");
-        const rzp = new Rzp({
-          key: j.key_id,
-          amount: j.amount ?? 0,
-          currency: j.currency ?? "INR",
-          name: "Intellirity",
-          description: "Security modules · monthly",
-          order_id: j.razorpay_order_id,
-          theme: { color: "#0a0b0d" },
-          handler: async (resp) => {
-            try {
-              await verifyPayment({
-                order_id: j.order_id,
-                razorpay_order_id: resp.razorpay_order_id,
-                razorpay_payment_id: resp.razorpay_payment_id,
-                razorpay_signature: resp.razorpay_signature,
-              });
-              setOrder({ order_id: j.order_id, total_inr: j.total_inr, status: "active" });
-            } catch (e) {
-              setError(e instanceof Error ? e.message : "Payment verification failed");
-            }
-          },
-        });
-        rzp.open();
-      } else {
-        setOrder({ order_id: j.order_id, total_inr: j.total_inr, status: j.status });
+      const j = await checkoutBundle(selected, {
+        firstname: firstname.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+      });
+      if (j.action && j.fields) {
+        // Leaves the page for PayU. The server has already persisted the
+        // order and signed the form; PayU returns to the callback route.
+        submitPayuForm(j.action, j.fields);
+        return;
       }
+      setOrder({ order_id: j.order_id, total_inr: j.total_inr, status: j.status });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Checkout failed");
     } finally {
@@ -164,6 +167,19 @@ export function Pricing() {
     <section id="pricing" className="relative z-10 mx-auto max-w-[1240px] px-6 py-24 md:py-32">
       <div className="mb-12 flex flex-col items-start justify-between gap-8 md:flex-row md:items-end">
         <div>
+          {result && (
+            <div
+              role="status"
+              className={cn(
+                "mb-5 rounded-lg border px-4 py-3 font-mono text-[11.5px] leading-relaxed",
+                result.kind === "success" ? "border-ok/40 text-ok" : "border-crit/40 text-crit"
+              )}
+            >
+              {result.kind === "success"
+                ? `Payment received${result.order ? ` · ${result.order}` : ""}. Your modules are active.`
+                : `Payment was not completed${result.order ? ` · ${result.order}` : ""}. Nothing was charged.`}
+            </div>
+          )}
           <div className="reveal mb-4 flex items-center gap-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-faint">
             <span className="text-steel">06</span>
             <span className="h-px w-8 bg-line-strong" />
@@ -205,6 +221,39 @@ export function Pricing() {
               {pricing.discount.toLocaleString("en-IN")}/mo
             </p>
           )}
+          {paymentMode === "payu" && (
+            <div className="mt-3 space-y-2">
+              <input
+                value={firstname}
+                onChange={(e) => setFirstname(e.target.value)}
+                placeholder="Full name"
+                aria-label="Full name"
+                autoComplete="name"
+                maxLength={60}
+                className="h-9 w-full rounded border border-line bg-sunken px-2.5 text-[12px] text-ink placeholder:text-faint focus:border-line-strong focus:outline-none"
+              />
+              <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email"
+                aria-label="Email for the receipt"
+                type="email"
+                autoComplete="email"
+                maxLength={320}
+                className="h-9 w-full rounded border border-line bg-sunken px-2.5 text-[12px] text-ink placeholder:text-faint focus:border-line-strong focus:outline-none"
+              />
+              <input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Phone (required by PayU)"
+                aria-label="Phone number"
+                type="tel"
+                autoComplete="tel"
+                maxLength={18}
+                className="h-9 w-full rounded border border-line bg-sunken px-2.5 text-[12px] text-ink placeholder:text-faint focus:border-line-strong focus:outline-none"
+              />
+            </div>
+          )}
           <button
             onClick={checkout}
             disabled={busy || selected.length === 0 || paymentsDisabled}
@@ -213,10 +262,17 @@ export function Pricing() {
             {paymentsDisabled
               ? "Payments not enabled"
               : busy
-                ? "creating order…"
-                : "Checkout bundle"}
+                ? "redirecting…"
+                : paymentMode === "payu"
+                  ? "Pay with PayU"
+                  : "Checkout bundle"}
             {!paymentsDisabled && <ArrowRight className="size-4" />}
           </button>
+          {paymentMode === "payu" && payuMode === "test" && (
+            <p className="mt-2 font-mono text-[10px] leading-relaxed text-faint">
+              PayU test mode — no real money is charged.
+            </p>
+          )}
           {paymentsDisabled && (
             <p className="mt-2.5 font-mono text-[10.5px] leading-relaxed text-faint">
               Checkout is disabled until a payment provider is configured.

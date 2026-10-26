@@ -58,7 +58,6 @@ const scriptSrc = [
   ...(isProd ? [] : ["'unsafe-eval'"]),
   ...CLERK_ORIGINS,
   "https://challenges.cloudflare.com",
-  "https://checkout.razorpay.com",
   "https://www.googletagmanager.com",
   "https://www.google-analytics.com",
 ].join(" ");
@@ -69,13 +68,15 @@ const csp = [
   // Tailwind and the vendored component styles are injected at runtime.
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
-  "img-src 'self' data: blob: https: https://cdn.razorpay.com",
-  `connect-src 'self'${isProd ? "" : " ws: wss:"} https://challenges.cloudflare.com https://www.google-analytics.com ${CLERK_ORIGINS.join(" ")} https://api.razorpay.com https://lumberjack.razorpay.com`,
-  `frame-src 'self' https://challenges.cloudflare.com https://api.razorpay.com https://checkout.razorpay.com ${CLERK_ORIGINS.join(" ")}`,
+  "img-src 'self' data: blob: https:",
+  `connect-src 'self'${isProd ? "" : " ws: wss:"} https://challenges.cloudflare.com https://www.google-analytics.com ${CLERK_ORIGINS.join(" ")}`,
+  `frame-src 'self' https://challenges.cloudflare.com ${CLERK_ORIGINS.join(" ")}`,
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
-  "form-action 'self'",
+  // PayU is a redirect flow: the checkout form must be allowed to POST to
+  // the payment gateway. test.payu.in is the sandbox, secure.payu.in live.
+  "form-action 'self' https://secure.payu.in https://test.payu.in",
   "frame-ancestors 'none'",
   "upgrade-insecure-requests",
 ].join("; ");

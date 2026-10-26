@@ -1,15 +1,31 @@
-import json
+"""Billing: catalogue, checkout, and the PayU redirect flow.
+
+Checkout creates an order, persists it, and — when PayU is configured —
+returns the signed form the browser must POST to PayU. PayU then POSTs the
+result back to /billing/payu/callback, where the reverse hash is verified
+before any module is granted.
+
+The order is written to Postgres *before* the browser leaves, because the
+callback can land on a different serverless instance than the checkout.
+"""
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
-from typing import Optional
 from app.core.security import require_user
 from app.core.identity import owner as _owner, role as _role, org_id as _org_id
 from app.core.config import settings
+from app.db import persist
 from app.services import billing as store
-from app.services import razorpay
+from app.services import payu
 
 router = APIRouter()
+
+
+def _site(path: str = "") -> str:
+    base = (settings.PUBLIC_SITE_URL or "http://localhost:3000").rstrip("/")
+    return f"{base}{path}"
 
 
 @router.get("/products")
@@ -19,7 +35,8 @@ async def products():
         "products": store.PRODUCTS,
         "currency": "INR",
         "enforced": store.is_enforced(),
-        "payment": "razorpay" if store.razorpay_enabled() else "dev",
+        "payment": store.payment_provider(),
+        "payu_mode": payu.mode() if payu.enabled() else None,
         # The UI renders the discount from this object rather than hardcoding
         # a percentage, so the displayed and charged totals stay identical.
         "bundle": {
@@ -33,66 +50,132 @@ async def products():
 
 class CheckoutBody(BaseModel):
     modules: list[str] = []
+    # Collected only when a gateway is live; PayU requires a phone number.
+    phone: str = ""
+    firstname: str = ""
+    email: str = ""
+
+
+def _valid_email(value: str) -> bool:
+    return "@" in value and "." in value.rsplit("@", 1)[-1]
+
+
+def _valid_phone(value: str) -> bool:
+    digits = "".join(ch for ch in value if ch.isdigit())
+    return 10 <= len(digits) <= 15
 
 
 @router.post("/checkout")
 async def checkout(body: CheckoutBody, user: dict = Depends(require_user)):
-    order = store.checkout(_owner(user), body.modules)
+    owner = _owner(user)
+    order = store.checkout(owner, body.modules)
     if "error" in order:
         raise HTTPException(status_code=422, detail=order["error"])
-    if store.razorpay_enabled():
+
+    if not payu.enabled():
+        # Dev mode: a labelled pending order, activated only via /activate.
+        await persist.save_order(order)
+        return order
+
+    email = (body.email or str(user.get("email") or "")).strip()
+    firstname = (body.firstname or str(user.get("name") or "Customer")).strip()[:60]
+    phone = body.phone.strip()
+    if not _valid_phone(phone):
+        raise HTTPException(status_code=422, detail="A valid phone number is required for PayU.")
+    if not _valid_email(email):
+        raise HTTPException(status_code=422, detail="A valid email address is required for PayU.")
+
+    fields = payu.fields(
+        txnid=order["order_id"],
+        total_inr=order["total_inr"],
+        order_id=order["order_id"],
+        firstname=firstname,
+        email=email,
+        phone=phone,
+        productinfo=f"Intellirity bundle ({len(order['modules'])} modules)",
+    )
+    order["provider"] = "payu"
+    order["payu_mode"] = payu.mode()
+    order["provider_txnid"] = order["order_id"]
+    await persist.save_order(order)
+
+    return {
+        **order,
+        "provider": "payu",
+        "payu_mode": payu.mode(),
+        "action": payu.endpoint(),
+        "fields": fields,
+    }
+
+
+async def _order_for(txnid: str, udf1: str = "") -> dict | None:
+    """Find the order in memory, then in Postgres (different instance)."""
+    for key in (txnid, udf1):
+        if not key:
+            continue
+        found = store._orders.get(key)
+        if found:
+            return found
+    for key in (txnid, udf1):
+        if not key:
+            continue
+        loaded = await persist.load_order(key)
+        if loaded:
+            return store.remember_order(loaded)
+    return None
+
+
+async def _activate(data: dict, via: str) -> tuple[bool, str]:
+    """Verify the reverse hash, then activate. Returns (ok, order_id)."""
+    if not payu.verify_response(data):
+        return False, ""
+    txnid = str(data.get("txnid", "") or data.get("udf1", ""))
+    order = await _order_for(txnid, str(data.get("udf1", "")))
+    if order is None:
+        return False, txnid
+    status = str(data.get("status", "")).lower()
+    if status != "success":
+        return False, order["order_id"]
+
+    store.remember_order(order)
+    result = store.mark_paid(order["order_id"], via=via)
+    if "error" in result:
+        return False, order["order_id"]
+    order = result["order"]
+    order["provider_txnid"] = txnid
+    order["paid_at"] = datetime.now(timezone.utc).isoformat()
+    await persist.update_order(order)
+    await persist.grant_entitlements(order["owner"], order.get("modules", []), order["order_id"])
+    return True, order["order_id"]
+
+
+@router.post("/payu/callback")
+async def payu_callback(request: Request):
+    """PayU's browser return (surl/furl). Public: authenticated by the hash."""
+    form = await request.form()
+    data = {str(k): str(v) for k, v in form.items()}
+    ok, order_id = await _activate(data, via="payu")
+    if ok:
+        return RedirectResponse(_site(f"/pricing?payment=success&order={order_id}"), status_code=303)
+    reason = "failed" if data.get("status", "").lower() != "success" else "invalid"
+    suffix = f"&order={order_id}" if order_id else ""
+    return RedirectResponse(_site(f"/pricing?payment={reason}{suffix}"), status_code=303)
+
+
+@router.post("/payu/webhook")
+async def payu_webhook(request: Request):
+    """Optional server-to-server webhook. Same hash, no browser."""
+    if request.headers.get("content-type", "").startswith("application/json"):
         try:
-            rzp = await razorpay.create_order(
-                order["total_inr"] * 100, order["order_id"],
-                notes={"owner": _owner(user)},
-            )
-        except Exception as exc:  # noqa: BLE001
-            raise HTTPException(status_code=502, detail=f"Payment provider unavailable: {exc}")
-        store.attach_payment(order["order_id"], razorpay_order_id=rzp["id"])
-        order["razorpay_order_id"] = rzp["id"]
-        order["amount"] = rzp["amount"]
-        order["currency"] = rzp["currency"]
-        order["key_id"] = settings.RAZORPAY_KEY_ID
-    return order
-
-
-class VerifyBody(BaseModel):
-    order_id: str
-    razorpay_order_id: str
-    razorpay_payment_id: str
-    razorpay_signature: str
-
-
-@router.post("/verify")
-async def verify(body: VerifyBody, user: dict = Depends(require_user)):
-    if not razorpay.verify_payment_signature(
-        body.razorpay_order_id, body.razorpay_payment_id, body.razorpay_signature
-    ):
-        raise HTTPException(status_code=400, detail="Payment signature verification failed.")
-    res = store.mark_paid(body.order_id, via="razorpay")
-    if "error" in res:
-        raise HTTPException(status_code=404, detail=res["error"])
-    return res
-
-
-@router.post("/webhook")
-async def webhook(request: Request):
-    """Server-to-server confirmation from Razorpay. Signed, no auth cookie."""
-    raw = await request.body()
-    sig = request.headers.get("x-razorpay-signature", "")
-    if not razorpay.verify_webhook_signature(raw, sig):
-        raise HTTPException(status_code=401, detail="Invalid webhook signature.")
-    try:
-        data = json.loads(raw)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid webhook body.")
-    if data.get("event") == "payment.captured":
-        payload = data.get("payload") or {}
-        order_entity = (payload.get("order") or {}).get("entity") or {}
-        payment_entity = (payload.get("payment") or {}).get("entity") or {}
-        receipt = order_entity.get("receipt") or (payment_entity.get("notes") or {}).get("receipt")
-        if receipt:
-            store.mark_paid(receipt, via="razorpay-webhook")
+            data = {str(k): str(v) for k, v in (await request.json()).items()}
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid webhook body.")
+    else:
+        form = await request.form()
+        data = {str(k): str(v) for k, v in form.items()}
+    ok, _order_id = await _activate(data, via="payu-webhook")
+    if not ok:
+        raise HTTPException(status_code=401, detail="Invalid or unsuccessful PayU payload.")
     return {"ok": True}
 
 
@@ -102,13 +185,33 @@ class ActivateBody(BaseModel):
 
 @router.post("/activate")
 async def activate(body: ActivateBody, user: dict = Depends(require_user)):
-    if store.razorpay_enabled():
+    # A live gateway must confirm payment; the simulated path is dev-only.
+    if payu.enabled():
         raise HTTPException(status_code=404, detail="Unknown order.")
     res = store.activate(body.order_id, _owner(user))
     if "error" in res:
         raise HTTPException(status_code=404 if res["error"] == "Unknown order." else 409,
                             detail=res["error"])
+    order = res.get("order")
+    if isinstance(order, dict):
+        await persist.update_order(order)
+        await persist.grant_entitlements(order["owner"], order.get("modules", []), order["order_id"])
     return res
+
+
+@router.get("/orders/{order_id}")
+async def order_status(order_id: str, user: dict = Depends(require_user)):
+    owner = _owner(user)
+    order = store._orders.get(order_id) or await persist.load_order(order_id)
+    if not order or order.get("owner") != owner:
+        raise HTTPException(status_code=404, detail="Unknown order.")
+    return {
+        "order_id": order["order_id"],
+        "status": order["status"],
+        "total_inr": order["total_inr"],
+        "modules": order.get("modules", []),
+        "paid_via": order.get("paid_via", ""),
+    }
 
 
 @router.get("/entitlements")

@@ -79,9 +79,10 @@ RESEND_API_KEY=re_...                      # mail transport A
 TIMEZONE=Asia/Kolkata                      # presentation only; storage is UTC
 BILLING_ENFORCED=true                      # enforce plan entitlements
 INTELLIRITY_API_KEY_HASHES=<sha256,...>    # machine keys for the SDKs and MCP
-RAZORPAY_KEY_ID=rzp_live_...               # live payments
-RAZORPAY_KEY_SECRET=...                    #   (omit both to stay in dev checkout)
-RAZORPAY_WEBHOOK_SECRET=...                # signed capture confirmation
+PAYU_KEY_ID=...                            # merchant Key (PayU dashboard)
+PAYU_KEY_SECRET=...                        # Salt, 32 characters
+PAYU_MODE=live                             # test | live
+PUBLIC_SITE_URL=https://intellirity.com    # PayU return URLs
 LOG_JSON=true
 ```
 
@@ -277,9 +278,10 @@ describes.
 | `OPENCODEZEN_API_KEY` | optional | LLM upstream key (Groq, Zen, any OpenAI-compatible gateway) |
 | `OPENCODEZEN_BASE_URL` | optional | Gateway base URL. Groq: `https://api.groq.com/openai/v1` |
 | `OPENCODEZEN_MODEL` | optional | Pin a model; auto-discovered from the gateway otherwise |
-| `RAZORPAY_KEY_ID` | for payments | `rzp_live_…` / `rzp_test_…` |
-| `RAZORPAY_KEY_SECRET` | for payments | Merchant secret; signs the checkout callback |
-| `RAZORPAY_WEBHOOK_SECRET` | for payments | Signs the server webhook (fail-closed if unset) |
+| `PAYU_KEY_ID` | for payments | Merchant Key from the PayU dashboard |
+| `PAYU_KEY_SECRET` | for payments | Salt (32 chars); signs request and response hashes |
+| `PAYU_MODE` | **yes** | `test` → `test.payu.in`, `live` → `secure.payu.in` |
+| `PUBLIC_SITE_URL` | **yes** | Public origin used to build PayU's return URLs |
 | `TURNSTILE_SECRET` | recommended | Spam protection for the contact form |
 | `CONTACT_INBOX` | recommended | Recipient of contact-form notifications |
 | `EMAIL_FROM` | recommended | Envelope sender for notifications |
@@ -394,36 +396,44 @@ Two independent paths, both enforced by `require_user`:
 
 ---
 
-## Payments (Razorpay)
+## Payments (PayU)
 
-Checkout is live when `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` are set.
-The flow is:
+Checkout is live when `PAYU_KEY_ID` (merchant Key) and `PAYU_KEY_SECRET`
+(Salt, 32 characters) are set. `PAYU_MODE` selects the environment:
+`test` → `test.payu.in`, `live` → `secure.payu.in`.
 
-1. `POST /billing/checkout` creates a Razorpay order (amount in paise) and
-   returns `razorpay_order_id`, `amount`, `currency` and the publishable
-   `key_id`. The console opens Razorpay Checkout with those values.
-2. On success, the console posts the signed callback to
-   `POST /billing/verify`. The engine checks the HMAC over
-   `order_id|payment_id` before it grants the modules.
-3. Razorpay also calls `POST /billing/webhook` server-to-server. The engine
-   verifies `X-Razorpay-Signature` over the raw body and, on
-   `payment.captured`, activates the order by its `receipt` (our `ORD-…`).
+The flow is a signed redirect, not a JavaScript SDK:
 
-Configure the webhook in the Razorpay dashboard:
+1. `POST /billing/checkout` prices the bundle, **persists the order**, and
+   returns `action` (the PayU endpoint) plus a signed `fields` object.
+2. The browser POSTs that form to PayU. The salt never reaches the client.
+3. PayU POSTs the result back to
+   `POST /billing/payu/callback` (both success and failure). The engine
+   verifies the **reverse SHA-512 hash**, activates the order, grants the
+   modules in Postgres, and redirects the browser to
+   `/pricing?payment=success|failed&order=…`.
+4. `POST /billing/payu/webhook` accepts the same signed payload
+   server-to-server if you enable webhooks in the PayU dashboard.
+
+Set the return URL in the PayU dashboard (or rely on the `surl`/`furl`
+sent with each request):
 
 | Field | Value |
 |---|---|
-| URL | `https://your-domain.com/backend/billing/webhook` |
-| Secret | the same value as `RAZORPAY_WEBHOOK_SECRET` |
-| Events | `payment.captured` (add `payment.failed` if you want failure mail) |
+| Success URL | `https://intellirity.com/backend/billing/payu/callback` |
+| Failure URL | `https://intellirity.com/backend/billing/payu/callback` |
+| Webhook URL (optional) | `https://intellirity.com/backend/billing/payu/webhook` |
 
-The webhook is **fail-closed**: without `RAZORPAY_WEBHOOK_SECRET` it refuses
-every request. With no Razorpay keys at all, checkout stays in dev mode:
-it records a `pending-payment` order and `/billing/activate` simulates
-confirmation (that route is disabled once Razorpay is configured).
+Orders and entitlements are written to Postgres **before** the buyer leaves
+for PayU, because a serverless callback can land on a different instance.
 
-The browser CSP allows only `checkout.razorpay.com` (script) and
-`api.razorpay.com` (frame); nothing else is opened up.
+With no PayU keys, checkout stays in dev mode: it records a
+`pending-payment` order and `/billing/activate` simulates confirmation.
+In a production build the console disables checkout when no provider is
+configured, so a visitor can never create a fake paid order.
+
+The browser CSP allows a form POST only to `secure.payu.in` and
+`test.payu.in` (via `form-action`); no gateway script runs on our origin.
 
 ---
 

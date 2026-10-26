@@ -43,9 +43,6 @@ for _name in (
     "PAYU_SALT",
     "PAYU_KEY_SECRET",
     "PAYU_WEBHOOK_SECRET",
-    "RAZORPAY_KEY_ID",
-    "RAZORPAY_KEY_SECRET",
-    "RAZORPAY_WEBHOOK_SECRET",
 ):
     os.environ[_name] = ""
 

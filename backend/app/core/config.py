@@ -73,12 +73,14 @@ class Settings(BaseSettings):
     # Store SHA-256 hashes in production (INTELLIRITY_API_KEY_HASHES).
     INTELLIRITY_API_KEYS: str = ""
     INTELLIRITY_API_KEY_HASHES: str = ""
-    # Razorpay payments. When KEY_ID and KEY_SECRET are set, checkout creates
-    # a live Razorpay order and the webhook confirms capture. When unset,
-    # checkout stays in dev mode (pending-payment + simulated activation).
-    RAZORPAY_KEY_ID: str = ""
-    RAZORPAY_KEY_SECRET: str = ""
-    RAZORPAY_WEBHOOK_SECRET: str = ""
+    # PayU payments (hosted checkout). PAYU_KEY_ID is the merchant Key and
+    # PAYU_KEY_SECRET is the Salt (32 chars) from the PayU dashboard.
+    # PAYU_MODE is "test" or "live" and selects test.payu.in vs secure.payu.in.
+    PAYU_KEY_ID: str = ""
+    PAYU_KEY_SECRET: str = ""
+    PAYU_MODE: str = "test"
+    # Public origin used to build PayU's success/failure return URLs.
+    PUBLIC_SITE_URL: str = "http://localhost:3000"
     # Outbound mail for the public contact form. Either transport works;
     # Resend is a single HTTPS call, SMTP covers a company mail relay.
     # Without one, submissions are still persisted, just not announced.

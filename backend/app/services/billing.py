@@ -2,9 +2,9 @@
 
 Nine purchasable modules. Basics at Rs 79/99, the trust core
 (escrow/ledger/VPI) at Rs 299/399. One customizable plan: buyers pick
-modules, pay the sum. A real payment provider (Razorpay/Stripe) confirms
-orders later; until then checkout records a pending order and a dev
-activate endpoint simulates payment confirmation.
+modules and pay the sum. PayU confirms payment with a signed redirect;
+when no gateway is configured, checkout records a pending order and the
+dev-only /activate endpoint simulates confirmation.
 
 Enforcement is OFF unless BILLING_ENFORCED=true, so local dev stays open.
 When on, module scans 403 unless an engine belongs to a product the
@@ -54,8 +54,9 @@ PRODUCTS = [
      "href": "/console/proof", "tier": "core"},
 ]
 
-# Engines free for everyone even when enforcement is on.
-FREE_ENGINES = {"threat_intelligence_feed"}
+# Engines that stay free for everyone even when enforcement is on. This is
+# the advertised free tier: the basic injection screen and the threat feed.
+FREE_ENGINES = {"threat_intelligence_feed", "jailbreak_injection_protection"}
 
 # Buying the complete catalogue is discounted. This single number is
 # returned by /billing/products and applied by checkout, so the price shown
@@ -95,19 +96,24 @@ def engine_allowed(engine: str, owner: str) -> tuple[bool, str]:
     return False, f"Module '{name}' is not in your plan. Add it to your bundle to enable it."
 
 
-def razorpay_enabled() -> bool:
+def payu_enabled() -> bool:
     try:
-        from app.services import razorpay
+        from app.services import payu
 
-        return razorpay.enabled()
+        return payu.enabled()
     except Exception:
         return False
+
+
+def payment_provider() -> str:
+    """What /billing/products reports: 'payu' when configured, else 'dev'."""
+    return "payu" if payu_enabled() else "dev"
 
 
 def quote(product_ids: list[str]) -> dict:
     """Price a selection, including the full-coverage discount.
 
-    One implementation for the checkout route, the Razorpay amount and any
+    One implementation for the checkout route, the PayU amount and any
     UI that asks the API to price a bundle. Rounding is done on the
     discount, then the total is a plain subtraction, so the line items add
     up exactly.
@@ -151,23 +157,31 @@ def checkout(owner: str, product_ids: list[str]) -> dict:
     return order
 
 
-def attach_payment(order_id: str, razorpay_order_id: str | None = None,
+def attach_payment(order_id: str, provider_txnid: str | None = None,
                    payment_id: str | None = None) -> dict | None:
     order = _orders.get(order_id)
     if not order:
         return None
-    if razorpay_order_id:
-        order["razorpay_order_id"] = razorpay_order_id
+    if provider_txnid:
+        order["provider_txnid"] = provider_txnid
     if payment_id:
-        order["razorpay_payment_id"] = payment_id
+        order["provider_payment_id"] = payment_id
     return order
 
 
-def mark_paid(order_id: str, via: str = "razorpay") -> dict:
+def remember_order(order: dict) -> dict:
+    """Adopt an order loaded from the database into the in-process cache."""
+    if isinstance(order, dict) and order.get("order_id"):
+        _orders[order["order_id"]] = order
+    return order
+
+
+def mark_paid(order_id: str, via: str = "payu") -> dict:
     """Authoritative payment confirmation.
 
-    Only called after a Razorpay signature has verified. Grants the order's
-    modules to its owner. Idempotent: a second confirmation is a no-op.
+    Only called after the gateway's signature has verified. Grants the
+    order's modules to its owner. Idempotent: a second confirmation is a
+    no-op.
     """
     order = _orders.get(order_id)
     if not order:
@@ -183,8 +197,8 @@ def mark_paid(order_id: str, via: str = "razorpay") -> dict:
 def activate(order_id: str, owner: str) -> dict:
     """Dev/simulated payment confirmation.
 
-    Only reachable when Razorpay is NOT configured (the activate route is
-    hidden otherwise). A real provider webhook supersedes this in production.
+    Only reachable when no payment provider is configured (the route is
+    hidden otherwise). A real gateway callback supersedes this.
     """
     order = _orders.get(order_id)
     if not order or order["owner"] != owner:
