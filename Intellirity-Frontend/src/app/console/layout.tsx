@@ -1,6 +1,22 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { ConsoleShell } from "./shell";
+import { ConsoleGate } from "@/components/console/console-gate";
 import { SITE_URL } from "@/lib/site";
+
+/* Vercel Services cannot run Next.js Edge middleware, so the console's
+   authentication gate lives here instead:
+     - this layout redirects when the request clearly has no Clerk session
+       cookie (cheap, server-side, no Edge runtime);
+     - ConsoleGate confirms the session with Clerk on the client before any
+       console UI renders;
+     - the API still rejects every unauthenticated call with 401.
+   Clerk's server helpers (currentUser/auth) are not used because they
+   require clerkMiddleware. */
+export const dynamic = "force-dynamic";
+
+const CLERK_ENABLED = Boolean(process.env.CLERK_SECRET_KEY);
 
 export const metadata: Metadata = {
   title: {
@@ -38,6 +54,38 @@ export const metadata: Metadata = {
   },
 };
 
-export default function ConsoleLayout({ children }: { children: React.ReactNode }) {
-  return <ConsoleShell>{children}</ConsoleShell>;
+export default async function ConsoleLayout({ children }: { children: React.ReactNode }) {
+  if (!CLERK_ENABLED) {
+    // Fail closed in production: never render a console shell without an
+    // auth path. Development stays open for local work.
+    if (process.env.NODE_ENV === "production") {
+      return (
+        <main className="grid min-h-screen place-items-center bg-bg px-6 text-ink">
+          <div className="max-w-md text-center">
+            <h1 className="text-[22px] font-medium">Authentication is not configured</h1>
+            <p className="mt-3 text-[13.5px] leading-relaxed text-faint">
+              CLERK_SECRET_KEY is missing on this deployment, so the console
+              refuses to render.
+            </p>
+          </div>
+        </main>
+      );
+    }
+    return <ConsoleShell>{children}</ConsoleShell>;
+  }
+
+  const store = await cookies();
+  const uat = store.get("__client_uat")?.value;
+  const hasSession =
+    store.getAll().some((c) => c.name.startsWith("__session") && c.value) ||
+    (Boolean(uat) && uat !== "0");
+  if (!hasSession) {
+    redirect("/sign-in?redirect_url=%2Fconsole");
+  }
+
+  return (
+    <ConsoleGate>
+      <ConsoleShell>{children}</ConsoleShell>
+    </ConsoleGate>
+  );
 }
