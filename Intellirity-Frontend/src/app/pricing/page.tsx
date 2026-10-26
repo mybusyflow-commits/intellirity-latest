@@ -70,8 +70,8 @@ export default function PricingPage() {
             <dt className="text-[15px] font-medium">Can I change modules later?</dt>
             <dd className="mt-1.5 max-w-[70ch] text-[14.5px] leading-relaxed text-dim">
               Yes. Entitlements are per module, so you can add or drop engines
-              as your coverage changes. Annual plans are refunded pro rata when
-              you cancel.
+              as your coverage changes. Billing is a one-off payment: nothing
+              renews automatically, and no card is stored.
             </dd>
           </div>
         </dl>
