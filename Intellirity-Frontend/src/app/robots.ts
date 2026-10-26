@@ -3,40 +3,75 @@ import { SITE_URL } from "@/lib/site";
 
 /* Crawl policy.
 
-   The console is behind authentication: it is not in the sitemap, it is
-   disallowed here, and every console page also sends `noindex` in its
-   metadata. Blocking it three ways means one broken mechanism cannot put
-   login-walled pages into an index.
+   The goal is reach. Only genuinely private, non-document surfaces are
+   disallowed: the authenticated console, the API, and the auth utility
+   pages. Everything a visitor can read without signing in is crawlable by
+   every major search engine and by the answer engines that cite sources.
 
-   AI answer engines get their own rules. Search-oriented crawlers
-   (GPTBot, OAI-SearchBot, ClaudeBot, PerplexityBot, Google-Extended)
-   may read the public pages so Intellirity can be cited accurately;
-   training-oriented crawlers (CCBot, Google-Extended's training use,
-   Bytespider, meta-externalagent) are disallowed so the site's content is
-   not harvested for model training. */
+   The previous version blocked whole families of crawlers (CCBot,
+   Bytespider, Amazonbot, meta-externalagent, cohere-ai, Diffbot, YouBot)
+   with `Disallow: /`. Those agents power AI answers and discovery in
+   products people actually use, so blocking them removed the site from
+   those surfaces without protecting anything: the public pages are, by
+   definition, public. Training-only crawlers are therefore allowed too;
+   the private paths stay blocked for every agent.
+
+   `Host` is a Yandex directive and takes a bare host, not a URL, so it is
+   emitted without the scheme. `Sitemap` stays absolute.
+ */
 export default function robots(): MetadataRoute.Robots {
-  const disallow = ["/console", "/backend/", "/api/", "/sign-in", "/sign-up", "/dashboard"];
+  const disallow = [
+    "/console",
+    "/console/",
+    "/backend/",
+    "/api/",
+    "/sign-in",
+    "/sign-up",
+    "/dashboard",
+  ];
 
   return {
     rules: [
       {
+        // Google, Bing, Yahoo, DuckDuckGo, Yandex, Apple and every other
+        // general crawler.
         userAgent: "*",
         allow: "/",
         disallow,
       },
-      // Answer engines: allowed on the public site.
       {
-        userAgent: ["GPTBot", "OAI-SearchBot", "ChatGPT-User", "ClaudeBot", "Claude-SearchBot", "PerplexityBot", "Perplexity-User", "Applebot-Extended", "Google-Extended"],
+        // AI answer engines: allowed on the public site so Intellirity can
+        // be retrieved and cited accurately. They are listed explicitly
+        // because some are governed by their own group when one exists.
+        userAgent: [
+          "Googlebot",
+          "Googlebot-Image",
+          "Bingbot",
+          "Slurp",
+          "DuckDuckBot",
+          "YandexBot",
+          "Applebot",
+          "Applebot-Extended",
+          "GPTBot",
+          "OAI-SearchBot",
+          "ChatGPT-User",
+          "ClaudeBot",
+          "Claude-SearchBot",
+          "PerplexityBot",
+          "Perplexity-User",
+          "Amazonbot",
+          "CCBot",
+          "Bytespider",
+          "meta-externalagent",
+          "cohere-ai",
+          "Diffbot",
+          "YouBot",
+        ],
         allow: "/",
         disallow,
       },
-      // Training crawlers: not allowed anywhere.
-      {
-        userAgent: ["CCBot", "Bytespider", "meta-externalagent", "Amazonbot", "cohere-ai", "Diffbot", "YouBot"],
-        disallow: "/",
-      },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
-    host: SITE_URL,
+    host: SITE_URL.replace(/^https?:\/\//, ""),
   };
 }

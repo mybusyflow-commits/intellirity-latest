@@ -124,6 +124,14 @@ export const PAGE_KEYWORDS: Record<string, string[]> = {
     "AI red teaming",
     "proof of intent",
   ],
+  "/about": [
+    "AI security company",
+    "AI security founder",
+    "Intellirity founder",
+    "AI cybersecurity startup",
+    "AI security team",
+    "Shreyansh Krishna",
+  ],
   "/privacy": ["AI privacy", "AI data processing", "AI data retention"],
   "/terms": ["AI security terms", "acceptable use", "AI platform terms"],
 };

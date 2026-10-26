@@ -126,6 +126,13 @@ function JsonLd() {
           height: 172,
         },
         description: SITE_DESCRIPTION,
+        founder: {
+          "@type": "Person",
+          "@id": `${SITE_URL}/about#founder`,
+          name: "Shreyansh Krishna",
+          jobTitle: "Founder",
+          url: `${SITE_URL}/about#founder`,
+        },
         contactPoint: [
           {
             "@type": "ContactPoint",

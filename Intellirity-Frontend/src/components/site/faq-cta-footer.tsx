@@ -37,7 +37,7 @@ export function Faq() {
         {FAQS.map((f, i) => (
           <Accordion.Item key={f.q} value={`item-${i}`} className="border-b border-line last:border-b-0">
             <Accordion.Header>
-              <h3 id={`faq-${i + 1}`} className="contents">
+              <span id={`faq-${i + 1}`} className="contents">
                 <Accordion.Trigger className="group flex w-full items-center justify-between gap-4 px-6 py-5 text-left transition-colors hover:bg-white/[0.02]">
                   <span className="flex items-center gap-4">
                     <span className="font-mono text-[11px] tabular-nums text-faint">
@@ -47,7 +47,7 @@ export function Faq() {
                   </span>
                   <ChevronDown className="size-4 shrink-0 text-faint transition-transform duration-300 group-data-[state=open]:rotate-180 group-data-[state=open]:text-ink" />
                 </Accordion.Trigger>
-              </h3>
+              </span>
             </Accordion.Header>
             <Accordion.Content className="overflow-hidden data-[state=closed]:animate-[acc-up_0.25s_ease] data-[state=open]:animate-[acc-down_0.3s_cubic-bezier(0.16,1,0.3,1)]">
               <p className="px-6 pb-6 pl-[3.7rem] text-[14px] leading-relaxed text-dim">
@@ -243,7 +243,7 @@ const FOOTER_COLS: Array<{ title: string; links: FooterLink[] }> = [
   {
     title: "Company",
     links: [
-      { label: "About", modal: "about" },
+      { label: "About", href: "/about" },
       { label: "Research", modal: "research" },
       { label: "Careers", modal: "careers" },
       { label: "Contact", modal: "contact" },

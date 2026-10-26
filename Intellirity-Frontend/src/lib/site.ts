@@ -2,11 +2,21 @@ import { ALL_KEYWORDS } from "@/lib/keywords";
 
 /* Canonical site identity.
    Every canonical tag, the sitemap, the robots policy, the social cards
-   and the structured data derive from these constants. Set
-   NEXT_PUBLIC_SITE_URL to the live production origin (Vercel sets it
-   automatically) — the fallback is the marketing domain. */
+   and the structured data derive from these constants.
+
+   Host choice is deliberate: on Vercel, the canonical host must be the
+   host the deployment actually serves. Asking for apex while Vercel's
+   primary domain is www produces canonicals that redirect, and Search
+   Console reports "Page with redirect" for every URL in the sitemap.
+   VERCEL_PROJECT_PRODUCTION_URL is the project's primary domain, so the
+   two cannot disagree. NEXT_PUBLIC_SITE_URL remains the local/self-host
+   override, and the marketing domain is the last fallback. */
+const PRODUCTION_HOST = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+const CONFIGURED_SITE = process.env.NEXT_PUBLIC_SITE_URL;
 export const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL || "https://intellirity.com"
+  (process.env.VERCEL_ENV === "production" && PRODUCTION_HOST
+    ? `https://${PRODUCTION_HOST}`
+    : CONFIGURED_SITE) || "https://intellirity.com"
 ).replace(/\/$/, "");
 
 export const SITE_NAME = "Intellirity";

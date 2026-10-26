@@ -145,7 +145,14 @@ async def _activate(data: dict, via: str) -> tuple[bool, str]:
     order["provider_txnid"] = txnid
     order["paid_at"] = datetime.now(timezone.utc).isoformat()
     await persist.update_order(order)
-    await persist.grant_entitlements(order["owner"], order.get("modules", []), order["order_id"])
+    # Only a real transition may extend the paid-through date. PayU retries
+    # webhooks; granting on every replay would hand out a free month each
+    # time. grant_entitlements also skips a row already stamped with this
+    # order id, as a second line of defence.
+    if result.get("newly_paid"):
+        await persist.grant_entitlements(
+            order["owner"], order.get("modules", []), order["order_id"]
+        )
     return True, order["order_id"]
 
 
@@ -217,9 +224,18 @@ async def order_status(order_id: str, user: dict = Depends(require_user)):
 @router.get("/entitlements")
 async def entitlements(user: dict = Depends(require_user)):
     owner = _owner(user)
-    return {"owner": owner, "org_id": _org_id(user), "role": _role(user),
-            "enforced": store.is_enforced(),
-            "owned": sorted(store.owned_products(owner))}
+    details = store.entitlement_details(owner)
+    return {
+        "owner": owner,
+        "org_id": _org_id(user),
+        "role": _role(user),
+        "enforced": store.is_enforced(),
+        "owned": sorted(store.owned_products(owner)),
+        # expires_at / days_left per module, so the console can show a
+        # renewal date instead of implying permanent access.
+        "entitlements": details,
+        "period_days": store.PERIOD_DAYS,
+    }
 
 
 @router.get("/orders")

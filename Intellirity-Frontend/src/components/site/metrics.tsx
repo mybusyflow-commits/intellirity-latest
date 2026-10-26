@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useInView } from "framer-motion";
-import { getSummary } from "@/lib/api";
+import { getPublicStats } from "@/lib/api";
 
 const METRICS = [
   { key: "score", decimals: 0, suffix: "/100", label: "live security score" },
@@ -43,23 +43,45 @@ export function Metrics() {
 
   useEffect(() => {
     let live = true;
-    getSummary()
-      .then((s) => {
-        if (!live) return;
-        setVals({
-          score: Math.round(s.security_score),
-          blocked: s.threats_blocked,
-          scans: s.total_scans,
-          models: s.models_monitored,
-        });
-        // An empty workspace shows demo traffic. The numbers below are
-        // real detections only, so if the feed is mostly synthetic we say
-        // so rather than presenting demo rows as attacks blocked.
-        setDemo(Boolean(s.demo_feed) && s.threats_blocked === 0);
-      })
-      .catch(() => {});
+    const load = () => {
+      getPublicStats()
+        .then((s) => {
+          if (!live) return;
+          const d = s.demo_metrics;
+          // Before the first real detection, show the labelled demo feed
+          // rather than a wall of zeros. The note below says exactly that;
+          // the labels gain "(demo)" so no figure is read as production.
+          const useDemo = Boolean(
+            d &&
+              s.threats_blocked === 0 &&
+              s.total_scans === 0 &&
+              s.models_monitored === 0 &&
+              (d.rows ?? 0) > 0
+          );
+          setVals(
+            useDemo && d
+              ? {
+                  score: Math.round(d.security_score),
+                  blocked: d.threats_blocked,
+                  scans: d.total_scans,
+                  models: d.models_monitored,
+                }
+              : {
+                  score: Math.round(s.security_score),
+                  blocked: s.threats_blocked,
+                  scans: s.total_scans,
+                  models: s.models_monitored,
+                }
+          );
+          setDemo(useDemo);
+        })
+        .catch(() => {});
+    };
+    load();
+    const id = setInterval(load, 60000);
     return () => {
       live = false;
+      clearInterval(id);
     };
   }, []);
 
@@ -85,15 +107,16 @@ export function Metrics() {
             </div>
             <div className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-faint">
               {m.label}
+              {demo ? " (demo)" : ""}
             </div>
           </div>
         ))}
       </div>
       {demo && (
         <p className="mx-auto max-w-[1240px] px-7 pb-8 font-mono text-[11px] text-faint md:px-9">
-          This is an empty workspace, so the counters above are zero. The
-          activity you see elsewhere on this page is synthetic demo traffic,
-          not real attacks.
+          No production detections yet, so these counters show the labelled
+          demo workspace. The feed on this page is synthetic demo traffic, not
+          customer attacks.
         </p>
       )}
     </section>

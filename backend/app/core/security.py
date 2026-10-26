@@ -68,18 +68,38 @@ def _get_jwks(jwks_url: str) -> dict:
     cached = _jwks_cache.get(jwks_url)
     if cached and now - cached[0] < _JWKS_TTL:
         return cached[1]
-    req = urllib.request.Request(jwks_url, headers={"Accept": "application/json"})
-    with urllib.request.urlopen(req, timeout=10) as r:
-        doc = json.loads(r.read().decode())
-    keys = {}
-    for jwk in doc.get("keys", []):
-        if jwk.get("kty") == "RSA" and jwk.get("kid") and jwk.get("n") and jwk.get("e"):
-            keys[jwk["kid"]] = {
-                "n": _b64url_to_int(jwk["n"]),
-                "e": _b64url_to_int(jwk["e"]),
-            }
-    _jwks_cache[jwks_url] = (now, keys)
-    return keys
+    # Clerk's custom domain sits behind Cloudflare. A bare urllib request has
+    # been observed to get challenged from some egress ranges, which surfaced
+    # to the console as "Couldn't fetch signing keys". Identify the client,
+    # retry once, and only then fail.
+    last_error: Exception | None = None
+    for attempt in range(2):
+        try:
+            req = urllib.request.Request(
+                jwks_url,
+                headers={
+                    "Accept": "application/json",
+                    "User-Agent": "Intellirity/1.0 (+https://intellirity.com)",
+                },
+            )
+            with urllib.request.urlopen(req, timeout=8) as r:
+                doc = json.loads(r.read().decode())
+            keys = {}
+            for jwk in doc.get("keys", []):
+                if jwk.get("kty") == "RSA" and jwk.get("kid") and jwk.get("n") and jwk.get("e"):
+                    keys[jwk["kid"]] = {
+                        "n": _b64url_to_int(jwk["n"]),
+                        "e": _b64url_to_int(jwk["e"]),
+                    }
+            if keys:
+                _jwks_cache[jwks_url] = (now, keys)
+                return keys
+            last_error = RuntimeError("JWKS contained no RSA signing keys")
+        except Exception as exc:  # network, HTTP status, malformed body
+            last_error = exc
+        if attempt == 0:
+            time.sleep(0.25)
+    raise last_error or RuntimeError("JWKS unavailable")
 
 
 def _check_times(payload: dict) -> None:
@@ -146,7 +166,13 @@ def verify_clerk_token(token: str, secret: str) -> dict:
         try:
             keys = _get_jwks(issuer + "/.well-known/jwks.json")
         except Exception:
-            raise HTTPException(status_code=401, detail="Could not fetch signing keys")
+            # Retryable upstream problem, not an invalid session. A 503 tells
+            # the client to try again instead of implying the user is signed
+            # out or unpaid.
+            raise HTTPException(
+                status_code=503,
+                detail="Session verification is temporarily unavailable. Retry in a moment.",
+            )
         key = keys.get(kid)
         if not key or not _verify_rs256(signing_input, signature, key["n"], key["e"]):
             raise HTTPException(status_code=401, detail="Invalid session signature")

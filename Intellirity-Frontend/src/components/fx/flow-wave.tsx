@@ -190,10 +190,18 @@ export function FlowWave() {
       // three merged WebGL1Renderer into WebGLRenderer in r163. The scene
       // shaders are GLSL1 (gl_FragColor / texture2D), which three still
       // supports in its default GLSL1 shader mode.
-      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-      renderer.setPixelRatio(window.devicePixelRatio);
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.VSMShadowMap;
+      // The field is a full-screen background. A 120k-vertex sphere rendered
+      // through three post-processing passes at devicePixelRatio 3 was the
+      // single largest scroll-jank source on the landing page. Points are
+      // resolution-independent, so a 16k-vertex mesh looks the same; the
+      // bloom passes are half-resolution because they are blurred anyway.
+      const compact = innerWidth < 768;
+      const maxDpr = compact ? 1 : 1.5;
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: !compact });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxDpr));
+      // Nothing in the scene casts or receives shadows; enabling VSM here
+      // only allocated shadow targets.
+      renderer.shadowMap.enabled = false;
 
       const scene = new THREE.Scene();
       scene.background = new THREE.Color(0x000000);
@@ -237,7 +245,7 @@ export function FlowWave() {
         fragmentShader: POINTS_FRAG,
       });
 
-      const points = new THREE.Points(new THREE.SphereGeometry(4.2, 200, 600), material);
+      const points = new THREE.Points(new THREE.SphereGeometry(4.2, 96, 160), material);
       points.frustumCulled = false;
       points.layers.enable(LAYERS.ENTIRE_SCENE);
       group.add(points);
@@ -283,13 +291,13 @@ export function FlowWave() {
       torusComposer.renderToScreen = false;
       torusComposer.addPass(renderPass);
       torusComposer.addPass(new ShaderPass(GammaCorrectionShader));
-      torusComposer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.22, 0.2, 0));
+      torusComposer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), 0.22, 0.2, 0));
       torusComposer.addPass(new ShaderPass(CopyShader));
 
       const bloomComposer = new EffectComposer(renderer);
       bloomComposer.renderToScreen = false;
       bloomComposer.addPass(renderPass);
-      bloomComposer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.4, 0.55, 0));
+      bloomComposer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), 0.4, 0.55, 0));
       bloomComposer.addPass(new ShaderPass(GammaCorrectionShader));
 
       const finalPass = new ShaderPass({
@@ -405,9 +413,15 @@ export function FlowWave() {
       const io = new IntersectionObserver((es) => (visible = es[0].isIntersecting), { threshold: 0 });
       io.observe(canvas);
 
-      function frame() {
+      // Ambient field, not a game: 30fps is indistinguishable at this speed
+      // and halves the GPU/CPU cost of every scroll. Reduced-motion visitors
+      // get one composed frame and no loop at all.
+      let lastFrame = 0;
+      function frame(now: number) {
         raf = requestAnimationFrame(frame);
         if (!visible || document.hidden) return;
+        if (now - lastFrame < 1000 / 30) return;
+        lastFrame = now;
         scrollSmooth = Lerp(scrollSmooth, scrollTarget, 0.1);
         scrollCurrent = Lerp(scrollCurrent, scrollSmooth, 0.06);
         mouse.x = Lerp(mouse.x, mouseTarget.x, 0.06);
@@ -422,7 +436,7 @@ export function FlowWave() {
       }
 
       function resize() {
-        const dpr = window.devicePixelRatio;
+        const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
         renderer.setPixelRatio(dpr);
         renderer.setSize(innerWidth, innerHeight, false);
         camera.aspect = innerWidth / innerHeight;
@@ -447,7 +461,20 @@ export function FlowWave() {
 
       resize();
       recompute();
-      raf = requestAnimationFrame(frame);
+      if (reduced) {
+        // One static composition: the scene is decoration, so a visitor who
+        // asked for reduced motion should not pay for a per-frame loop.
+        uniforms.uAppear.value = 1;
+        render(0, { x: 0, y: 0 });
+        camera.layers.set(LAYERS.TORUS_SCENE);
+        torusComposer.render();
+        camera.layers.set(LAYERS.BLOOM_SCENE);
+        bloomComposer.render();
+        camera.layers.set(LAYERS.ENTIRE_SCENE);
+        finalComposer.render();
+      } else {
+        raf = requestAnimationFrame(frame);
+      }
 
       cleanup = () => {
         cancelAnimationFrame(raf);

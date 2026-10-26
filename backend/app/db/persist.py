@@ -40,6 +40,9 @@ async def init_db() -> bool:
     # The ledger chain needs a monotonic sequence column; add it if the
     # table predates it.
     await ensure_ledger_seq()
+    # Paid entitlements gained an expiry; existing rows get a grace period
+    # on the next restore rather than being locked out.
+    await ensure_entitlement_expiry()
     return DB_CONNECTED
 
 
@@ -399,14 +402,50 @@ async def update_order(order: dict) -> bool:
     return await save_order(order)
 
 
-async def grant_entitlements(owner: str, product_ids: list[str], order_id: str) -> bool:
-    """Record purchased modules durably. Idempotent."""
+async def ensure_entitlement_expiry() -> bool:
+    """Add the paid-through column to an existing entitlements table.
+
+    `create_all` cannot add columns. Idempotent, and safe to run on every
+    boot: `IF NOT EXISTS` is a no-op once applied.
+    """
+    if not DB_CONNECTED:
+        return False
+    try:
+        from app.db.session import engine
+        from sqlalchemy import text
+
+        async with engine.begin() as conn:
+            await conn.execute(text(
+                "ALTER TABLE entitlements ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ"
+            ))
+            await conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS ix_entitlements_expires_at ON entitlements (expires_at)"
+            ))
+        return True
+    except Exception as exc:
+        log.warning("entitlement expiry migration skipped: %s", str(exc)[:160])
+        return False
+
+
+async def grant_entitlements(
+    owner: str, product_ids: list[str], order_id: str, period_days: int = 30
+) -> bool:
+    """Record purchased modules durably, extending an existing expiry.
+
+    A renewal is a new order: the paid-through date moves forward by one
+    period from the later of now and the current expiry. Replaying the same
+    order is ignored by the caller (`mark_paid` is idempotent), so a
+    duplicated gateway callback cannot buy a free month.
+    """
     if not DB_CONNECTED or not owner or not product_ids:
         return False
     try:
+        from datetime import datetime, timedelta, timezone
         from app.db.session import async_session
         from app.models.models import Entitlement
 
+        now = datetime.now(timezone.utc)
+        extension = timedelta(days=period_days)
         async with async_session() as session:
             for product_id in product_ids:
                 row = await session.get(Entitlement, (owner, product_id))
@@ -415,7 +454,18 @@ async def grant_entitlements(owner: str, product_ids: list[str], order_id: str) 
                         owner=owner,
                         product_id=product_id,
                         order_id=order_id,
+                        expires_at=now + extension,
                     ))
+                else:
+                    if row.order_id == order_id:
+                        # Replayed callback for an order already applied.
+                        continue
+                    base = row.expires_at
+                    if base is not None and base.tzinfo is None:
+                        base = base.replace(tzinfo=timezone.utc)
+                    start = base if base and base > now else now
+                    row.expires_at = start + extension
+                    row.order_id = order_id
             await session.commit()
         return True
     except Exception as exc:
@@ -424,20 +474,44 @@ async def grant_entitlements(owner: str, product_ids: list[str], order_id: str) 
 
 
 async def restore_entitlements() -> int:
-    """Load purchased modules into the in-process cache on boot."""
+    """Load purchased modules into the in-process cache on boot.
+
+    Rows created before expiry existed get one 30-day grace period, written
+    back so the next boot is deterministic. Expired rows are skipped: an
+    unpaid month must not silently keep working after a restart.
+    """
     if not DB_CONNECTED:
         return 0
     try:
+        from datetime import datetime, timedelta, timezone
         from sqlalchemy import select
         from app.db.session import async_session
         from app.models.models import Entitlement
         from app.services import billing
 
+        now = datetime.now(timezone.utc)
+        changed = False
+        loaded = 0
         async with async_session() as session:
             rows = (await session.execute(select(Entitlement))).scalars().all()
-        for row in rows:
-            billing._entitlements.setdefault(row.owner, set()).add(row.product_id)
-        return len(rows)
+            for row in rows:
+                expires = row.expires_at
+                if expires is not None and expires.tzinfo is None:
+                    expires = expires.replace(tzinfo=timezone.utc)
+                if expires is None:
+                    # Grandfather pre-expiry purchases for one period.
+                    expires = now + timedelta(days=billing.PERIOD_DAYS)
+                    row.expires_at = expires
+                    changed = True
+                if expires <= now:
+                    continue
+                billing._entitlements.setdefault(row.owner, {})[row.product_id] = (
+                    expires.timestamp()
+                )
+                loaded += 1
+            if changed:
+                await session.commit()
+        return loaded
     except Exception as exc:
         log.warning("entitlement restore skipped: %s", str(exc)[:160])
         return 0

@@ -205,6 +205,8 @@ account, a domain, a payment or a physical device.
 
 - Threat feed, workspace caches and policy state are memory-first; a restart
   resets them. The ledger, orders, entitlements and contact submissions are
-- PayU confirms a one-off payment; recurring renewals are not automated.
+- PayU confirms a one-off payment; each plan covers 30 days and renewals
+  are manual. No card is stored and there is no automatic charge. UPI
+  Autopay needs standing-instruction enablement from PayU.
 - No per-page OG images (one strong site-wide card instead).
 - Admin views for `contact_submissions` are SQL, not a console page.

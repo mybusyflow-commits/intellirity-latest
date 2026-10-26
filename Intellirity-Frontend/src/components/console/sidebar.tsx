@@ -5,10 +5,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Radar, ScrollText, Boxes, ShieldCheck, FileSearch, LifeBuoy,
-  DatabaseZap, AudioWaveform, Landmark, Fingerprint, Waypoints, ShieldAlert, Bot, Globe, Wallet,
+  DatabaseZap, AudioWaveform, Landmark, Fingerprint, Waypoints, ShieldAlert, Bot, Globe, Wallet, Lock,
 } from "lucide-react";
 import { Logo } from "@/components/site/logo";
 import { CONSOLE_ROUTES, consoleHref } from "@/lib/routes";
+import { useEntitlements } from "@/components/console/entitlements";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<string, typeof Radar> = {
@@ -35,20 +36,25 @@ const HINTS: Record<string, string | undefined> = {
 };
 
 /* Built from the shared route registry, so a new console page appears in
-   the nav automatically. Numbers are the global position in that list. */
+   the nav automatically. Numbers are sequential in the order rendered:
+   numbering by global registry index produced 01, 02, 03, 11, 12 inside
+   "Operate" because the registry is grouped by section. */
+let navNumber = 0;
 const SECTIONS = (["Operate", "Defend", "Govern"] as const).map((group) => ({
   title: group,
   items: CONSOLE_ROUTES.filter((r) => r.group === group).map((r) => ({
-    num: String(CONSOLE_ROUTES.indexOf(r) + 1).padStart(2, "0"),
+    num: String(++navNumber).padStart(2, "0"),
     href: consoleHref(r.path),
     label: r.title,
     icon: ICONS[r.key] ?? Radar,
     hint: HINTS[r.key],
+    product: r.product,
   })),
 }));
 
 export function Sidebar({ drawer = false }: { drawer?: boolean }) {
   const pathname = usePathname();
+  const { enforced, owned } = useEntitlements();
   const [latency, setLatency] = useState("-");
   const [score, setScore] = useState("-");
 
@@ -101,12 +107,14 @@ export function Sidebar({ drawer = false }: { drawer?: boolean }) {
               {s.items.map((item) => {
                 const active =
                   item.href === "/console" ? pathname === "/console" : pathname.startsWith(item.href);
+                const locked = Boolean(item.product) && enforced && !owned.has(item.product!);
                 const Icon = item.icon;
                 return (
                   <li key={item.href}>
                     <Link
                       href={item.href}
                       aria-current={active ? "page" : undefined}
+                      aria-label={locked ? `${item.label} (paid feature)` : undefined}
                       className={cn(
                         "group flex items-center gap-2.5 rounded px-2.5 py-2 text-[13.5px] transition-colors",
                         active ? "bg-white/[0.06] text-ink" : "text-dim hover:bg-white/[0.03] hover:text-ink"
@@ -116,17 +124,27 @@ export function Sidebar({ drawer = false }: { drawer?: boolean }) {
                         {item.num}
                       </span>
                       <Icon
-                        className={cn("size-4 shrink-0", active ? "text-ink" : "text-faint group-hover:text-dim")}
+                        className={cn(
+                          "size-4 shrink-0",
+                          locked ? "text-faint/70" : active ? "text-ink" : "text-faint group-hover:text-dim"
+                        )}
                         strokeWidth={1.5}
                       />
-                      <span className="truncate">{item.label}</span>
-                      {item.hint && (
+                      <span className={cn("truncate", locked && "text-faint")}>{item.label}</span>
+                      {locked ? (
+                        <Lock
+                          className="ml-auto size-3 shrink-0 text-faint"
+                          strokeWidth={1.75}
+                          aria-hidden
+                        />
+                      ) : item.hint ? (
                         <span className="ml-auto flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-faint">
                           <span className="dot animate-status bg-ok" />
                           {item.hint}
                         </span>
-                      )}
-                      {active && !item.hint && <span className="ml-auto h-4 w-px shrink-0 bg-steel" aria-hidden />}
+                      ) : active ? (
+                        <span className="ml-auto h-4 w-px shrink-0 bg-steel" aria-hidden />
+                      ) : null}
                     </Link>
                   </li>
                 );

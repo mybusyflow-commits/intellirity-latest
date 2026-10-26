@@ -11,7 +11,7 @@ import { ChartTooltip } from "@/components/charts/tooltip/chart-tooltip";
 import { chartCssVars } from "@/components/charts/chart-context";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { getThreats, type Threat } from "@/lib/api";
+import { getPublicFeed, type Threat } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 /* ---------- live bucketing ---------- */
@@ -55,14 +55,14 @@ export function ThreatPulse() {
     let live = true;
     const load = async () => {
       try {
-        const items = await getThreats();
+        const items = await getPublicFeed();
         if (live) setThreats(items);
       } catch {
         /* chart keeps its empty state offline */
       }
     };
     load();
-    const id = setInterval(load, 15000);
+    const id = setInterval(load, 20000);
     return () => {
       live = false;
       clearInterval(id);

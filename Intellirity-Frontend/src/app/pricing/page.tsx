@@ -21,8 +21,56 @@ export const metadata: Metadata = {
 };
 
 export default function PricingPage() {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${SITE_URL}/pricing#breadcrumb`,
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+          { "@type": "ListItem", position: 2, name: "Pricing", item: `${SITE_URL}/pricing` },
+        ],
+      },
+      {
+        "@type": "FAQPage",
+        "@id": `${SITE_URL}/pricing#faq`,
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: "What happens after checkout?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "An order is created against your workspace with status pending-payment. A payment provider confirms it, and the modules on that order become entitled to your workspace for 30 days.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Is there a free tier?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Yes. The free tier includes a working engine and no card, so you can run real scans before you pay. It is not a time-limited trial of a different product.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Can I change modules later?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Yes. Entitlements are per module. Each payment covers 30 days, nothing renews automatically, and no card is stored; renew from the pricing page when the period ends. Renewing early extends the existing expiry.",
+            },
+          },
+        ],
+      },
+    ],
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+      />
       <main className="mx-auto w-full max-w-[1240px] px-6 pt-16 sm:pt-24">
         <nav aria-label="Breadcrumb" className="mb-8 font-mono text-[11px] uppercase tracking-[0.14em] text-faint">
           <Link href="/" className="inline-flex min-h-6 items-center transition-colors hover:text-ink">
@@ -70,8 +118,10 @@ export default function PricingPage() {
             <dt className="text-[15px] font-medium">Can I change modules later?</dt>
             <dd className="mt-1.5 max-w-[70ch] text-[14.5px] leading-relaxed text-dim">
               Yes. Entitlements are per module, so you can add or drop engines
-              as your coverage changes. Billing is a one-off payment: nothing
-              renews automatically, and no card is stored.
+              as your coverage changes. Each payment covers 30 days; nothing
+              renews automatically and no card is stored, so renew from this
+              page when the period ends. Renewing early extends the existing
+              expiry instead of wasting the remaining days.
             </dd>
           </div>
         </dl>

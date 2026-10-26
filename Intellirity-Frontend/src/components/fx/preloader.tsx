@@ -16,8 +16,14 @@ export function Preloader() {
 
   useEffect(() => {
     let cancelled = false;
+    // The curtain is branding, not a loading gate. A reduced-motion visitor
+    // should not be shown a sweeping animation before the page appears.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setGone(true);
+      return;
+    }
     const start = performance.now();
-    const DURATION = 1700;
+    const DURATION = 900;
 
     const tick = (now: number) => {
       if (cancelled) return;

@@ -450,3 +450,62 @@ echo "key: $KEY"; echo "hash: $HASH"
 ```
 
 Revoke by removing the hash and redeploying.
+
+---
+
+## Plans, expiry and renewal
+
+Enforcement is **on by default in production** (`ENVIRONMENT=production`).
+A module is usable only when the workspace owns an active entitlement; the
+engine returns `403` with a human message otherwise, and the console locks
+the route before it mounts. Set `BILLING_ENFORCED=false` only for a demo
+deployment where unpaid modules must stay open.
+
+Each payment covers **30 days** (`services.billing.PERIOD_DAYS`). A renewal
+is another checkout: `grant_entitlements` extends from the later of now and
+the current expiry, so renewing early never loses days. Entitlements are
+persisted with `expires_at`; existing rows created before the column get a
+one-off 30-day grace on boot rather than being locked out.
+
+There is **no automatic charge**: PayU is used for one-off payments and no
+card is stored. Renewals are manual from `/pricing`; the console shows a
+paywall when a module is missing or expired. To add UPI Autopay/standing
+instructions later, PayU must enable SI on the merchant account and the
+checkout must send the SI fields — that is a provider-side onboarding step,
+not a code toggle.
+
+Public landing-page data comes from `/system/public-stats`,
+`/system/public-feed` (demo/sample rows only) and `/system/demo-scan`
+(free injection engine, rate-limited, records nothing). These are
+unauthenticated by design and contain no tenant identifiers.
+
+## Clerk: Google, GitHub and the OTP sender name
+
+The sign-in page uses Clerk's `<SignIn />`; providers appear automatically
+once enabled on the instance — no code change is needed.
+
+**Google** (production instance needs your own OAuth credentials):
+Clerk Dashboard → **SSO connections** → **Add connection** → *For all
+users* → **Google** → enable for sign-up and sign-in, enable **Use custom
+credentials**, copy the **Authorized Redirect URI**. Google Cloud Console →
+APIs & Services → Credentials → Create OAuth client ID → Web application:
+add `https://intellirity.com` and `https://www.intellirity.com` to
+**Authorized JavaScript origins**, paste Clerk's redirect URI into
+**Authorized Redirect URIs**, create, then paste the Client ID/Secret back
+into Clerk and save. Set the Google OAuth consent screen to **In
+production** before launch.
+
+**GitHub**: Clerk → **SSO connections** → **Add connection** → *For all
+users* → **GitHub** → custom credentials on → copy the **Authorization
+Callback URL**. GitHub → Settings → Developer settings → OAuth Apps → New
+OAuth App, paste the callback URL, register, generate a client secret, then
+paste Client ID/Secret into Clerk.
+
+**OTP sender shows "My Application"**: that is Clerk's default application
+name. In Clerk Dashboard → **Settings → Branding** set the application name
+to **Intellirity** (and upload the logo). Also open **Customization →
+Emails**, and for each template set **From** to `noreply@intellirity.com`
+and **Reply-To** to `security@intellirity.com` after verifying the domain in
+Clerk (Domains → Email). The sender display name follows the application /
+template name, so both must say Intellirity. Test with a real sign-up, not
+the preview.

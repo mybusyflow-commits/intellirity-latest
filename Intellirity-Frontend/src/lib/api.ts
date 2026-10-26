@@ -12,7 +12,47 @@ export function setTokenGetter(fn: (() => Promise<string | null>) | null) {
   tokenGetter = fn;
 }
 
+/* Auth readiness.
+ *
+ * Child effects run before the sibling <AuthBridge/> effect that installs
+ * the token getter. A console page fetching in its own effect therefore
+ * raced the bridge and sent an unauthenticated request — the engine replied
+ * 401 and the page showed an error before any data arrived. Requests now
+ * wait for the bridge (briefly, and only when Clerk is configured) instead
+ * of racing it. */
+let authReadyResolve: (() => void) | null = null;
+let authReadyPromise: Promise<void> | null = null;
+
+function authReadySignal(): Promise<void> {
+  if (!authReadyPromise) {
+    authReadyPromise = new Promise<void>((resolve) => {
+      authReadyResolve = resolve;
+    });
+  }
+  return authReadyPromise;
+}
+
+export function markAuthReady() {
+  authReadyResolve?.();
+  authReadyResolve = null;
+}
+
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
+  const isPublicRead =
+    path.startsWith("/system/public-") ||
+    path.startsWith("/system/status") ||
+    path.startsWith("/system/health") ||
+    path.startsWith("/billing/products");
+  if (
+    !tokenGetter &&
+    !isPublicRead &&
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+  ) {
+    await Promise.race([
+      authReadySignal(),
+      new Promise<void>((resolve) => setTimeout(resolve, 900)),
+    ]);
+  }
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (tokenGetter) {
     try {
@@ -38,6 +78,14 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
     } catch {
       /* not JSON */
     }
+    // A gated module answered 403. Tell the console, which owns the paywall
+    // UI; a page that bypassed the navigation lock must not just show a
+    // raw error string.
+    if (r.status === 403 && typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("intellirity:paywall", { detail: { message: detail } })
+      );
+    }
     throw new Error(detail || `Request failed (HTTP ${r.status})`);
   }
   return r.json() as Promise<T>;
@@ -55,6 +103,14 @@ export interface Summary {
   synthetic_threats?: number;
   sample_threats?: number;
   demo_feed?: boolean;
+  demo_metrics?: {
+    security_score: number;
+    threats_blocked: number;
+    threats_active: number;
+    models_monitored: number;
+    total_scans: number;
+    rows: number;
+  };
 }
 
 export interface Threat {
@@ -82,7 +138,20 @@ export interface ModuleScan {
 }
 
 export const getSummary = () => req<Summary>("/system/summary");
+/* Public marketing data. Counts only; no tenant records. */
+export const getPublicStats = () => req<Summary>("/system/public-stats");
 export const getThreats = () => req<Threat[]>("/threats");
+
+/* The landing page may only see the labelled demo stream. */
+export const getPublicFeed = () => req<Threat[]>("/system/public-feed");
+
+/* Free-engine demo scan for signed-out visitors; records nothing. */
+export function demoScan(text: string, target = "") {
+  return req<ScanRun>("/system/demo-scan", {
+    method: "POST",
+    body: JSON.stringify({ text, target }),
+  });
+}
 
 export interface ThreatPage {
   items: Threat[];
@@ -292,3 +361,21 @@ export const getOrder = (orderId: string) =>
     modules: string[];
     paid_via: string;
   }>(`/billing/orders/${encodeURIComponent(orderId)}`);
+
+export interface EntitlementDetail {
+  active: boolean;
+  expires_at: string | null;
+  days_left: number | null;
+}
+
+export interface Entitlements {
+  owner: string;
+  org_id: string | null;
+  role: string;
+  enforced: boolean;
+  owned: string[];
+  entitlements: Record<string, EntitlementDetail>;
+  period_days: number;
+}
+
+export const getEntitlements = () => req<Entitlements>("/billing/entitlements");

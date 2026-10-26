@@ -188,12 +188,15 @@ export function LiquidChrome({
     const mouse: [number, number] = [0.5, 0.5];
     let animationFrameId = 0;
     let visible = true;
+    let lastFrame = 0;
     const startTime = performance.now();
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      // This is a soft, blurred field behind text. Half-resolution costs
+      // nothing visually and removes most of the fragment-shader cost.
+      const dpr = Math.min(window.devicePixelRatio || 1, 1);
       canvas.width = Math.max(1, Math.round(rect.width * dpr));
       canvas.height = Math.max(1, Math.round(rect.height * dpr));
       ctx.viewport(0, 0, canvas.width, canvas.height);
@@ -221,6 +224,10 @@ export function LiquidChrome({
     const render = (time: number) => {
       animationFrameId = requestAnimationFrame(render);
       if (!visible || document.hidden) return;
+      // 30fps ambient motion; the field moves slowly enough that this is
+      // visually identical and halves the cost while scrolling past it.
+      if (time - lastFrame < 1000 / 30) return;
+      lastFrame = time;
       const elapsedTime = (time - startTime) * 0.001 * speedRef.current;
 
       ctx.uniform1f(timeLocation, elapsedTime);

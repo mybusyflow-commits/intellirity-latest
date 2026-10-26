@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useAuth, useSession } from "@clerk/nextjs";
-import { setTokenGetter } from "@/lib/api";
+import { markAuthReady, setTokenGetter } from "@/lib/api";
 
 /* Keeps the engine client authenticated: every /backend call carries the
    current Clerk session JWT as a Bearer token. Rendered once inside the
@@ -31,6 +31,11 @@ export function AuthBridge() {
       }
     });
     lastSessionId.current = session?.id ?? null;
+    // Tell the console the token getter is usable and which session it
+    // belongs to. Entitlement state must be fetched after this, and must be
+    // re-fetched when an organization switch mints a new token.
+    markAuthReady();
+    window.dispatchEvent(new Event("intellirity:auth-ready"));
     return () => setTokenGetter(null);
   }, [getToken, isSignedIn, session?.id]);
 

@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { RectangleButtons } from "@/components/fx/threeui-buttons";
 import { loadAnime } from "@/lib/use-anime";
-import { getSummary, getThreats, type Threat } from "@/lib/api";
+import { getPublicFeed, getPublicStats, type Threat } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 /* ---------- live verdict console (real engine feed) ---------- */
@@ -24,21 +24,26 @@ function toAction(sev: string): "BLOCK" | "FLAG" | "ALLOW" {
 function VerdictConsole() {
   const [rows, setRows] = useState<Threat[]>([]);
   const [open, setOpen] = useState(0);
+  const [demo, setDemo] = useState(false);
 
   useEffect(() => {
     let live = true;
     const load = async () => {
       try {
-        const [s, t] = await Promise.all([getSummary(), getThreats()]);
+        // Public endpoints: aggregate counts and the labelled demo stream
+        // only. The authenticated console keeps using /system/summary and
+        // /threats, which this page is not allowed to call.
+        const [s, t] = await Promise.all([getPublicStats(), getPublicFeed()]);
         if (!live) return;
         setRows(t.slice(0, 6));
         setOpen(s.threats_active);
+        setDemo(Boolean(s.demo_feed));
       } catch {
         /* offline: console stays in its loading state */
       }
     };
     load();
-    const id = setInterval(load, 15000);
+    const id = setInterval(load, 20000);
     return () => {
       live = false;
       clearInterval(id);
@@ -80,7 +85,12 @@ function VerdictConsole() {
                 >
                   {a}
                 </span>
-                <span className="truncate font-mono text-[12px] text-ink/85">{v.threat_type}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-mono text-[12px] text-ink/85">{v.threat_type}</p>
+                  {v.description && (
+                    <p className="truncate font-mono text-[10.5px] text-faint">{v.description}</p>
+                  )}
+                </div>
                 <span className="ml-auto hidden shrink-0 font-mono text-[11px] text-faint sm:block">
                   {v.source}
                 </span>
@@ -99,7 +109,7 @@ function VerdictConsole() {
       </div>
       {/* footer */}
       <div className="flex items-center justify-between border-t border-line bg-sunken px-4 py-2.5 font-mono text-[10.5px] uppercase tracking-[0.12em] text-faint">
-        <span>live engine feed</span>
+        <span>{demo ? "demo stream · labelled" : "live engine feed"}</span>
         <span className="tabular-nums text-dim">refreshes every 15s</span>
       </div>
     </div>
@@ -113,19 +123,37 @@ export function Hero() {
   const [score, setScore] = useState<number | null>(null);
   const [blocked, setBlocked] = useState<number | null>(null);
   const [models, setModels] = useState<number | null>(null);
+  const [demo, setDemo] = useState(false);
 
   useEffect(() => {
     let live = true;
-    getSummary()
-      .then((s) => {
-        if (!live) return;
-        setScore(Math.round(s.security_score));
-        setBlocked(s.threats_blocked);
-        setModels(s.models_monitored);
-      })
-      .catch(() => {});
+    const load = () => {
+      getPublicStats()
+        .then((s) => {
+          if (!live) return;
+          const d = s.demo_metrics;
+          const useDemo = Boolean(
+            d &&
+              s.threats_blocked === 0 &&
+              s.total_scans === 0 &&
+              s.models_monitored === 0 &&
+              (d.rows ?? 0) > 0
+          );
+          setScore(Math.round(useDemo && d ? d.security_score : s.security_score));
+          setBlocked(useDemo && d ? d.threats_blocked : s.threats_blocked);
+          setModels(useDemo && d ? d.models_monitored : s.models_monitored);
+          setDemo(useDemo);
+        })
+        .catch(() => {});
+    };
+    load();
+    // The headline figures are live engine aggregates, not a one-off
+    // server-rendered snapshot: a visitor who stays on the page sees the
+    // same numbers move as the console does.
+    const id = setInterval(load, 20000);
     return () => {
       live = false;
+      clearInterval(id);
     };
   }, []);
 
@@ -227,7 +255,7 @@ export function Hero() {
                 {score === null ? "-" : `${score}/100`}
               </dd>
               <dd className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.14em] text-faint">
-                security score · live
+                security score · {demo ? "demo" : "live"}
               </dd>
             </div>
             <div>
@@ -237,7 +265,7 @@ export function Hero() {
               </dd>
               <dd className="mt-1 flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-faint">
                 <span className="dot animate-status bg-ok" />
-                threats blocked · live
+                threats blocked · {demo ? "demo" : "live"}
               </dd>
             </div>
             <div>
@@ -246,7 +274,7 @@ export function Hero() {
                 {models === null ? "-" : models}
               </dd>
               <dd className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.14em] text-faint">
-                models monitored
+                models monitored{demo ? " · demo" : ""}
               </dd>
             </div>
           </dl>

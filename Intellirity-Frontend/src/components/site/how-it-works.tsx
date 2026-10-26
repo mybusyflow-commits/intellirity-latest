@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Plug, SlidersHorizontal, Gauge, Radar } from "lucide-react";
 
 const STEPS = [
@@ -37,28 +37,40 @@ const STEPS = [
 export function HowItWorks() {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
-  const [progress, setProgress] = useState(0);
+  const barRef = useRef<HTMLDivElement | null>(null);
+  const stepRef = useRef<HTMLSpanElement | null>(null);
 
   useEffect(() => {
     let raf = 0;
     const onScroll = () => {
-      cancelAnimationFrame(raf);
+      if (raf) return;
       raf = requestAnimationFrame(() => {
+        raf = 0;
         const wrap = wrapRef.current;
         const track = trackRef.current;
         if (!wrap || !track) return;
         const rect = wrap.getBoundingClientRect();
         const scrollable = rect.height - window.innerHeight;
-        const p = Math.min(1, Math.max(0, -rect.top / scrollable));
-        setProgress(p);
+        const p = scrollable > 0 ? Math.min(1, Math.max(0, -rect.top / scrollable)) : 0;
         const maxShift = track.scrollWidth - window.innerWidth + 96;
         track.style.transform = `translate3d(${-p * maxShift}px, 0, 0)`;
+        // Progress is a width and a two-digit label; writing them directly
+        // avoids re-rendering four cards on every scroll frame.
+        if (barRef.current) barRef.current.style.width = `${Math.round(p * 100)}%`;
+        if (stepRef.current) {
+          const step = String(Math.round(p * 4) + 1).padStart(2, "0");
+          if (stepRef.current.textContent !== `${step} / 04`) {
+            stepRef.current.textContent = `${step} / 04`;
+          }
+        }
       });
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
     return () => {
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
       cancelAnimationFrame(raf);
     };
   }, []);
@@ -118,12 +130,12 @@ export function HowItWorks() {
 
         <div className="mx-auto mt-10 w-full max-w-[1240px] px-6">
           <div className="h-px w-full bg-line">
-            <div className="h-px bg-steel" style={{ width: `${Math.round(progress * 100)}%` }} />
+            <div ref={barRef} className="h-px bg-steel" style={{ width: "0%" }} />
           </div>
           <div className="mt-3 flex justify-between font-mono text-[10px] uppercase tracking-[0.18em] text-faint">
             <span>keep scrolling</span>
-            <span className="tabular-nums text-dim">
-              {String(Math.round(progress * 4) + 1).padStart(2, "0")} / 04
+            <span ref={stepRef} className="tabular-nums text-dim">
+              01 / 04
             </span>
           </div>
         </div>

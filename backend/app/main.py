@@ -289,9 +289,21 @@ def _client_ip(request: Request) -> str:
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
+    # Public, cached marketing reads. They are polled by the landing page and
+    # must not consume the per-IP budget that protects scans and mail; the
+    # expensive demo write path has its own strict limiter.
+    PUBLIC_READ_PREFIXES = (
+        "/api/v1/system/public-",
+        "/api/v1/system/status",
+        "/api/v1/system/health",
+        "/api/v1/billing/products",
+    )
+
     async def dispatch(self, request: Request, call_next):
         # only throttle API routes, not static assets
-        if request.url.path.startswith("/api/"):
+        if request.url.path.startswith("/api/") and not request.url.path.startswith(
+            self.PUBLIC_READ_PREFIXES
+        ):
             ip = _client_ip(request)
             now = time.time()
             # Bound the map: an attacker rotating addresses must not be

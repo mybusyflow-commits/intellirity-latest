@@ -42,7 +42,7 @@ VIEWPORTS = [
     ("tablet", 768, 1024, 2),
     ("desktop", 1280, 800, 1),
 ]
-PAGES = ["/", "/engines", "/pricing", "/security", "/glossary"]
+PAGES = ["/", "/engines", "/pricing", "/security", "/glossary", "/about"]
 
 PROBE = r"""
 (() => {
@@ -244,3 +244,4 @@ def main(argv=None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

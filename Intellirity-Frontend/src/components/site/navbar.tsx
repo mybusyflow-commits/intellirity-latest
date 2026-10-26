@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { Logo } from "@/components/site/logo";
@@ -25,18 +25,40 @@ function Wordmark() {
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [open, setOpen] = useState(false);
+  const progressRef = useRef<HTMLDivElement | null>(null);
+  const scrolledRef = useRef(false);
 
   useEffect(() => {
+    let raf = 0;
+    // Scroll used to call setState on every event, re-rendering the Clerk
+    // controls and the whole mobile menu at display refresh rate. The bar is
+    // a transform; writing it directly keeps scrolling off React's path and
+    // only the boolean class change re-renders.
     const onScroll = () => {
-      setScrolled(window.scrollY > 24);
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      setProgress(max > 0 ? window.scrollY / max : 0);
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const y = window.scrollY;
+        const nextScrolled = y > 24;
+        if (nextScrolled !== scrolledRef.current) {
+          scrolledRef.current = nextScrolled;
+          setScrolled(nextScrolled);
+        }
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        if (progressRef.current) {
+          progressRef.current.style.transform = `scaleX(${max > 0 ? y / max : 0})`;
+        }
+      });
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("resize", onScroll);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
   }, []);
 
   return (
@@ -80,8 +102,9 @@ export function Navbar() {
         </div>
 
         <div
+          ref={progressRef}
           className="h-px origin-left bg-steel/60"
-          style={{ transform: `scaleX(${progress})`, opacity: scrolled ? 1 : 0 }}
+          style={{ transform: "scaleX(0)", opacity: scrolled ? 1 : 0 }}
         />
       </div>
 

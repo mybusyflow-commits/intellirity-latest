@@ -108,13 +108,19 @@ class Order(Base):
 
 
 class Entitlement(Base):
-    """One purchased module for one tenant. Survives restarts."""
+    """One purchased module for one tenant. Survives restarts.
+
+    `expires_at` is the paid-through instant. Older rows may predate the
+    column; restore_entitlements() gives those a one-off 30-day grace and
+    writes the expiry back, so nobody is locked out by a migration.
+    """
     __tablename__ = "entitlements"
 
     owner: Mapped[str] = mapped_column(String, primary_key=True)
     product_id: Mapped[str] = mapped_column(String, primary_key=True)
     order_id: Mapped[str] = mapped_column(String, default="")
     granted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
 
 
 class ContactSubmission(Base):

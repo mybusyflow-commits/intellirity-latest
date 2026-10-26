@@ -69,19 +69,84 @@ for _p in PRODUCTS:
     for _e in _p["engines"]:
         ENGINE_TO_PRODUCT[_e] = _p["id"]
 
-# owner -> set(product_id). Memory-first like the rest of the dev stack.
-_entitlements: dict[str, set[str]] = {}
+# A purchase covers one month. Renewal is a new checkout that extends the
+# expiry from the later of "now" and the current expiry, so a buyer who pays
+# early never loses days and a buyer who pays late starts from now.
+PERIOD_DAYS = 30
+
+# owner -> {product_id: expiry as unix seconds}. Memory-first like the rest
+# of the dev stack; Postgres is the authority across instances/restarts.
+_entitlements: dict[str, dict[str, float]] = {}
 _orders: dict[str, dict] = {}
 
 
 def is_enforced() -> bool:
-    return os.getenv("BILLING_ENFORCED", "").lower() in ("1", "true", "yes")
+    """Whether unpaid modules are refused.
+
+    Explicit configuration wins. Otherwise a production deployment enforces
+    by default: shipping a paywall that is off unless someone remembers a
+    second environment variable is how unpaid modules stay free forever.
+    Development and tests stay open unless BILLING_ENFORCED=true is set.
+    """
+    raw = os.getenv("BILLING_ENFORCED")
+    if raw is not None and raw.strip() != "":
+        return raw.strip().lower() in ("1", "true", "yes", "on")
+    try:
+        from app.core.config import settings
+
+        return settings.ENVIRONMENT == "production"
+    except Exception:
+        return False
+
+
+def _active(expires_at: float | None) -> bool:
+    return expires_at is None or expires_at > time.time()
 
 
 def owned_products(owner: str) -> set[str]:
     if not is_enforced():
         return {p["id"] for p in PRODUCTS}
-    return set(_entitlements.get(owner, set()))
+    return {
+        pid for pid, exp in _entitlements.get(owner, {}).items() if _active(exp)
+    }
+
+
+def entitlement_details(owner: str) -> dict[str, dict]:
+    """Per-module entitlement state for the console and the renewal copy."""
+    now = time.time()
+    if not is_enforced():
+        return {
+            p["id"]: {"active": True, "expires_at": None, "days_left": None}
+            for p in PRODUCTS
+        }
+    out: dict[str, dict] = {}
+    for pid, exp in _entitlements.get(owner, {}).items():
+        active = _active(exp)
+        out[pid] = {
+            "active": active,
+            "expires_at": (
+                time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(exp)) if exp else None
+            ),
+            "days_left": max(0, int((exp - now) // 86400)) if active and exp else None,
+        }
+    return out
+
+
+def grant(owner: str, product_ids: list[str], period_days: int = PERIOD_DAYS) -> set[str]:
+    """Grant or renew modules. Renewal extends from the current expiry.
+
+    Idempotent per order at the caller (a replayed callback is ignored), but
+    calling this twice with two distinct orders correctly buys two months.
+    """
+    if not owner or not product_ids:
+        return owned_products(owner)
+    now = time.time()
+    owned = _entitlements.setdefault(owner, {})
+    for pid in product_ids:
+        current = owned.get(pid)
+        start = current if current and current > now else now
+        owned[pid] = start + period_days * 86400
+    return owned_products(owner)
 
 
 def engine_allowed(engine: str, owner: str) -> tuple[bool, str]:
@@ -187,11 +252,20 @@ def mark_paid(order_id: str, via: str = "payu") -> dict:
     if not order:
         return {"error": "Unknown order."}
     if order["status"] == "active":
-        return {"order": order, "owned": sorted(_entitlements.get(order["owner"], set()))}
+        return {
+            "order": order,
+            "owned": sorted(owned_products(order["owner"])),
+            "newly_paid": False,
+        }
     order["status"] = "active"
     order["paid_via"] = via
-    _entitlements.setdefault(order["owner"], set()).update(order["modules"])
-    return {"order": order, "owned": sorted(_entitlements[order["owner"]])}
+    order["paid_at"] = time.time()
+    grant(order["owner"], order["modules"])
+    return {
+        "order": order,
+        "owned": sorted(owned_products(order["owner"])),
+        "newly_paid": True,
+    }
 
 
 def activate(order_id: str, owner: str) -> dict:
@@ -206,5 +280,6 @@ def activate(order_id: str, owner: str) -> dict:
     if order["status"] == "active":
         return {"error": "Order already active.", "order": order}
     order["status"] = "active"
-    _entitlements.setdefault(owner, set()).update(order["modules"])
-    return {"order": order, "owned": sorted(_entitlements[owner])}
+    order["paid_at"] = time.time()
+    grant(owner, order["modules"])
+    return {"order": order, "owned": sorted(owned_products(owner))}

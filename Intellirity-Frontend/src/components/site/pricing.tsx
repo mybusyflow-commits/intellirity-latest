@@ -114,6 +114,14 @@ export function Pricing() {
     });
   }, []);
 
+  // A paywall link carries the module it needs (/pricing?module=wallet-guard).
+  // Preselect exactly that module so "unlock" is one step, not a hunt.
+  useEffect(() => {
+    const wanted = new URLSearchParams(window.location.search).get("module");
+    if (!wanted) return;
+    if (products.some((p) => p.id === wanted)) setSelected([wanted]);
+  }, [products]);
+
   const pricing = useMemo(() => {
     const chosen = products.filter((p) => selected.includes(p.id));
     const subtotal = chosen.reduce((sum, p) => sum + p.price, 0);

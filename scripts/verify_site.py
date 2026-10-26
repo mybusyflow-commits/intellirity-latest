@@ -25,7 +25,7 @@ BROWSER = {
     "Sec-Fetch-Dest": "document",
 }
 
-PUBLIC = ["/", "/engines", "/pricing", "/glossary", "/privacy", "/terms", "/security"]
+PUBLIC = ["/", "/engines", "/pricing", "/glossary", "/about", "/privacy", "/terms", "/security"]
 ASSETS = [
     "/sitemap.xml",
     "/robots.txt",
@@ -153,3 +153,4 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

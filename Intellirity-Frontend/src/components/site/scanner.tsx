@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Terminal } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { runScan } from "@/lib/api";
+import { demoScan } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type Phase = "idle" | "running" | "done";
@@ -64,7 +64,6 @@ export function Scanner() {
 
   async function run() {
     if (phase === "running") return;
-    const s = PROFILES[profile];
     const t = target.trim() || "https://api.openai.com/v1/chat/completions";
     setPhase("running");
     setPct(0);
@@ -77,7 +76,10 @@ export function Scanner() {
     };
     requestAnimationFrame(tick);
     try {
-      const data = await runScan(t, s.modules);
+      // Signed-out visitors get the free injection engine on a public,
+      // rate-limited route. It returns a demo-labelled result and records
+      // nothing, so it can never pollute the live metrics or charge anyone.
+      const data = await demoScan(t, t);
       const mods = Object.entries(data.module_results ?? {});
       const report: string[] = [
         "",
@@ -102,7 +104,11 @@ export function Scanner() {
       setPct(100);
       setPhase("done");
     } catch {
-      setLines((p) => [...p, "✕ engine unreachable. Is the backend running on :8000?"]);
+      setLines((p) => [
+        ...p,
+        "✕ demo engine unavailable — try again in a moment.",
+        "  The full sweep (all sixteen engines) runs in the console after sign-in.",
+      ]);
       setPct(100);
       setPhase("done");
     }

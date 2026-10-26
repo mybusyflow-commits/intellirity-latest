@@ -15,24 +15,26 @@ export interface RouteDef {
   group: "Operate" | "Defend" | "Govern";
   /** Key in the sidebar/command palette. */
   key: string;
+  /** Billing product required to open this page, when it is paid. */
+  product?: string;
 }
 
 export const CONSOLE_ROUTES: RouteDef[] = [
   { path: "", title: "Overview", sub: "Fleet posture, live scores and recent activity", group: "Operate", key: "overview" },
   { path: "/scanner", title: "Scanner", sub: "Run a multi-engine sweep against any target", group: "Operate", key: "scanner" },
   { path: "/verdicts", title: "Verdicts", sub: "Live stream of every judgement the engine made", group: "Operate", key: "verdicts" },
-  { path: "/leakage", title: "Leakage guard", sub: "PII, secrets, and code redacted in flight", group: "Defend", key: "leakage" },
-  { path: "/anomalies", title: "Anomalies", sub: "Workflow loops, runaway spend and destructive chains", group: "Defend", key: "anomalies" },
-  { path: "/proof", title: "Proof of intent", sub: "Certificates binding a human to an action", group: "Govern", key: "proof" },
-  { path: "/flow", title: "Data flow", sub: "Trace every destination your data reaches", group: "Defend", key: "flow" },
-  { path: "/content", title: "Content guard", sub: "Moderation across seven scored categories", group: "Defend", key: "content" },
-  { path: "/behavior", title: "Agent behavior", sub: "Session drift and MCP tool governance", group: "Defend", key: "behavior" },
+  { path: "/wallet", title: "Wallet guard", sub: "Token and cost ceilings for agent spend", group: "Operate", key: "wallet", product: "wallet-guard" },
+  { path: "/models", title: "Models & agents", sub: "Registered endpoints under guard", group: "Operate", key: "models", product: "agent-guard" },
+  { path: "/leakage", title: "Leakage guard", sub: "PII, secrets, and code redacted in flight", group: "Defend", key: "leakage", product: "leakage-guard" },
+  { path: "/anomalies", title: "Anomalies", sub: "Workflow loops, runaway spend and destructive chains", group: "Defend", key: "anomalies", product: "agent-guard" },
+  { path: "/flow", title: "Data flow", sub: "Trace every destination your data reaches", group: "Defend", key: "flow", product: "leakage-guard" },
+  { path: "/content", title: "Content guard", sub: "Moderation across seven scored categories", group: "Defend", key: "content", product: "content-guard" },
+  { path: "/behavior", title: "Agent behavior", sub: "Session drift and MCP tool governance", group: "Defend", key: "behavior", product: "agent-guard" },
   { path: "/intel", title: "Threat intel", sub: "Known threats and advanced adversarial probes", group: "Defend", key: "intel" },
-  { path: "/wallet", title: "Wallet guard", sub: "Token and cost ceilings for agent spend", group: "Operate", key: "wallet" },
-  { path: "/models", title: "Models & agents", sub: "Registered endpoints under guard", group: "Operate", key: "models" },
-  { path: "/policies", title: "Policies", sub: "Guardrail packs, versioned and two-approver promoted", group: "Govern", key: "policies" },
-  { path: "/escrow", title: "Agent escrow", sub: "Custody for autonomous value movement", group: "Govern", key: "escrow" },
-  { path: "/audit", title: "Audit log", sub: "Tamper-evident, hash-chained history", group: "Govern", key: "audit" },
+  { path: "/proof", title: "Proof of intent", sub: "Certificates binding a human to an action", group: "Govern", key: "proof", product: "vpi" },
+  { path: "/policies", title: "Policies", sub: "Guardrail packs, versioned and two-approver promoted", group: "Govern", key: "policies", product: "agent-guard" },
+  { path: "/escrow", title: "Agent escrow", sub: "Custody for autonomous value movement", group: "Govern", key: "escrow", product: "escrow" },
+  { path: "/audit", title: "Audit log", sub: "Tamper-evident, hash-chained history", group: "Govern", key: "audit", product: "ledger" },
 ];
 
 export const consoleHref = (path: string) => `/console${path}`;
@@ -66,6 +68,11 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   {
     path: "/glossary",
     priority: 0.7,
+    changeFrequency: "monthly",
+  },
+  {
+    path: "/about",
+    priority: 0.8,
     changeFrequency: "monthly",
   },
   {
