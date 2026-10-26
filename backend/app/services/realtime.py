@@ -30,12 +30,16 @@ _state: dict[str, Any] = {
 }
 
 
-def _score_event(event: dict) -> dict:
+def _score_event(event: dict, owner: str | None = None) -> dict:
     findings: list[Any] = []
     max_risk = 0.0
     verdict = "allow"
+    from app.services import billing as billing_store
+
     for mod in REALTIME_MODULES:
         if mod not in FEATURE_REGISTRY:
+            continue
+        if owner is not None and not billing_store.engine_allowed(mod, owner)[0]:
             continue
         try:
             res = FEATURE_REGISTRY[mod]["function"](event)
@@ -55,9 +59,9 @@ def _score_event(event: dict) -> dict:
     return {"risk_score": round(max_risk, 3), "verdict": verdict, "findings": findings}
 
 
-def ingest(event: dict) -> dict:
+def ingest(event: dict, owner: str | None = None) -> dict:
     agent_id = event.get("agent_id") or event.get("source") or "unknown"
-    scored = _score_event(event)
+    scored = _score_event(event, owner)
     record = {
         "id": f"rt-{int(time.time() * 1000)}",
         "ts": time.time(),

@@ -66,7 +66,7 @@ def _run_sweep(payload: dict) -> dict:
     # Imported lazily to avoid circulars at module load.
     from app.api.v1.scans import run_full_scan_sync
 
-    return run_full_scan_sync(payload)
+    return run_full_scan_sync(payload, owner=payload.get("_owner"))
 
 
 async def _run_reasoning(payload: dict) -> dict:

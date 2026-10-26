@@ -105,6 +105,13 @@ export default function ScannerPage() {
       }
     }
     report.push("", `  verdict · ${data.total_findings} finding(s) across ${mods.length} controls`);
+    const denied = Object.entries(data.denied_modules ?? {});
+    if (denied.length > 0) {
+      report.push("", `  ${denied.length} module(s) locked by your plan:`);
+      for (const [key, reason] of denied) {
+        report.push(`  [LOCKED] ${key} · ${String(reason).slice(0, 110)}`);
+      }
+    }
     setLines((p) => [...p, ...report]);
     setPct(100);
     setPhase("done");

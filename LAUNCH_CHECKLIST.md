@@ -178,8 +178,8 @@ for blog/CMS sites and has no equivalent here.
 | 24 | Install security | [x] In-app: CSP, HSTS, COOP/CORP, rate limits, Turnstile, fail-closed auth. [ ] Optional: Cloudflare in front |
 | 25 | Uptime monitoring | [ ] **You** — create the monitor (endpoints are ready) |
 | 26 | Connect Google Analytics | [ ] **You** — set `NEXT_PUBLIC_GA_ID`; loads only after consent |
-| 27 | Search Console | [ ] **You** — verify domain, submit sitemap |
-| 28 | Bing Webmaster | [ ] **You** — verify domain, submit sitemap |
+| 27 | Search Console | [ ] **You** — Domain property, or URL-prefix `https://www.intellirity.com/`; submit `https://www.intellirity.com/sitemap.xml` |
+| 28 | Bing Webmaster | [ ] **You** — import from Search Console, submit the same sitemap |
 | 29 | Send backup to client | [ ] **You** — repo + this checklist + env variable *names* (never secrets) |
 
 ---

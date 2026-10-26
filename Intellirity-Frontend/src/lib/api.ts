@@ -129,6 +129,8 @@ export interface ScanRun {
   module_results: Record<string, Record<string, unknown>>;
   max_risk_score: number;
   total_findings: number;
+  /** Engines requested but not owned; the sweep skips them. */
+  denied_modules?: Record<string, string>;
 }
 
 export interface ModuleScan {

@@ -262,3 +262,35 @@ def test_demo_scan_runs_only_the_free_engine():
     assert body["demo"] is True
     assert list(body["module_results"].keys()) == ["jailbreak_injection_protection"]
     assert body["scan"]["id"].startswith("DEMO-")
+
+
+# --- Sweep enforcement (the console's multi-module path) -----------------
+
+def test_sweep_runs_free_modules_and_reports_locked_ones(monkeypatch):
+    from app.api.v1.scans import run_full_scan_sync
+
+    monkeypatch.setenv("BILLING_ENFORCED", "true")
+    result = run_full_scan_sync(
+        {
+            "text": "hello",
+            "target": "hello",
+            "modules": ["jailbreak_injection_protection", "autonomous_escrow"],
+        },
+        owner="owner-sweep-test",
+    )
+    assert "autonomous_escrow" in result["denied_modules"]
+    assert "jailbreak_injection_protection" in result["module_results"]
+
+
+def test_sweep_with_only_paid_modules_is_a_403(monkeypatch):
+    import pytest
+    from fastapi import HTTPException
+    from app.api.v1.scans import run_full_scan_sync
+
+    monkeypatch.setenv("BILLING_ENFORCED", "true")
+    with pytest.raises(HTTPException) as exc:
+        run_full_scan_sync(
+            {"text": "hello", "target": "hello", "modules": ["autonomous_escrow"]},
+            owner="owner-sweep-denied",
+        )
+    assert exc.value.status_code == 403

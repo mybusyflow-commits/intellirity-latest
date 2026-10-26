@@ -509,3 +509,32 @@ and **Reply-To** to `security@intellirity.com` after verifying the domain in
 Clerk (Domains → Email). The sender display name follows the application /
 template name, so both must say Intellirity. Test with a real sign-up, not
 the preview.
+
+## Search Console, Bing and the canonical host
+
+The canonical origin is derived from Vercel's **production domain** at build
+time (`VERCEL_PROJECT_PRODUCTION_URL`). Whichever host Vercel serves is the
+host in `<link rel="canonical">`, `robots.txt`, `llms.txt` and the sitemap,
+so the two cannot disagree. At the time of writing Vercel serves
+`www.intellirity.com` and redirects the apex to it, so every URL is
+`https://www.intellirity.com/...`.
+
+In Google Search Console:
+
+1. Add a **Domain property** for `intellirity.com` (DNS TXT at Hostinger).
+   It covers both apex and www, so a host change does not orphan the data.
+   Alternatively add a URL-prefix property for `https://www.intellirity.com/`
+   (the HTML verification file is already deployed).
+2. Submit `https://www.intellirity.com/sitemap.xml`.
+3. Do **not** submit the apex sitemap from an apex URL-prefix property: the
+   apex 308-redirects to www, and every URL will report "Page with redirect".
+4. In Bing Webmaster Tools, import the Search Console property (or add
+   `https://www.intellirity.com/`) and submit the same sitemap.
+
+The sitemap lists every indexable public page: `/`, `/engines`, `/pricing`,
+`/glossary`, `/about`, `/privacy`, `/terms`, `/security`. `/console`,
+`/sign-in`, `/sign-up` and `/dashboard` are deliberately excluded: they are
+authenticated/utility pages and carry `noindex`.
+
+If you later set `intellirity.com` as the primary domain in Vercel, redeploy:
+the constants above follow it automatically and the sitemap flips to apex.

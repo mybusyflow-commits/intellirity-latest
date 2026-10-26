@@ -3,6 +3,7 @@ from uuid import uuid4
 from typing import Optional, Any
 from fastapi import APIRouter, Depends, HTTPException
 from app.core.security import require_user
+from app.core.identity import owner as _billing_owner
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.schemas.schemas import SecurityScanCreate, SecurityScanResponse
@@ -90,6 +91,7 @@ async def code_security_scan(payload: dict):
 @router.post("/", response_model=SecurityScanResponse)
 async def create_scan(
     scan: SecurityScanCreate,
+    user: dict = Depends(require_user),
 ):
     """Record a scan by actually running the detectors against the target.
 
@@ -101,7 +103,7 @@ async def create_scan(
         "text": scan.target,
         "target": scan.target,
         "modules": ["jailbreak_injection_protection", "vibe_code_security", "data_loss_prevention"],
-    })
+    }, owner=_billing_owner(user))
     record = sweep["scan"]
     record.update({
         "id": _next_scan_id(),
@@ -121,14 +123,37 @@ async def create_scan(
     return SecurityScanResponse(**record)
 
 
-def run_full_scan_sync(payload: dict) -> dict:
-    """Synchronous sweep core shared by the live endpoint and background jobs."""
+def run_full_scan_sync(payload: dict, owner: str | None = None) -> dict:
+    """Synchronous sweep core shared by the live endpoint and background jobs.
+
+    When `owner` is supplied, each requested engine is checked against that
+    workspace's plan. Unpaid modules are skipped and reported in
+    `denied_modules`; if nothing is allowed the call is a 403. The public
+    demo uses a separate free-only path, so this is the enforcement point
+    for the console sweep and the job queue.
+    """
     from app.api.v1.modules import _reject_oversize
 
     _reject_oversize(payload)
     text = payload.get("text", "")
     target = payload.get("target", "All AI Models")
     selected_modules = payload.get("modules", ["jailbreak_injection_protection", "vibe_code_security", "data_loss_prevention"])
+
+    denied: dict[str, str] = {}
+    if owner is not None:
+        from app.services import billing as billing_store
+
+        allowed: list[str] = []
+        for module in selected_modules:
+            ok, reason = billing_store.engine_allowed(module, owner)
+            if ok:
+                allowed.append(module)
+            else:
+                denied[module] = reason
+        if not allowed:
+            first = next(iter(denied.values()), "No module in this sweep is in your plan.")
+            raise HTTPException(status_code=403, detail=first)
+        selected_modules = allowed
 
     now = datetime.now(timezone.utc)
     results = {}
@@ -212,13 +237,14 @@ def run_full_scan_sync(payload: dict) -> dict:
         "module_results": results,
         "max_risk_score": round(max_risk, 3),
         "total_findings": len(all_findings),
+        "denied_modules": denied,
     }
 
 
 @router.post("/run")
-async def run_full_scan(payload: dict):
+async def run_full_scan(payload: dict, user: dict = Depends(require_user)):
     """Run an automated sweep across multiple security modules (live)."""
-    return run_full_scan_sync(payload)
+    return run_full_scan_sync(payload, owner=_billing_owner(user))
 
 
 @router.get("/", response_model=list[SecurityScanResponse], dependencies=[Depends(require_user)])

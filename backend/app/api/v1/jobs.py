@@ -2,6 +2,8 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from app.core.ratelimit import job_create_limit
+from app.core.security import require_user
+from app.core.identity import owner as _billing_owner
 from app.services import jobs as jobstore
 
 router = APIRouter()
@@ -42,11 +44,19 @@ def _normalize_job(kind: str, body: JobCreate) -> dict:
 
 
 @router.post("", status_code=202, dependencies=[Depends(job_create_limit)])
-async def create_job(body: JobCreate, background: BackgroundTasks):
+async def create_job(
+    body: JobCreate,
+    background: BackgroundTasks,
+    user: dict = Depends(require_user),
+):
     """Queue a slow task; returns immediately with a job id to poll."""
     if body.kind not in JOB_KINDS:
         raise HTTPException(status_code=422, detail=f"unknown kind '{body.kind}' (sweep|reasoning)")
     payload = _normalize_job(body.kind, body)
+    # The owner is server-derived: a client-supplied _owner is ignored.
+    payload.pop("_owner", None)
+    if body.kind == "sweep":
+        payload["_owner"] = _billing_owner(user)
     job = jobstore.create_job(body.kind, payload)
     background.add_task(jobstore.execute_job, job["job_id"])
     return job
