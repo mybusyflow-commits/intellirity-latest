@@ -8,6 +8,7 @@ import {
   DatabaseZap, AudioWaveform, Landmark, Fingerprint, Waypoints, ShieldAlert, Bot, Globe, Wallet, Lock,
 } from "lucide-react";
 import { Logo } from "@/components/site/logo";
+import { getSummary } from "@/lib/api";
 import { CONSOLE_ROUTES, consoleHref } from "@/lib/routes";
 import { useEntitlements } from "@/components/console/entitlements";
 import { cn } from "@/lib/utils";
@@ -67,9 +68,9 @@ export function Sidebar({ drawer = false }: { drawer?: boolean }) {
     const probe = async () => {
       const t0 = performance.now();
       try {
-        const r = await fetch("/backend/system/summary");
-        if (!r.ok || !live) return;
-        const s = await r.json();
+        // Use the authenticated client: a bare fetch omitted the Clerk
+        // bearer token and returned 401 on every console page.
+        const s = await getSummary();
         if (!live) return;
         setLatency(`${Math.max(1, Math.round(performance.now() - t0))}ms`);
         setScore(`${Math.round(s.security_score)}/100`);
