@@ -1,15 +1,21 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Script from "next/script";
-import { usePathname } from "next/navigation";
 
 /* Google Analytics 4 — consent gated.
 
    Analytics is a third party that sets cookies, so it does not load until
    the visitor accepts it. The choice is stored in localStorage; declining
    leaves the site fully functional. The cookie policy documents exactly
-   this, and the two cannot drift because both describe this file. */
+   this, and the two cannot drift because both describe this file.
+
+   Page views are not sent from React. GA4's enhanced measurement
+   ("page changes based on browser history events") already emits one
+   page_view for the initial load and one for every App Router navigation.
+   Sending a second event from a useEffect double-counted every route
+   change, and a first-mount guard only traded that for a race with the
+   gtag script. One source of truth: the tag itself. */
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 const CONSENT_KEY = "intellirity-analytics-consent";
 
@@ -41,17 +47,6 @@ export function writeAnalyticsConsent(value: "granted" | "denied") {
   window.dispatchEvent(new CustomEvent("intellirity:analytics-consent"));
 }
 
-function PageviewTracker() {
-  const pathname = usePathname();
-  useEffect(() => {
-    if (!GA_ID || !window.gtag) return;
-    // An event, not a second config — reconfiguring resets GA session
-    // state on every navigation.
-    window.gtag("event", "page_view", { page_path: pathname });
-  }, [pathname]);
-  return null;
-}
-
 export function Analytics() {
   const [consent, setConsent] = useState<AnalyticsConsent>("unset");
 
@@ -74,11 +69,8 @@ export function Analytics() {
         {`window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
-gtag('config', '${GA_ID}', { anonymize_ip: true, allow_google_signals: false });`}
+gtag('config', '${GA_ID}', { allow_google_signals: false });`}
       </Script>
-      <Suspense fallback={null}>
-        <PageviewTracker />
-      </Suspense>
     </>
   );
 }
