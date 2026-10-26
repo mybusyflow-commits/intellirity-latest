@@ -2,7 +2,10 @@
 
 # Dependencies
 node_modules/
-vendor/
+# Only a root-level vendor bundle is generated. The frontend's src/vendor
+# is source code the build imports, so it must stay committed -- without it
+# a Vercel checkout cannot resolve the ThreeUI imports.
+/vendor/
 
 # Environment
 .env
