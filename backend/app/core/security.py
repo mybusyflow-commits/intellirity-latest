@@ -73,16 +73,14 @@ def _get_jwks(jwks_url: str) -> dict:
     # to the console as "Couldn't fetch signing keys". Identify the client,
     # retry once, and only then fail.
     last_error: Exception | None = None
+    headers = {
+        "Accept": "application/json",
+        "User-Agent": "Intellirity/1.0 (+https://intellirity.com)",
+    }
     for attempt in range(2):
         try:
-            req = urllib.request.Request(
-                jwks_url,
-                headers={
-                    "Accept": "application/json",
-                    "User-Agent": "Intellirity/1.0 (+https://intellirity.com)",
-                },
-            )
-            with urllib.request.urlopen(req, timeout=8) as r:
+            req = urllib.request.Request(jwks_url, headers=headers)
+            with urllib.request.urlopen(req, timeout=4) as r:
                 doc = json.loads(r.read().decode())
             keys = {}
             for jwk in doc.get("keys", []):
@@ -98,7 +96,37 @@ def _get_jwks(jwks_url: str) -> dict:
         except Exception as exc:  # network, HTTP status, malformed body
             last_error = exc
         if attempt == 0:
-            time.sleep(0.25)
+            time.sleep(0.2)
+
+    # Clerk's custom frontend domain sits behind Cloudflare, which has been
+    # observed challenging Vercel egress. The Backend API serves the same
+    # signing keys over api.clerk.com (authenticated with the instance
+    # secret), so it is a reliable fallback that does not weaken issuer
+    # pinning: the keys still belong to this Clerk instance only.
+    secret = getattr(settings, "CLERK_SECRET_KEY", "") or ""
+    if secret:
+        try:
+            req = urllib.request.Request(
+                "https://api.clerk.com/v1/jwks",
+                headers={
+                    **headers,
+                    "Authorization": f"Bearer {secret}",
+                },
+            )
+            with urllib.request.urlopen(req, timeout=5) as r:
+                doc = json.loads(r.read().decode())
+            keys = {}
+            for jwk in doc.get("keys", []):
+                if jwk.get("kty") == "RSA" and jwk.get("kid") and jwk.get("n") and jwk.get("e"):
+                    keys[jwk["kid"]] = {
+                        "n": _b64url_to_int(jwk["n"]),
+                        "e": _b64url_to_int(jwk["e"]),
+                    }
+            if keys:
+                _jwks_cache[jwks_url] = (time.time(), keys)
+                return keys
+        except Exception as exc:
+            last_error = exc
     raise last_error or RuntimeError("JWKS unavailable")
 
 
