@@ -227,6 +227,7 @@ const FOOTER_COLS: Array<{ title: string; links: FooterLink[] }> = [
       { label: "Overview", href: "/console" },
       { label: "Scanner", href: "/console/scanner" },
       { label: "Verdict stream", href: "/console/verdicts" },
+      { label: "Glossary", href: "/glossary" },
       { label: "Changelog", modal: "changelog" },
     ],
   },

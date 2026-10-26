@@ -13,22 +13,28 @@ import { HowItWorks } from "@/components/site/how-it-works";
 import { Metrics } from "@/components/site/metrics";
 import { Pricing } from "@/components/site/pricing";
 import { Faq, FinalCta, Footer } from "@/components/site/faq-cta-footer";
-import { SITE_NAME, SITE_SUMMARY, SITE_TAGLINE, SITE_URL } from "@/lib/site";
+import { PAGE_KEYWORDS } from "@/lib/keywords";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
+
+const HOME_TITLE = "AI Security Platform for LLMs & Agents";
+const HOME_DESCRIPTION =
+  "Intellirity is an AI security platform that screens prompts, code and agent actions for prompt injection, jailbreaks, data exfiltration and agent abuse, and records tamper-evident evidence for every verdict.";
 
 export const metadata: Metadata = {
-  title: `${SITE_NAME} | ${SITE_TAGLINE}`,
-  description: SITE_SUMMARY,
+  title: { absolute: `${HOME_TITLE} | ${SITE_NAME}` },
+  description: HOME_DESCRIPTION,
+  keywords: PAGE_KEYWORDS["/"],
   alternates: { canonical: SITE_URL },
   openGraph: {
-    title: `${SITE_NAME} | ${SITE_TAGLINE}`,
-    description: SITE_SUMMARY,
+    title: `${HOME_TITLE} · ${SITE_NAME}`,
+    description: HOME_DESCRIPTION,
     url: SITE_URL,
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} | ${SITE_TAGLINE}`,
-    description: SITE_SUMMARY,
+    title: `${HOME_TITLE} · ${SITE_NAME}`,
+    description: HOME_DESCRIPTION,
     images: ["/og-image.png"],
   },
 };

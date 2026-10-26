@@ -123,10 +123,10 @@ export const LEGAL_DOCS: Record<string, LegalDoc> = {
 
   security: {
     slug: "/security",
-    title: "Security Model",
+    title: "AI Security Model",
     updated: "Effective 1 January 2026",
     summary:
-      "How Intellirity is built: fail-closed screening, signed evidence, tenant isolation and no traffic retention.",
+      "How the Intellirity AI security model works: fail-closed screening, tamper-evident audit evidence, tenant isolation, no traffic retention, and coordinated vulnerability disclosure.",
     sections: [
       {
         heading: "Screening fails closed",

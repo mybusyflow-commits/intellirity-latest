@@ -49,27 +49,35 @@ export interface PublicRoute {
 export const PUBLIC_ROUTES: PublicRoute[] = [
   {
     path: "/",
-    title: "Intellirity | Security Operations for AI",
+    title: "AI Security Platform for LLMs & Agents | Intellirity",
     description:
-      "Intellirity screens prompts, code and agent actions for prompt injection, jailbreaks, data exfiltration and agent abuse before they reach a model, and records tamper-evident evidence for every verdict.",
+      "Intellirity is an AI security platform that screens prompts, code and agent actions for prompt injection, LLM jailbreaks, data exfiltration and agent abuse, with tamper-evident evidence for every verdict.",
     priority: 1.0,
     changeFrequency: "weekly",
   },
   {
     path: "/engines",
-    title: "Detection engines | Intellirity",
+    title: "AI Security Detection Engines | Intellirity",
     description:
-      "All sixteen Intellirity detection engines: what each one detects, the attack classes it covers, and the evidence it produces.",
+      "All sixteen Intellirity AI security detection engines: prompt injection, LLM jailbreaks, AI data loss prevention, agent abuse, MCP security, model supply chain and more.",
     priority: 0.9,
     changeFrequency: "weekly",
   },
   {
     path: "/pricing",
-    title: "Pricing | Intellirity",
+    title: "AI Security Pricing | Intellirity",
     description:
-      "Per-module pricing for Intellirity: nine security modules from ₹79 to ₹399 per month, with 20% off when you take all nine and a live configurable plan builder.",
+      "AI security pricing by module: nine detection modules from ₹79 to ₹399 per month, with 20% off when you take all nine and a live configurable plan builder.",
     priority: 0.9,
     changeFrequency: "weekly",
+  },
+  {
+    path: "/glossary",
+    title: "AI Security Glossary | Intellirity",
+    description:
+      "Definitions for prompt injection, LLM jailbreaks, LLM firewalls, AI guardrails, AI data loss prevention, agent security, MCP security, model supply chain, AI red teaming and AI audit trails.",
+    priority: 0.7,
+    changeFrequency: "monthly",
   },
   {
     path: "/privacy",
@@ -89,9 +97,9 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: "/security",
-    title: "Security Model | Intellirity",
+    title: "AI Security Model | Intellirity",
     description:
-      "How Intellirity is built to protect you: fail-closed screening, signed certificates, hash-chained evidence, and no traffic retention.",
+      "How the Intellirity AI security model works: fail-closed screening, tamper-evident audit evidence, tenant isolation, no traffic retention and coordinated disclosure.",
     priority: 0.6,
     changeFrequency: "monthly",
   },

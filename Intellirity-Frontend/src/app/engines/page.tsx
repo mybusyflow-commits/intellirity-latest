@@ -1,18 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import engines from "@/lib/engines.generated.json";
+import { PAGE_KEYWORDS } from "@/lib/keywords";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Detection Engines",
+  title: "AI Security Detection Engines",
   description:
-    "All sixteen Intellirity detection engines, with exactly what each one detects: prompt injection, jailbreaks, exfiltration, DLP, agent abuse, MCP poisoning, supply-chain attacks, runaway spend and more.",
+    "Sixteen AI security detection engines covering prompt injection, LLM jailbreaks, AI data loss prevention, agent abuse, MCP security, model supply chain attacks, AI red teaming and runaway spend.",
+  keywords: PAGE_KEYWORDS["/engines"],
   alternates: { canonical: `${SITE_URL}/engines` },
   robots: { index: true, follow: true },
   openGraph: {
-    title: `Detection Engines · ${SITE_NAME}`,
+    title: `AI Security Detection Engines · ${SITE_NAME}`,
     description:
-      "Sixteen detection engines covering prompt injection, jailbreaks, exfiltration, agent abuse, MCP poisoning and model supply-chain attacks.",
+      "Sixteen detection engines for prompt injection, jailbreaks, AI data loss prevention, agent abuse, MCP poisoning and model supply-chain attacks.",
     url: `${SITE_URL}/engines`,
     type: "website",
   },
@@ -59,14 +61,23 @@ export default function EnginesPage() {
       </nav>
 
       <h1 className="text-[34px] font-medium leading-[1.1] tracking-[-0.02em] sm:text-[44px]">
-        Sixteen engines. One verdict.
+        Sixteen AI security engines. One verdict per call.
       </h1>
       <p className="mt-6 max-w-[62ch] text-[17px] leading-relaxed text-dim">
-        Intellirity runs {items.length} detection engines against every prompt,
-        code payload and agent action. Each one is a deterministic analyser
-        covering a distinct attack class — not a wrapper around a general
-        model, and not a single regex wearing sixteen names. Below is the
-        full list, straight from the running engine registry.
+        Intellirity runs {items.length} AI security detection engines against
+        every prompt, code payload and agent action. They cover prompt
+        injection detection, LLM jailbreak detection, AI data loss prevention,
+        agent security, MCP security, model supply chain security, AI red
+        teaming and runaway spend — each a deterministic analyser for a
+        distinct attack class, not a wrapper around a general model.
+      </p>
+      <p className="mt-4 max-w-[62ch] text-[15px] leading-relaxed text-faint">
+        New to the vocabulary? The{" "}
+        <Link href="/glossary" className="text-ink underline decoration-steel/60 underline-offset-2">
+          AI security glossary
+        </Link>{" "}
+        defines prompt injection, jailbreaks, LLM firewalls, AI DLP and the
+        rest.
       </p>
 
       <ul className="mt-12 space-y-px overflow-hidden rounded-lg border border-line bg-line">

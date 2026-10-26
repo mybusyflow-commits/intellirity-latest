@@ -55,6 +55,26 @@ module per month across nine purchasable modules, and are served live from
 the billing API. All nine modules bought together receive a 20% bundle
 discount. The full list with live prices is at ${SITE_URL}/pricing.
 
+## AI security glossary
+
+Definitions for the vocabulary used above, with the engine or control that
+handles each one: ${SITE_URL}/glossary
+
+- **Prompt injection** — instructions hidden in content the model reads as data. Direct (user prompt) or indirect (retrieved documents, tool output).
+- **LLM jailbreak** — persuading a model to ignore its own safety policy; distinct from injection, which hijacks the task.
+- **LLM firewall** — an inline control that inspects prompts and responses and returns a verdict for every call.
+- **AI guardrails** — policy constraints on model input, output and agent actions, including prevention and approval.
+- **AI data loss prevention (DLP)** — detecting and redacting PII, secrets, code and regulated data in both directions.
+- **AI agent security** — governing tool calls, permissions, spend and goals for autonomous agents.
+- **MCP security** — auditing Model Context Protocol servers and tools for poisoning, over-broad scopes and confused-deputy calls.
+- **AI model supply chain security** — verifying model provenance, integrity and hashes before deployment.
+- **AI red teaming** — adversarial testing with the prompts and tool calls an attacker would use.
+- **Denial of wallet** — exhausting an AI budget with runaway loops or token abuse.
+- **AI audit trail** — an ordered, hash-chained record of each decision and its evidence.
+- **Proof of intent** — a signed statement that a human authorized a specific action within a scope.
+- **AI escrow** — holding agent funds or permissions until the work is verified.
+- **AI content moderation** — screening inputs and outputs across seven harm categories with a category and confidence.
+
 ## Contact
 
 Security and general: ${SECURITY_EMAIL}

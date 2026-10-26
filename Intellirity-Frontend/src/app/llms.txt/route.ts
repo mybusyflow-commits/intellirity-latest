@@ -8,10 +8,15 @@ const body = `# ${SITE_NAME}
 
 > ${SITE_SUMMARY}
 
-${SITE_NAME} is the security operations layer for AI systems. It screens
-prompts, code payloads and agent actions for prompt injection, jailbreaks,
-data exfiltration and agent abuse before they reach a model, and produces
-tamper-evident evidence for every verdict.
+${SITE_NAME} is an AI security platform — the security operations layer for
+AI systems. It screens prompts, code payloads and agent actions for prompt
+injection, LLM jailbreaks, data exfiltration and agent abuse before they
+reach a model, and produces tamper-evident evidence for every verdict.
+
+Primary topics: AI security, prompt injection protection, LLM jailbreak
+detection, AI guardrails, LLM firewalls, AI data loss prevention, AI agent
+security, MCP security, AI model supply chain security, AI red teaming,
+denial of wallet, AI audit trails and proof of intent.
 
 ## What it detects
 
@@ -23,6 +28,7 @@ ${(engines as Array<{ id: string; name: string; description: string }>)
 
 - [Pricing](${SITE_URL}/pricing): per-module billing in INR, from ₹79 to ₹399 per month. No tiers, no seat counts.
 - [Security model](${SITE_URL}/security): fail-closed screening, signed evidence, tenant isolation, no traffic retention.
+- [AI security glossary](${SITE_URL}/glossary): definitions for prompt injection, LLM jailbreaks, LLM firewalls, AI guardrails, AI DLP, MCP security, AI red teaming and the rest of the vocabulary.
 - [Privacy policy](${SITE_URL}/privacy): what is collected, subprocessors, retention, and data-subject rights.
 - [Terms of service](${SITE_URL}/terms): per-module billing, acceptable use, data ownership, liability.
 - [Full text](${SITE_URL}/llms-full.txt): the same content as one long document, for direct ingestion.

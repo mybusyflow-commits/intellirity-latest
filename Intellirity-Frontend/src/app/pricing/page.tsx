@@ -1,18 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Pricing } from "@/components/site/pricing";
+import { PAGE_KEYWORDS } from "@/lib/keywords";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Pricing",
+  title: "AI Security Pricing",
   description:
-    "Per-module pricing for Intellirity: nine security modules from ₹79 to ₹399 per month, 20% off when you take all nine. No tiers, no seat counts — toggle the coverage you need and pay exactly the sum.",
+    "AI security pricing by module: nine detection modules from ₹79 to ₹399 per month, 20% off when you take all nine. No tiers, no seat counts — pay for the coverage you run.",
+  keywords: PAGE_KEYWORDS["/pricing"],
   alternates: { canonical: `${SITE_URL}/pricing` },
   robots: { index: true, follow: true },
   openGraph: {
-    title: `Pricing · ${SITE_NAME}`,
+    title: `AI Security Pricing · ${SITE_NAME}`,
     description:
-      "Nine detection modules from ₹79 to ₹399 per month. Toggle the coverage you need and pay exactly the sum.",
+      "Nine AI security modules from ₹79 to ₹399 per month, 20% off all nine. Toggle the coverage you need and pay exactly the sum.",
     url: `${SITE_URL}/pricing`,
     type: "website",
   },
@@ -30,13 +32,15 @@ export default function PricingPage() {
           <span className="text-dim">Pricing</span>
         </nav>
         <h1 className="max-w-2xl font-display text-[clamp(2rem,4vw,3rem)] font-medium leading-[1.08] tracking-[-0.025em]">
-          Pay for the coverage you run.
+          AI security pricing, per module.
         </h1>
         <p className="mt-5 max-w-2xl text-[15.5px] leading-relaxed text-dim">
-          Intellirity is billed per detection module, per month, in Indian
+          Intellirity is billed per AI security module, per month, in Indian
           rupees. There are no tiers and no seat counts: you switch on the
-          engines you need, and the total is the sum of their prices. Prices
-          below are served live from the billing API.
+          detection engines you need and the total is the sum of their prices.
+          AI guardrails, DLP, agent security and evidence each have their own
+          price, and taking all nine is 20% off. Prices below are served live
+          from the billing API.
         </p>
       </main>
       <Pricing />

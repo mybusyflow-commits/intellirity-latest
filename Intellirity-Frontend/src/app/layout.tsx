@@ -25,7 +25,7 @@ import {
    Space Grotesk / Inter / JetBrains Mono fall back gracefully when installed,
    otherwise to metric-adjacent system faces. */
 
-const TITLE_DEFAULT = `${SITE_NAME} | ${SITE_TAGLINE}`;
+const TITLE_DEFAULT = `AI Security Platform · ${SITE_NAME}`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -144,6 +144,15 @@ function JsonLd() {
         applicationSubCategory: "AI/LLM security",
         operatingSystem: "Web",
         description: SITE_SUMMARY,
+        keywords: SITE_KEYWORDS.join(", "),
+        about: [
+          { "@type": "Thing", name: "AI security" },
+          { "@type": "Thing", name: "Prompt injection" },
+          { "@type": "Thing", name: "LLM jailbreak" },
+          { "@type": "Thing", name: "AI data loss prevention" },
+          { "@type": "Thing", name: "AI agent security" },
+          { "@type": "Thing", name: "AI audit trail" },
+        ],
         featureList: [
           "Prompt injection and jailbreak detection",
           "Data loss prevention for prompts and code",

@@ -25,7 +25,7 @@ BROWSER = {
     "Sec-Fetch-Dest": "document",
 }
 
-PUBLIC = ["/", "/engines", "/pricing", "/privacy", "/terms", "/security"]
+PUBLIC = ["/", "/engines", "/pricing", "/glossary", "/privacy", "/terms", "/security"]
 ASSETS = [
     "/sitemap.xml",
     "/robots.txt",

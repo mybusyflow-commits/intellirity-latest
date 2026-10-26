@@ -179,22 +179,23 @@ export function Hero() {
         <div>
           <h1 className="font-display text-[clamp(2.9rem,6vw,4.9rem)] font-semibold leading-[1.02] tracking-[-0.035em]">
             <span className="mask-line pb-1">
-              <span>Intelligent threats</span>
-            </span>
+              <span>AI security for</span>
+            </span>{" "}
             <span className="mask-line pb-1">
-              <span>demand intelligent</span>
-            </span>
+              <span>every prompt, model,</span>
+            </span>{" "}
             <span className="mask-line pb-1">
               <span>
-                security<span className="text-steel">.</span>
+                and agent<span className="text-steel">.</span>
               </span>
             </span>
           </h1>
 
           <p className="hero-fade mt-6 max-w-lg text-[16.5px] leading-relaxed text-dim opacity-0">
-            Intellirity sits in front of your models, agents, and data
-            pipelines, judging every call for injection, jailbreak, and
-            exfiltration in real time, with evidence attached to every verdict.
+            Intellirity is the AI security platform for prompts, models and
+            agents: it judges every call for prompt injection, jailbreaks, data
+            exfiltration and agent abuse in real time, with tamper-evident
+            evidence attached to every verdict.
           </p>
 
           <div className="hero-fade mt-9 flex flex-wrap items-center gap-x-5 gap-y-4 opacity-0">
