@@ -63,70 +63,64 @@ def _authorized_parties() -> list[str]:
     return [p.strip().rstrip("/") for p in raw.split(",") if p.strip()]
 
 
+def _parse_jwks(doc: dict) -> dict:
+    keys = {}
+    for jwk in doc.get("keys", []):
+        if jwk.get("kty") == "RSA" and jwk.get("kid") and jwk.get("n") and jwk.get("e"):
+            keys[jwk["kid"]] = {
+                "n": _b64url_to_int(jwk["n"]),
+                "e": _b64url_to_int(jwk["e"]),
+            }
+    return keys
+
+
+def _fetch_jwks(url: str, headers: dict, timeout: float) -> dict:
+    req = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return _parse_jwks(json.loads(r.read().decode()))
+
+
 def _get_jwks(jwks_url: str) -> dict:
     now = time.time()
     cached = _jwks_cache.get(jwks_url)
     if cached and now - cached[0] < _JWKS_TTL:
         return cached[1]
-    # Clerk's custom domain sits behind Cloudflare. A bare urllib request has
-    # been observed to get challenged from some egress ranges, which surfaced
-    # to the console as "Couldn't fetch signing keys". Identify the client,
-    # retry once, and only then fail.
-    last_error: Exception | None = None
+
     headers = {
         "Accept": "application/json",
         "User-Agent": "Intellirity/1.0 (+https://intellirity.com)",
     }
-    for attempt in range(2):
-        try:
-            req = urllib.request.Request(jwks_url, headers=headers)
-            with urllib.request.urlopen(req, timeout=4) as r:
-                doc = json.loads(r.read().decode())
-            keys = {}
-            for jwk in doc.get("keys", []):
-                if jwk.get("kty") == "RSA" and jwk.get("kid") and jwk.get("n") and jwk.get("e"):
-                    keys[jwk["kid"]] = {
-                        "n": _b64url_to_int(jwk["n"]),
-                        "e": _b64url_to_int(jwk["e"]),
-                    }
-            if keys:
-                _jwks_cache[jwks_url] = (now, keys)
-                return keys
-            last_error = RuntimeError("JWKS contained no RSA signing keys")
-        except Exception as exc:  # network, HTTP status, malformed body
-            last_error = exc
-        if attempt == 0:
-            time.sleep(0.2)
+    last_error: Exception | None = None
 
-    # Clerk's custom frontend domain sits behind Cloudflare, which has been
-    # observed challenging Vercel egress. The Backend API serves the same
-    # signing keys over api.clerk.com (authenticated with the instance
-    # secret), so it is a reliable fallback that does not weaken issuer
-    # pinning: the keys still belong to this Clerk instance only.
+    # Backend API first. Clerk's custom frontend domain is proxied through
+    # Cloudflare; Vercel egress has been observed hanging on it, which made
+    # every console request wait for a network timeout. api.clerk.com is the
+    # same instance's key set over a direct, authenticated API path.
     secret = getattr(settings, "CLERK_SECRET_KEY", "") or ""
     if secret:
         try:
-            req = urllib.request.Request(
+            keys = _fetch_jwks(
                 "https://api.clerk.com/v1/jwks",
-                headers={
-                    **headers,
-                    "Authorization": f"Bearer {secret}",
-                },
+                {**headers, "Authorization": f"Bearer {secret}"},
+                timeout=4,
             )
-            with urllib.request.urlopen(req, timeout=5) as r:
-                doc = json.loads(r.read().decode())
-            keys = {}
-            for jwk in doc.get("keys", []):
-                if jwk.get("kty") == "RSA" and jwk.get("kid") and jwk.get("n") and jwk.get("e"):
-                    keys[jwk["kid"]] = {
-                        "n": _b64url_to_int(jwk["n"]),
-                        "e": _b64url_to_int(jwk["e"]),
-                    }
             if keys:
                 _jwks_cache[jwks_url] = (time.time(), keys)
                 return keys
         except Exception as exc:
             last_error = exc
+
+    for attempt in range(2):
+        try:
+            keys = _fetch_jwks(jwks_url, headers, timeout=4)
+            if keys:
+                _jwks_cache[jwks_url] = (time.time(), keys)
+                return keys
+            last_error = RuntimeError("JWKS contained no RSA signing keys")
+        except Exception as exc:
+            last_error = exc
+        if attempt == 0:
+            time.sleep(0.2)
     raise last_error or RuntimeError("JWKS unavailable")
 
 
