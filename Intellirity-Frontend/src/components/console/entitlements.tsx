@@ -44,7 +44,14 @@ export function EntitlementsProvider({ children }: { children: React.ReactNode }
 
   const refresh = useCallback(async () => {
     try {
-      const next = await getEntitlements();
+      // Never leave the console on "verifying plan" forever if the engine
+      // is unreachable. Eight seconds is generous for a single read.
+      const next = await Promise.race([
+        getEntitlements(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("timeout")), 8000)
+        ),
+      ]);
       setData(next);
       setError("");
     } catch {
