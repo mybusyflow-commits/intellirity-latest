@@ -16,8 +16,8 @@ import { SITE_URL } from "@/lib/site";
    definition, public. Training-only crawlers are therefore allowed too;
    the private paths stay blocked for every agent.
 
-   `Host` is a Yandex directive and takes a bare host, not a URL, so it is
-   emitted without the scheme. `Sitemap` stays absolute.
+   `Sitemap` is absolute. The non-standard `Host` directive is omitted: it
+   is Yandex-specific and validators treat it as noise.
  */
 export default function robots(): MetadataRoute.Robots {
   const disallow = [
@@ -72,6 +72,5 @@ export default function robots(): MetadataRoute.Robots {
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
-    host: SITE_URL.replace(/^https?:\/\//, ""),
   };
 }
