@@ -132,6 +132,33 @@ def main() -> int:
         else:
             print("  yes   engine pins the console's issuer")
 
+    print("\n=== Payments ===")
+    payu_key = (settings.PAYU_KEY_ID or "").strip()
+    payu_salt = (settings.PAYU_KEY_SECRET or "").strip()
+    payu_mode = (settings.PAYU_MODE or "test").strip().lower()
+    if payu_key and payu_salt:
+        print(f"  yes   PayU key {payu_key[:4]}… / salt {len(payu_salt)} chars")
+        if len(payu_salt) != 32:
+            blockers.append("PAYU_KEY_SECRET is not a 32-character PayU salt")
+        if payu_mode == "live":
+            print("  yes   live endpoint (secure.payu.in)")
+        else:
+            print("  note  test endpoint (test.payu.in)")
+            warnings.append("PAYU_MODE is test; set PAYU_MODE=live in Vercel for real money")
+    elif payu_key or payu_salt:
+        print("  NO    only one of PAYU_KEY_ID / PAYU_KEY_SECRET is set")
+        blockers.append("PayU requires both the Key and the Salt")
+    else:
+        print("  NO    no payment provider (production checkout stays disabled)")
+        warnings.append("no payment provider: set PAYU_KEY_ID and PAYU_KEY_SECRET")
+
+    public_site = (settings.PUBLIC_SITE_URL or "").strip()
+    if public_site.startswith("https://"):
+        print(f"  yes   return origin: {public_site}")
+    else:
+        print(f"  note  return origin: {public_site or 'unset'}")
+        warnings.append("PUBLIC_SITE_URL must be https://intellirity.com in Vercel")
+
     print("\n=== Model gateway ===")
     base = os.getenv("OPENCODEZEN_BASE_URL", "https://opencode.ai/zen/v1")
     print(f"  base: {base}")
