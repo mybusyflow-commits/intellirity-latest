@@ -3,8 +3,8 @@
 Contact: mailto:security@intellirity.com
 Expires: 2027-10-01T00:00:00.000Z
 Preferred-Languages: en
-Canonical: https://intellirity.com/.well-known/security.txt
-Policy: https://intellirity.com/security
-Acknowledgments: https://intellirity.com/security
+Canonical: https://www.intellirity.com/.well-known/security.txt
+Policy: https://www.intellirity.com/security
+Acknowledgments: https://www.intellirity.com/security
 # Please include the affected URL, a reproduction, and whether the finding
 # involves customer data. We acknowledge reports within two business days.
