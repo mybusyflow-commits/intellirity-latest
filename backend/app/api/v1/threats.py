@@ -4,6 +4,7 @@ from uuid import uuid4
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from app.core.security import require_user
+from app.core.identity import owner as _owner
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.schemas.schemas import ThreatDetectionResponse
@@ -68,7 +69,7 @@ _INITIAL_THREATS = [
     },
 ]
 
-_memory_threats: list[dict] = [dict(t, origin="sample") for t in _INITIAL_THREATS]
+_memory_threats: list[dict] = [dict(t, origin="sample", owner="demo") for t in _INITIAL_THREATS]
 
 # Monotonic ID counter. IDs were previously derived from len(store),
 # which repeats once the store hits its size cap. A counter never repeats.
@@ -76,7 +77,7 @@ _threat_id_seq = count(4822)
 
 
 def add_threat_event(threat_type: str, severity: str, source: str, description: str,
-                     origin: str = "detection") -> dict:
+                     origin: str = "detection", owner: str = "demo") -> dict:
     """Record a threat.
 
     origin="detection"  — produced by a real engine on real traffic
@@ -92,6 +93,7 @@ def add_threat_event(threat_type: str, severity: str, source: str, description: 
         "is_resolved": False,
         "created_at": datetime.now(timezone.utc),
         "origin": origin,
+        "owner": owner,
     }
     _memory_threats.insert(0, threat)
     return threat
@@ -132,8 +134,16 @@ async def list_threats(
     severity: Optional[str] = None,
     limit: Optional[int] = None,
     cursor: Optional[str] = None,
+    user: dict = Depends(require_user),
 ):
-    results = _memory_threats
+    # Production: only this tenant's detections. Open mode (tests / local
+    # operator, user == {}) keeps the legacy view of the seeded rows.
+    owner = _owner(user) if user else None
+    results = (
+        [t for t in _memory_threats if t.get("owner") == owner]
+        if owner
+        else list(_memory_threats)
+    )
     if status == "active":
         results = [t for t in results if not t["is_resolved"]]
     elif status == "resolved":
@@ -151,17 +161,19 @@ async def list_threats(
 
 
 @router.get("/{threat_id}", response_model=ThreatDetectionResponse)
-async def get_threat(threat_id: str):
+async def get_threat(threat_id: str, user: dict = Depends(require_user)):
+    owner = _owner(user) if user else None
     for t in _memory_threats:
-        if t["id"] == threat_id:
+        if t["id"] == threat_id and (owner is None or t.get("owner") == owner):
             return ThreatDetectionResponse(**t)
     raise HTTPException(status_code=404, detail=f"Threat {threat_id} not found")
 
 
 @router.post("/{threat_id}/resolve", response_model=ThreatDetectionResponse)
-async def resolve_threat(threat_id: str):
+async def resolve_threat(threat_id: str, user: dict = Depends(require_user)):
+    owner = _owner(user) if user else None
     for t in _memory_threats:
-        if t["id"] == threat_id:
+        if t["id"] == threat_id and (owner is None or t.get("owner") == owner):
             t["is_resolved"] = True
             return ThreatDetectionResponse(**t)
     raise HTTPException(status_code=404, detail=f"Threat {threat_id} not found")

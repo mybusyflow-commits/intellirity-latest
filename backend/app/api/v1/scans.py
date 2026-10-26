@@ -48,7 +48,7 @@ _INITIAL_SCANS = [
     },
 ]
 
-_memory_scans: list[dict] = list(_INITIAL_SCANS)
+_memory_scans: list[dict] = [dict(s, owner="demo") for s in _INITIAL_SCANS]
 
 # Monotonic scan counter — ids must never collide between the two write paths.
 _scan_seq = 9100
@@ -210,6 +210,7 @@ def run_full_scan_sync(payload: dict, owner: str | None = None) -> dict:
             severity="high",
             source=target,
             description=f"High risk score ({max_risk:.2f}) detected during security sweep: {all_findings[:1]}",
+            owner=owner or "demo",
         )
     elif max_risk >= 0.3 and fresh:
         add_threat_event(
@@ -217,6 +218,7 @@ def run_full_scan_sync(payload: dict, owner: str | None = None) -> dict:
             severity="medium",
             source=target,
             description=f"Medium risk score ({max_risk:.2f}) detected: {all_findings[:1]}",
+            owner=owner or "demo",
         )
 
     scan_record = {
@@ -228,6 +230,7 @@ def run_full_scan_sync(payload: dict, owner: str | None = None) -> dict:
         "created_at": now,
         "completed_at": now,
         "origin": "detection",
+        "owner": owner or "demo",
         "findings_count": len(all_findings),
     }
     _memory_scans.insert(0, scan_record)
@@ -248,14 +251,17 @@ async def run_full_scan(payload: dict, user: dict = Depends(require_user)):
 
 
 @router.get("/", response_model=list[SecurityScanResponse], dependencies=[Depends(require_user)])
-async def list_scans():
-    return [SecurityScanResponse(**s) for s in _memory_scans]
+async def list_scans(user: dict = Depends(require_user)):
+    owner = _billing_owner(user) if user else None
+    rows = [s for s in _memory_scans if s.get("owner") == owner] if owner else list(_memory_scans)
+    return [SecurityScanResponse(**s) for s in rows]
 
 
 @router.get("/{scan_id}", response_model=SecurityScanResponse, dependencies=[Depends(require_user)])
-async def get_scan(scan_id: str):
+async def get_scan(scan_id: str, user: dict = Depends(require_user)):
+    owner = _billing_owner(user) if user else None
     for s in _memory_scans:
-        if s["id"] == scan_id:
+        if s["id"] == scan_id and (owner is None or s.get("owner") == owner):
             return SecurityScanResponse(**s)
     raise HTTPException(status_code=404, detail=f"Scan {scan_id} not found")
 

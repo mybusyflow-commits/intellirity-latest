@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from app.core.ratelimit import contact_limit, limit
 from app.core.security import require_user
+from app.core.identity import owner as _owner
 
 from app.api.v1.threats import add_threat_event, get_threats_store
 from app.api.v1.scans import get_scans_store
@@ -134,12 +135,12 @@ async def system_health():
 # ─── Live summary / KPIs ──────────────────────────────────────────────────────
 # Operational data: authenticated only (status + contact stay public).
 
-@router.get("/summary", dependencies=[Depends(require_user)])
-async def system_summary():
-    return _summary_payload()
+@router.get("/summary")
+async def system_summary(user: dict = Depends(require_user)):
+    return _summary_payload(owner=_owner(user) if user else None)
 
 
-def _summary_payload() -> dict:
+def _summary_payload(owner: str | None = None, public: bool = False) -> dict:
     """Aggregate KPIs, computed from real detections only.
 
     Shared by the authenticated console summary and the public marketing
@@ -151,7 +152,13 @@ def _summary_payload() -> dict:
 
     # Split the store: real detections vs demo/sample rows. Headline metrics
     # are computed from real detections only so the numbers mean something.
-    real = [t for t in threats if t.get("origin", "detection") == "detection"]
+    # A console request is scoped to its tenant; public marketing data uses
+    # demo rows only and never exposes another workspace's counts.
+    real = [] if public else [
+        t for t in threats
+        if t.get("origin", "detection") == "detection"
+        and (owner is None or t.get("owner") == owner)
+    ]
     synthetic = [t for t in threats if t.get("origin") == "synthetic"]
     sample = [t for t in threats if t.get("origin") == "sample"]
 
@@ -167,7 +174,11 @@ def _summary_payload() -> dict:
     raw_score = 100.0 - (recent_high * 1.5) - (recent_medium * 0.5) - (recent_low * 0.2)
     score = round(max(0.0, min(100.0, raw_score)), 1)
 
-    real_scans = [s for s in scans if s.get("origin", "detection") == "detection"]
+    real_scans = [] if public else [
+        s for s in scans
+        if s.get("origin", "detection") == "detection"
+        and (owner is None or s.get("owner") == owner)
+    ]
     risk_scores = [s.get("risk_score", 0.0) for s in real_scans if s.get("risk_score") is not None]
     avg_risk = round(sum(risk_scores) / len(risk_scores), 3) if risk_scores else 0.0
 
@@ -231,7 +242,7 @@ async def public_stats():
     now = time.monotonic()
     if _public_stats_cache and now - _public_stats_cache[0] < _PUBLIC_TTL:
         return _public_stats_cache[1]
-    body = _summary_payload()
+    body = _summary_payload(public=True)
     _public_stats_cache = (now, body)
     return body
 

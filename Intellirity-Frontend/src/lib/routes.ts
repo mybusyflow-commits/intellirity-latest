@@ -76,6 +76,11 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
     changeFrequency: "monthly",
   },
   {
+    path: "/blog",
+    priority: 0.8,
+    changeFrequency: "weekly",
+  },
+  {
     path: "/privacy",
     priority: 0.5,
     changeFrequency: "yearly",

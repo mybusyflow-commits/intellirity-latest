@@ -9,7 +9,6 @@ import { ThreatPulse } from "@/components/site/threat-pulse";
 import { Platform } from "@/components/site/platform";
 import { KineticBreak } from "@/components/site/kinetic-break";
 import { Scanner } from "@/components/site/scanner";
-import { HowItWorks } from "@/components/site/how-it-works";
 import { Metrics } from "@/components/site/metrics";
 import { Pricing } from "@/components/site/pricing";
 import { Faq, FinalCta, Footer } from "@/components/site/faq-cta-footer";
@@ -74,7 +73,6 @@ export default function Home() {
           <h2 className="reveal sr-only">Scan any target with the live engine</h2>
           <Scanner />
         </section>
-        <HowItWorks />
         <Metrics />
         <Pricing />
         <Faq />

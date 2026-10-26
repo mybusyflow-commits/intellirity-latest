@@ -22,12 +22,23 @@ REALTIME_MODULES = [
 ]
 
 _lock = threading.Lock()
-_state: dict[str, Any] = {
-    "events": [],            # newest first, capped
-    "monitored": {},         # agent_id -> {risk, last_seen, events}
-    "aggregate_risk": 0.0,
-    "totals": {"block": 0, "flag": 0, "allow": 0},
-}
+# One feed per tenant. A shared feed leaked one workspace's agents and events
+# into another's dashboard.
+_states: dict[str, dict[str, Any]] = {}
+
+
+def _state_for(owner: str | None) -> dict[str, Any]:
+    key = owner or "demo"
+    state = _states.get(key)
+    if state is None:
+        state = {
+            "events": [],            # newest first, capped
+            "monitored": {},         # agent_id -> {risk, last_seen, events}
+            "aggregate_risk": 0.0,
+            "totals": {"block": 0, "flag": 0, "allow": 0},
+        }
+        _states[key] = state
+    return state
 
 
 def _score_event(event: dict, owner: str | None = None) -> dict:
@@ -72,24 +83,26 @@ def ingest(event: dict, owner: str | None = None) -> dict:
         "summary": (scored["findings"][0] if scored["findings"] else "No issues detected"),
     }
     with _lock:
-        _state["events"].insert(0, record)
-        _state["events"] = _state["events"][:50]
-        _state["totals"][scored["verdict"]] = _state["totals"].get(scored["verdict"], 0) + 1
-        recent = _state["events"][:10]
+        state = _state_for(owner)
+        state["events"].insert(0, record)
+        state["events"] = state["events"][:50]
+        state["totals"][scored["verdict"]] = state["totals"].get(scored["verdict"], 0) + 1
+        recent = state["events"][:10]
         if recent:
-            _state["aggregate_risk"] = round(sum(e["risk_score"] for e in recent) / len(recent), 3)
-        m = _state["monitored"].setdefault(agent_id, {"risk": 0.0, "last_seen": 0.0, "events": 0})
+            state["aggregate_risk"] = round(sum(e["risk_score"] for e in recent) / len(recent), 3)
+        m = state["monitored"].setdefault(agent_id, {"risk": 0.0, "last_seen": 0.0, "events": 0})
         m["risk"] = scored["risk_score"]
         m["last_seen"] = record["ts"]
         m["events"] += 1
     return record
 
 
-def get_feed() -> dict:
+def get_feed(owner: str | None = None) -> dict:
     with _lock:
+        state = _state_for(owner)
         return {
-            "aggregate_risk": _state["aggregate_risk"],
-            "totals": _state["totals"],
-            "monitored": _state["monitored"],
-            "events": _state["events"],
+            "aggregate_risk": state["aggregate_risk"],
+            "totals": state["totals"],
+            "monitored": state["monitored"],
+            "events": state["events"],
         }

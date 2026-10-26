@@ -14,6 +14,7 @@ from typing import Optional
 import httpx
 
 from app.core.security import require_user
+from app.core.identity import owner as _billing_owner
 from app.api.v1.threats import add_threat_event
 from app.services.feature_registry import FEATURE_REGISTRY
 
@@ -137,7 +138,8 @@ async def proxy_chat(body: ProxyChatBody, user: dict = Depends(require_user)):
     if gate["verdict"] == "block":
         add_threat_event(threat_type="Proxy Input Block", severity="high",
                          source="reverse-proxy",
-                         description=f"Blocked upstream call: {str(gate['details'])[:180]}")
+                         description=f"Blocked upstream call: {str(gate['details'])[:180]}",
+                         owner=_billing_owner(user))
         if gate.get("screening_error"):
             raise HTTPException(status_code=503, detail="Screening engine unavailable — request denied (fail closed)")
         return {"verdict": "block", "upstream_called": False,
@@ -194,7 +196,8 @@ async def proxy_chat(body: ProxyChatBody, user: dict = Depends(require_user)):
     if out["verdict"] == "block":
         add_threat_event(threat_type="Proxy Output Block", severity="high",
                          source="reverse-proxy",
-                         description=f"Blocked upstream reply: {str(out['details'])[:180]}")
+                         description=f"Blocked upstream reply: {str(out['details'])[:180]}",
+                         owner=_billing_owner(user))
         if out.get("screening_error"):
             raise HTTPException(status_code=503, detail="Output screening unavailable — reply withheld (fail closed)")
         return {"verdict": "flag", "upstream_called": True, "assistant": None,

@@ -19,7 +19,7 @@ export function Faq() {
       <section id="faq" className="relative z-10 mx-auto max-w-[860px] px-6 pt-24 md:pt-32">
         <div className="mb-10">
           <div className="reveal mb-4 flex items-center gap-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-faint">
-            <span className="text-steel">07</span>
+            <span className="text-steel">06</span>
             <span className="h-px w-8 bg-line-strong" />
             questions
           </div>
@@ -128,7 +128,7 @@ function ContactForm() {
     setState("sending");
     setNote("");
     try {
-      const r = await sendContact({
+      await sendContact({
         name: name.trim(),
         email: email.trim(),
         subject: "Landing contact",
@@ -136,7 +136,7 @@ function ContactForm() {
         ...(token !== "" ? { turnstile_token: token } : {}),
       });
       setState("sent");
-      setNote(`Received · ticket ${r.ticket}. We reply on business days.`);
+      setNote("Thanks — your message has been received. We'll get back to you shortly.");
       setName("");
       setEmail("");
       setMessage("");

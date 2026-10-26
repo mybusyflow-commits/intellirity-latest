@@ -197,6 +197,7 @@ async def run_module_scan(module_id: str, payload: dict, user: dict = Depends(re
                 severity="high",
                 source=payload.get("source", "Model Inference Engine"),
                 description=f"BLOCKED attack via {module_info['name']}: {findings[:1] if findings else 'High risk detection'}",
+                owner=owner,
             )
         elif verdict == "flag" or risk_score >= 0.3:
             add_threat_event(
@@ -204,6 +205,7 @@ async def run_module_scan(module_id: str, payload: dict, user: dict = Depends(re
                 severity="medium",
                 source=payload.get("source", "Model Inference Engine"),
                 description=f"FLAGGED suspicious activity via {module_info['name']}: {findings[:1] if findings else 'Medium risk detection'}",
+                owner=owner,
             )
 
     return {"module_id": module_id, "module_name": module_info["name"], "result": result, "cached": cached}

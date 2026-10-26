@@ -50,7 +50,7 @@ export function ClerkSignIn() {
   return (
     <>
       <Suspense fallback={<Pending mode="sign-in" />}>
-        <SignIn />
+        <SignIn fallbackRedirectUrl="/console" signUpFallbackRedirectUrl="/console" />
       </Suspense>
       <LocalhostNotice />
     </>
@@ -61,7 +61,7 @@ export function ClerkSignUp() {
   return (
     <>
       <Suspense fallback={<Pending mode="sign-up" />}>
-        <SignUp />
+        <SignUp fallbackRedirectUrl="/console" signInFallbackRedirectUrl="/console" />
       </Suspense>
       <LocalhostNotice />
     </>

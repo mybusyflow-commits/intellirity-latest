@@ -25,7 +25,7 @@ BROWSER = {
     "Sec-Fetch-Dest": "document",
 }
 
-PUBLIC = ["/", "/engines", "/pricing", "/glossary", "/about", "/privacy", "/terms", "/security"]
+PUBLIC = ["/", "/engines", "/pricing", "/glossary", "/about", "/blog", "/privacy", "/terms", "/security"]
 ASSETS = [
     "/sitemap.xml",
     "/robots.txt",
@@ -115,7 +115,9 @@ def main(argv: list[str] | None = None) -> int:
         if path == "/robots.txt" and status == 200:
             rb = body.decode("utf-8", "replace")
             check("robots points at the sitemap", "Sitemap:" in rb)
-            check("robots disallows /console", "Disallow: /console" in rb or "/console" in rb)
+            check("robots allows the blog", "Disallow: /blog" not in rb, "")
+            check("robots allows engines", "Disallow: /engines" not in rb, "")
+            check("robots allows pricing", "Disallow: /pricing" not in rb, "")
         if path == "/.well-known/security.txt" and status == 200:
             sb = body.decode("utf-8", "replace")
             check("security.txt has a contact", "Contact:" in sb)

@@ -77,6 +77,8 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: "/favicon.ico", sizes: "any", type: "image/x-icon" },
+      { url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" },
       { url: "/favicon.png", type: "image/png", sizes: "64x64" },
       { url: "/favicon-full.png", type: "image/png", sizes: "512x512" },
     ],
@@ -271,6 +273,8 @@ export default function RootLayout({
             signInUrl="/sign-in"
             signUpUrl="/sign-up"
             afterSignOutUrl="/"
+            signInFallbackRedirectUrl="/console"
+            signUpFallbackRedirectUrl="/console"
           >
             <AuthBridge />
             {bodyInner}

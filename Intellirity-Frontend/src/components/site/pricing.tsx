@@ -58,7 +58,8 @@ export function Pricing() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [result, setResult] = useState<{ kind: "success" | "failed"; order: string } | null>(null);
-  const [selected, setSelected] = useState<string[]>(["injection-shield", "leakage-guard"]);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [openTier, setOpenTier] = useState<"basic" | "core" | null>(null);
   const [order, setOrder] = useState<{ order_id: string; total_inr: number; status: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -119,7 +120,11 @@ export function Pricing() {
   useEffect(() => {
     const wanted = new URLSearchParams(window.location.search).get("module");
     if (!wanted) return;
-    if (products.some((p) => p.id === wanted)) setSelected([wanted]);
+    const product = products.find((p) => p.id === wanted);
+    if (product) {
+      setSelected([wanted]);
+      setOpenTier(product.tier);
+    }
   }, [products]);
 
   const pricing = useMemo(() => {
@@ -189,7 +194,7 @@ export function Pricing() {
             </div>
           )}
           <div className="reveal mb-4 flex items-center gap-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-faint">
-            <span className="text-steel">06</span>
+            <span className="text-steel">05</span>
             <span className="h-px w-8 bg-line-strong" />
             pricing
           </div>
@@ -197,8 +202,8 @@ export function Pricing() {
             One plan. Pick your modules.
           </h2>
           <p className="reveal mt-4 max-w-lg text-[14.5px] leading-relaxed text-dim">
-            No tiers, no seats. Toggle the coverage you need — basics from ₹79,
-            the trust core up to ₹399 — and pay exactly the sum. Take all{" "}
+            No plan tiers, no seats. Choose a group below to see its modules,
+            toggle the coverage you need, and pay exactly the sum. Take all{" "}
             {products.length} modules together and save {bundlePct}%.
             {live ? " Prices live from billing." : ""}
           </p>
@@ -227,6 +232,11 @@ export function Pricing() {
               </span>{" "}
               · full coverage −{pricing.discountPct}% · save ₹
               {pricing.discount.toLocaleString("en-IN")}/mo
+            </p>
+          )}
+          {selected.length === 0 && (
+            <p className="mt-1 font-mono text-[10.5px] leading-relaxed text-faint">
+              Choose Basics or Trust Core below to start.
             </p>
           )}
           {paymentMode === "payu" && (
@@ -297,26 +307,70 @@ export function Pricing() {
         </div>
       </div>
 
-      {(basics.length > 0 || core.length > 0) && (
-        <p className="reveal mb-4 font-mono text-[11px] uppercase tracking-[0.16em] text-faint">
-          basics · ₹79–99
-        </p>
-      )}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {basics.map((p) => (
-          <ModuleCard key={p.id} p={p} on={selected.includes(p.id)} onToggle={() => toggle(p.id)} />
-        ))}
+      <div className="reveal grid gap-3 sm:grid-cols-2">
+        {[
+          {
+            key: "basic" as const,
+            title: "Basics",
+            count: basics.length,
+            range: "₹79–99",
+            note: "Injection, code, leakage, content, agents and spend.",
+          },
+          {
+            key: "core" as const,
+            title: "Trust Core",
+            count: core.length,
+            range: "₹299–399",
+            note: "Escrow, evidence ledger and proof of intent.",
+          },
+        ].map((tier) => {
+          const open = openTier === tier.key;
+          const picked = (tier.key === "basic" ? basics : core).filter((p) =>
+            selected.includes(p.id)
+          ).length;
+          return (
+            <button
+              key={tier.key}
+              type="button"
+              aria-expanded={open}
+              onClick={() => setOpenTier(open ? null : tier.key)}
+              className={cn(
+                "group flex items-center justify-between gap-4 rounded-lg border px-5 py-4 text-left transition-colors",
+                open ? "border-steel/60 bg-raise" : "border-line bg-bg hover:border-line-strong"
+              )}
+            >
+              <span>
+                <span className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="text-[15px] font-medium">{tier.title}</span>
+                  <span className="font-mono text-[10.5px] text-faint">
+                    {tier.count} modules · {tier.range}/mo
+                  </span>
+                </span>
+                <span className="mt-1 block text-[12.5px] text-faint">{tier.note}</span>
+              </span>
+              <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] text-steel">
+                {picked > 0 ? `${picked} selected` : open ? "hide" : "reveal"}
+              </span>
+            </button>
+          );
+        })}
       </div>
-      {core.length > 0 && (
-        <p className="reveal mb-4 mt-10 font-mono text-[11px] uppercase tracking-[0.16em] text-faint">
-          trust core · ₹299–399
-        </p>
+
+      {openTier === "basic" && (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {basics.map((p) => (
+            <ModuleCard key={p.id} p={p} on={selected.includes(p.id)} onToggle={() => toggle(p.id)} />
+          ))}
+        </div>
       )}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {core.map((p) => (
-          <ModuleCard key={p.id} p={p} on={selected.includes(p.id)} onToggle={() => toggle(p.id)} />
-        ))}
-      </div>
+
+      {openTier === "core" && (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {core.map((p) => (
+            <ModuleCard key={p.id} p={p} on={selected.includes(p.id)} onToggle={() => toggle(p.id)} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

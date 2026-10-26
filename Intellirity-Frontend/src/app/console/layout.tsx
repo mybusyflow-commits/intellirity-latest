@@ -74,12 +74,13 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
     return <ConsoleShell>{children}</ConsoleShell>;
   }
 
+  // Cheap server-side check for a clearly anonymous request (no cookies at
+  // all). A request that carries any cookie is decided by Clerk on the
+  // client, so a renamed or partitioned session cookie is not mistaken for
+  // a signed-out user. ConsoleGate does the authoritative isSignedIn check;
+  // the API remains the authorization boundary.
   const store = await cookies();
-  const uat = store.get("__client_uat")?.value;
-  const hasSession =
-    store.getAll().some((c) => c.name.startsWith("__session") && c.value) ||
-    (Boolean(uat) && uat !== "0");
-  if (!hasSession) {
+  if (store.getAll().length === 0) {
     redirect("/sign-in?redirect_url=%2Fconsole");
   }
 

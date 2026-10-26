@@ -13,6 +13,6 @@ async def ingest_event(payload: dict, user: dict = Depends(require_user)):
 
 
 @router.get("/feed")
-async def feed(_: object = Depends(require_user)):
-    """Return the rolling live risk feed."""
-    return get_feed()
+async def feed(user: dict = Depends(require_user)):
+    """Return this workspace's rolling live risk feed."""
+    return get_feed(owner=_billing_owner(user))
