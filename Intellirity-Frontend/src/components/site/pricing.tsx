@@ -47,6 +47,8 @@ export function Pricing() {
   const [live, setLive] = useState(false);
   // Mirrors the engine's bundle rule; replaced by the API value on load.
   const [bundlePct, setBundlePct] = useState(20);
+  // Which provider the engine says is live: "razorpay" | "payu" | "dev".
+  const [paymentMode, setPaymentMode] = useState<"razorpay" | "payu" | "dev">("dev");
   const [selected, setSelected] = useState<string[]>(["injection-shield", "leakage-guard"]);
   const [order, setOrder] = useState<{ order_id: string; total_inr: number; status: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -82,6 +84,9 @@ export function Pricing() {
         if (j.bundle && typeof j.bundle.discount_pct === "number") {
           setBundlePct(j.bundle.discount_pct);
         }
+        if (j.payment === "razorpay" || j.payment === "payu") {
+          setPaymentMode(j.payment);
+        }
       })
       .catch(() => {});
     return () => {
@@ -103,6 +108,11 @@ export function Pricing() {
 
   const toggleAll = () =>
     setSelected(pricing.allSelected ? [] : products.map((p) => p.id));
+
+  // Never let a production visitor create a fake "pending-payment" order.
+  // Checkout is only offered when the engine reports a live provider.
+  const isProduction = process.env.NEXT_PUBLIC_DEPLOY_ENV === "production";
+  const paymentsDisabled = isProduction && paymentMode === "dev";
 
   async function checkout() {
     if (selected.length === 0 || busy) return;
@@ -197,12 +207,21 @@ export function Pricing() {
           )}
           <button
             onClick={checkout}
-            disabled={busy || selected.length === 0}
+            disabled={busy || selected.length === 0 || paymentsDisabled}
             className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-ink text-[13.5px] font-medium text-bg transition-colors hover:bg-white disabled:opacity-60"
           >
-            {busy ? "creating order…" : "Checkout bundle"}
-            <ArrowRight className="size-4" />
+            {paymentsDisabled
+              ? "Payments not enabled"
+              : busy
+                ? "creating order…"
+                : "Checkout bundle"}
+            {!paymentsDisabled && <ArrowRight className="size-4" />}
           </button>
+          {paymentsDisabled && (
+            <p className="mt-2.5 font-mono text-[10.5px] leading-relaxed text-faint">
+              Checkout is disabled until a payment provider is configured.
+            </p>
+          )}
           {order && (
             <p className="mt-2.5 font-mono text-[11px] leading-relaxed text-ok">
               {order.order_id} · ₹{order.total_inr.toLocaleString("en-IN")} · {order.status}
