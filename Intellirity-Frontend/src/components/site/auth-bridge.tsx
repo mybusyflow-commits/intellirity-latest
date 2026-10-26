@@ -12,11 +12,15 @@ import { markAuthReady, setTokenGetter } from "@/lib/api";
    cached token must be bypassed after a switch — otherwise the engine
    would keep billing the previous tenant. */
 export function AuthBridge() {
-  const { getToken, isSignedIn } = useAuth();
+  const { getToken, isLoaded, isSignedIn } = useAuth();
   const { session } = useSession();
   const lastSessionId = useRef<string | null>(null);
 
   useEffect(() => {
+    // Do not install a getter until Clerk has resolved the session: a
+    // getter that returns null during the first render caused a 401 burst
+    // from console effects that ran before Clerk was ready.
+    if (!isLoaded) return;
     setTokenGetter(async () => {
       if (!isSignedIn) return null;
       try {
@@ -37,7 +41,7 @@ export function AuthBridge() {
     markAuthReady();
     window.dispatchEvent(new Event("intellirity:auth-ready"));
     return () => setTokenGetter(null);
-  }, [getToken, isSignedIn, session?.id]);
+  }, [getToken, isLoaded, isSignedIn, session?.id]);
 
   return null;
 }
