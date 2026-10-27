@@ -538,3 +538,32 @@ authenticated/utility pages and carry `noindex`.
 
 If you later set `intellirity.com` as the primary domain in Vercel, redeploy:
 the constants above follow it automatically and the sitemap flips to apex.
+
+## Merchant details for PayU review
+
+The public policy set PayU reviews is now live: `/pricing`, `/terms`,
+`/privacy`, `/refund-policy`, `/delivery`, `/contact`. `/research`,
+`/careers` and `/about` complete the company pages.
+
+Set these in Vercel (Production) with the registered details, then redeploy:
+
+| Key | Example |
+|---|---|
+| `NEXT_PUBLIC_COMPANY_LEGAL_NAME` | the exact legal entity on the PayU KYC |
+| `NEXT_PUBLIC_COMPANY_ADDRESS` | full registered address, including PIN |
+| `NEXT_PUBLIC_COMPANY_PHONE` | support phone number |
+| `NEXT_PUBLIC_COMPANY_GSTIN` | GSTIN, if registered |
+| `PUBLIC_SITE_URL` | `https://www.intellirity.com` |
+
+The contact page renders "Available on request" for an unset address or
+phone. PayU generally rejects that; fill the values before replying to the
+clarification.
+
+PayU also needs a working mailbox: the apex currently has **no MX and no
+SPF**, and DMARC is `p=none`. Add the mail provider records at Vercel DNS,
+create `security@`, `privacy@`, `legal@` and a billing address, then test.
+
+Health checks: both `HEAD` and `GET` are supported on `/health`,
+`/backend/system/health` and `/backend/system/status`. Point UptimeRobot at
+`https://www.intellirity.com/backend/system/health` and use www, not the
+apex redirect.
