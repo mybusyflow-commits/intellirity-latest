@@ -133,6 +133,14 @@ export default function PricingPage() {
             </dd>
           </div>
         </dl>
+        <div className="mt-10 flex flex-wrap gap-x-5 gap-y-2 border-t border-line pt-6 font-mono text-[10.5px] uppercase tracking-[0.1em] text-faint">
+          <span>Prices in INR ? 30-day access per module</span>
+          <Link href="/refund-policy" className="transition-colors hover:text-ink">Refund &amp; cancellation</Link>
+          <Link href="/delivery" className="transition-colors hover:text-ink">Delivery</Link>
+          <Link href="/contact" className="transition-colors hover:text-ink">Contact</Link>
+          <Link href="/terms" className="transition-colors hover:text-ink">Terms</Link>
+          <Link href="/privacy" className="transition-colors hover:text-ink">Privacy</Link>
+        </div>
       </div>
     </>
   );
