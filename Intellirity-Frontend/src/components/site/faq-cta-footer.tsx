@@ -244,9 +244,9 @@ const FOOTER_COLS: Array<{ title: string; links: FooterLink[] }> = [
     title: "Company",
     links: [
       { label: "About", href: "/about" },
-      { label: "Research", modal: "research" },
-      { label: "Careers", modal: "careers" },
-      { label: "Contact", modal: "contact" },
+      { label: "Research", href: "/research" },
+      { label: "Careers", href: "/careers" },
+      { label: "Contact", href: "/contact" },
     ],
   },
 ];
@@ -255,6 +255,8 @@ const LEGAL_LINKS: FooterLink[] = [
   { label: "Privacy policy", href: "/privacy" },
   { label: "Terms & conditions", href: "/terms" },
   { label: "Security model", href: "/security" },
+  { label: "Refund policy", href: "/refund-policy" },
+  { label: "Delivery policy", href: "/delivery" },
   { label: "Cookie policy", href: "/privacy" },
 ];
 

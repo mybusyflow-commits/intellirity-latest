@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
+import { JetBrains_Mono, Manrope, Sora } from "next/font/google";
 import "./globals.css";
 import { DarkEnforcer } from "@/components/fx/dark-enforcer";
 import { Analytics } from "@/components/site/analytics";
@@ -21,9 +22,28 @@ import {
   SECURITY_EMAIL,
 } from "@/lib/site";
 
-/* Local system font stacks: no network dependency at build or runtime.
-   Space Grotesk / Inter / JetBrains Mono fall back gracefully when installed,
-   otherwise to metric-adjacent system faces. */
+/* Self-hosted by next/font at build time (no runtime request to Google).
+   Sora gives the display type a sharper geometric voice; Manrope is a more
+   readable body face than the system default; JetBrains Mono keeps the
+   console and evidence UI technical without looking generic. */
+const displayFont = Sora({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-sora",
+  display: "swap",
+});
+const bodyFont = Manrope({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-manrope",
+  display: "swap",
+});
+const monoFont = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-jbmono",
+  display: "swap",
+});
 
 const TITLE_DEFAULT = `AI Security Platform · ${SITE_NAME}`;
 
@@ -266,7 +286,7 @@ export default function RootLayout({
   );
 
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className={`dark ${displayFont.variable} ${bodyFont.variable} ${monoFont.variable}`}>
       <body className="bg-bg font-sans text-ink antialiased">
         {CLERK_KEY ? (
           <ClerkProvider

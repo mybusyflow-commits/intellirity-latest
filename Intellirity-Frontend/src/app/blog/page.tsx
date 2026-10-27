@@ -63,12 +63,12 @@ export default function BlogPage() {
   };
 
   return (
-    <div className="min-h-screen bg-bg text-ink">
+    <div className="page-aurora min-h-screen bg-bg text-ink">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
-      <header className="border-b border-line">
+      <header className="border-b border-white/[0.06] bg-black/10 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-[1100px] items-center justify-between px-5 sm:px-8">
           <Link href="/" aria-label="Intellirity home">
             <Logo />
@@ -123,6 +123,33 @@ export default function BlogPage() {
           ))}
         </div>
 
+        <Link
+          href={`/blog/${BLOG_POSTS[0].slug}`}
+          className="glass-panel group mt-12 grid gap-6 rounded-2xl p-6 transition-colors hover:border-white/20 sm:p-8 lg:grid-cols-[1.2fr,0.8fr]"
+        >
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-steel">
+              Featured / {BLOG_POSTS[0].category}
+            </p>
+            <h2 className="mt-3 font-display text-[clamp(1.7rem,3.4vw,2.5rem)] font-medium leading-[1.08] tracking-[-0.03em]">
+              {BLOG_POSTS[0].title}
+            </h2>
+            <p className="mt-4 max-w-[58ch] text-[14.5px] leading-relaxed text-dim">
+              {BLOG_POSTS[0].description}
+            </p>
+            <span className="mt-6 inline-flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-steel">
+              Read the guide <span aria-hidden>?</span>
+            </span>
+          </div>
+          <div className="flex flex-col justify-between rounded-xl border border-white/[0.07] bg-black/20 p-5 font-mono text-[10.5px] uppercase tracking-[0.12em] text-faint">
+            <span>{BLOG_POSTS[0].readingMinutes} min read</span>
+            <span className="mt-8 leading-relaxed normal-case tracking-normal text-dim">
+              The 2026 guide to what AI security covers, where traditional controls stop, and the sequence that actually reduces blast radius.
+            </span>
+            <span className="mt-8 text-steel">Start here</span>
+          </div>
+        </Link>
+
         <div className="mt-16 space-y-16">
           {BLOG_CATEGORIES.map((category) => {
             const posts = BLOG_POSTS.filter((p) => p.category === category);
@@ -141,7 +168,7 @@ export default function BlogPage() {
                   {posts.map((post) => (
                     <article
                       key={post.slug}
-                      className="group rounded-lg border border-line bg-raise/30 p-5 transition-colors hover:border-line-strong"
+                      className="glass-panel-soft group rounded-2xl p-5 transition-colors hover:border-white/20"
                     >
                       <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-faint">
                         {new Date(post.date).toLocaleDateString("en-GB", {
@@ -174,7 +201,7 @@ export default function BlogPage() {
           })}
         </div>
 
-        <div className="mt-20 flex flex-wrap items-center gap-3 border-t border-line pt-8">
+        <div className="mt-20 flex flex-wrap items-center gap-3 border-t border-white/[0.06] pt-8">
           <Link
             href="/engines"
             className="inline-flex h-10 items-center rounded bg-ink px-5 text-[13px] font-medium text-bg transition-colors hover:bg-white"

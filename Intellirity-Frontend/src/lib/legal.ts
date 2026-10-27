@@ -86,7 +86,7 @@ export const LEGAL_DOCS: Record<string, LegalDoc> = {
       {
         heading: "The service",
         body: [
-          "Intellirity provides AI security enforcement as a subscription service. Billing is per module, per month. You choose the modules your workspace runs; the price is shown live in the pricing builder before you check out. Paid plans are cancelable at any time, and annual plans are refunded pro rata.",
+          "Intellirity provides AI security enforcement as a per-module service. Each payment covers one module for 30 days. You choose the modules your workspace runs; the price is shown live in the pricing builder before you check out. Nothing renews automatically. You cancel by not renewing, and access continues until the end of the paid period. Refund and delivery terms are set out in the refund policy.",
           "The free tier includes a working engine so you can evaluate the product before paying. It is not a time-limited trial of a different product.",
         ],
       },
@@ -316,7 +316,7 @@ export const LEGAL_DOCS: Record<string, LegalDoc> = {
       {
         heading: "Channels",
         body: [
-          "Sales and general questions: " + CONTACT_EMAIL + ". We reply on business days.",
+          "Sales and general questions: " + CONTACT_EMAIL + ". We read every message and usually reply within two working days.",
           "Security issues: " + SECURITY_EMAIL + ". Encrypted reports welcome, triaged first, safe-harbor for good-faith research.",
           "Legal and privacy: " + LEGAL_EMAIL + ".",
         ],

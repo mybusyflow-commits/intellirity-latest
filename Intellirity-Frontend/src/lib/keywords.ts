@@ -132,6 +132,35 @@ export const PAGE_KEYWORDS: Record<string, string[]> = {
     "AI security team",
     "Shreyansh Krishna",
   ],
+  "/research": [
+    "AI security research",
+    "prompt injection research",
+    "AI agent abuse research",
+    "LLM red teaming",
+    "responsible disclosure AI",
+  ],
+  "/careers": [
+    "Intellirity careers",
+    "AI security jobs",
+    "LLM security engineer",
+    "AI security researcher",
+  ],
+  "/contact": [
+    "contact Intellirity",
+    "AI security support",
+    "AI security company contact",
+    "billing support India",
+  ],
+  "/refund-policy": [
+    "Intellirity refund policy",
+    "AI security subscription refund",
+    "cancellation policy",
+  ],
+  "/delivery": [
+    "Intellirity delivery policy",
+    "digital service delivery",
+    "AI security activation",
+  ],
   "/privacy": ["AI privacy", "AI data processing", "AI data retention"],
   "/terms": ["AI security terms", "acceptable use", "AI platform terms"],
 };

@@ -81,6 +81,31 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
     changeFrequency: "weekly",
   },
   {
+    path: "/research",
+    priority: 0.7,
+    changeFrequency: "monthly",
+  },
+  {
+    path: "/careers",
+    priority: 0.6,
+    changeFrequency: "monthly",
+  },
+  {
+    path: "/contact",
+    priority: 0.6,
+    changeFrequency: "yearly",
+  },
+  {
+    path: "/refund-policy",
+    priority: 0.4,
+    changeFrequency: "yearly",
+  },
+  {
+    path: "/delivery",
+    priority: 0.4,
+    changeFrequency: "yearly",
+  },
+  {
     path: "/privacy",
     priority: 0.5,
     changeFrequency: "yearly",

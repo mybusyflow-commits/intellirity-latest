@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PageShell, GlassSection } from "@/components/site/page-shell";
 import { PAGE_KEYWORDS } from "@/lib/keywords";
-import { SITE_NAME, SITE_URL, SECURITY_EMAIL } from "@/lib/site";
+import { SECURITY_EMAIL, SITE_NAME, SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: { absolute: "About Intellirity" },
@@ -71,102 +72,62 @@ export default function AboutPage() {
         "@type": "BreadcrumbList",
         "@id": `${SITE_URL}/about#breadcrumb`,
         itemListElement: [
-          {
-            "@type": "ListItem",
-            position: 1,
-            name: "Home",
-            item: SITE_URL,
-          },
-          {
-            "@type": "ListItem",
-            position: 2,
-            name: "About",
-            item: `${SITE_URL}/about`,
-          },
+          { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+          { "@type": "ListItem", position: 2, name: "About", item: `${SITE_URL}/about` },
         ],
       },
     ],
   };
 
   return (
-    <main className="mx-auto w-full max-w-[820px] px-5 pb-24 pt-16 sm:px-8 sm:pt-24">
+    <PageShell
+      eyebrow="Company"
+      title="AI security is a discipline, not a feature."
+      lead="Intellirity is an AI security company building the security operations layer for prompts, models and agents. We judge every call, enforce policy, and attach tamper-evident evidence to every verdict."
+    >
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
 
-      <nav
-        aria-label="Breadcrumb"
-        className="mb-8 font-mono text-[11px] uppercase tracking-[0.14em] text-faint"
-      >
-        <Link href="/" className="inline-flex min-h-6 items-center transition-colors hover:text-ink">
-          {SITE_NAME}
-        </Link>
-        <span className="mx-2">/</span>
-        <span className="text-dim">About</span>
-      </nav>
-
-      <article>
-        <h1 className="text-[clamp(2.1rem,5vw,3.1rem)] font-medium leading-[1.08] tracking-[-0.025em]">
-          AI security is a discipline, not a feature.
-        </h1>
-        <p className="mt-6 max-w-[66ch] text-[17px] leading-relaxed text-dim">
-          Intellirity is an AI security company building the security
-          operations layer for AI systems. We sit in front of models, agents
-          and data pipelines, judge every call for injection, jailbreak and
-          exfiltration, and attach tamper-evident evidence to every verdict.
-        </p>
-
-        <section className="mt-12">
-          <h2 className="font-mono text-[11.5px] uppercase tracking-[0.14em] text-steel">
-            What we do
-          </h2>
-          <p className="mt-3 text-[15px] leading-[1.75] text-dim">
-            Intellirity is the security operations layer for AI systems. We
-            sit in front of your models, agents and data pipelines and judge
-            every call for injection, jailbreak and exfiltration in real
-            time, with evidence attached to every verdict.
+      <div className="grid gap-4 lg:grid-cols-2">
+        <GlassSection eyebrow="01" title="What we do">
+          <p>
+            We sit in front of your models, agents and data pipelines and judge
+            every call for injection, jailbreak and exfiltration in real time.
+            The product is the enforcement and the evidence, not a dashboard
+            that scores risk without changing what the system is allowed to do.
           </p>
-          <p className="mt-3 text-[15px] leading-[1.75] text-dim">
-            Intellirity was founded by Shreyansh Krishna after watching the
-            first wave of prompt-injection incidents and concluding that AI
-            needs its own security stack, not a repurposed web application
-            firewall.
+          <p className="mt-3">
+            Intellirity was founded by Shreyansh Krishna after watching the first
+            wave of prompt-injection incidents and concluding that AI needs its
+            own security stack, not a repurposed web application firewall.
           </p>
-        </section>
+        </GlassSection>
 
-        <section className="mt-10">
-          <h2 className="font-mono text-[11.5px] uppercase tracking-[0.14em] text-steel">
-            How we operate
-          </h2>
-          <p className="mt-3 text-[15px] leading-[1.75] text-dim">
+        <GlassSection eyebrow="02" title="How we operate">
+          <p>
             Layered detection patterns maintained against current attack
             technique, policy bundles pinned per model, and an immutable
-            evidence vault on every plan. We publish what the product
-            enforces and we do not claim certifications we cannot show; the{" "}
-            <Link
-              href="/security"
-              className="text-ink underline decoration-steel/60 underline-offset-2"
-            >
+            evidence vault on every plan.
+          </p>
+          <p className="mt-3">
+            We publish what the product enforces and we do not claim
+            certifications we cannot show. The{" "}
+            <Link href="/security" className="text-ink underline decoration-steel/50 underline-offset-4">
               security model
             </Link>{" "}
             is the honest version of that claim.
           </p>
-        </section>
+        </GlassSection>
+      </div>
 
-        <section id="founder" className="mt-14 scroll-mt-24 border-t border-line pt-12">
-          <h2 className="font-mono text-[11.5px] uppercase tracking-[0.14em] text-steel">
-            Meet the founder
-          </h2>
-          <h3 className="mt-4 text-[28px] font-medium tracking-[-0.02em]">
-            Shreyansh Krishna
-          </h3>
-          <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.12em] text-faint">
-            Founder of Intellirity · Developer · AI &amp; Cybersecurity
-            Enthusiast · Entrepreneur
+      <div className="mt-4 grid gap-4 lg:grid-cols-[1.15fr,0.85fr]">
+        <GlassSection eyebrow="Founder" title="Shreyansh Krishna">
+          <p className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-faint">
+            Founder of Intellirity · Developer · AI &amp; Cybersecurity Enthusiast · Entrepreneur
           </p>
-
-          <div className="mt-6 space-y-4 text-[15px] leading-[1.8] text-dim">
+          <div className="mt-5 space-y-3">
             {FOUNDER_PARAGRAPHS.map((p) => (
               <p key={p.slice(0, 24)}>{p}</p>
             ))}
@@ -175,51 +136,53 @@ export default function AboutPage() {
               ambitious ideas into meaningful solutions.
             </p>
             <p>
-              I&apos;m not here just to follow the future of technology. I
-              want to play a part in building it.
+              I&apos;m not here just to follow the future of technology. I want
+              to play a part in building it.
             </p>
           </div>
-        </section>
+        </GlassSection>
 
-        <section className="mt-14">
-          <h2 className="font-mono text-[11.5px] uppercase tracking-[0.14em] text-steel">
-            Work with us
-          </h2>
-          <p className="mt-3 text-[15px] leading-[1.75] text-dim">
-            Read the{" "}
-            <Link href="/engines" className="text-ink underline decoration-steel/60 underline-offset-2">
-              sixteen detection engines
-            </Link>
-            , check{" "}
-            <Link href="/pricing" className="text-ink underline decoration-steel/60 underline-offset-2">
-              per-module pricing
-            </Link>
-            , or report a vulnerability to{" "}
-            <a
-              href={`mailto:${SECURITY_EMAIL}`}
-              className="text-ink underline decoration-steel/60 underline-offset-2"
-            >
-              {SECURITY_EMAIL}
-            </a>
-            .
-          </p>
-        </section>
-
-        <div className="mt-12 flex flex-wrap gap-3 border-t border-line pt-8">
-          <Link
-            href="/console"
-            className="inline-flex h-10 items-center rounded bg-ink px-5 text-[13px] font-medium text-bg transition-colors hover:bg-white"
-          >
-            Open the console
-          </Link>
-          <Link
-            href="/security"
-            className="inline-flex h-10 items-center rounded border border-line-strong px-5 text-[13px] font-medium text-ink transition-colors hover:border-ink/40"
-          >
-            Read the security model
-          </Link>
+        <div className="grid gap-4">
+          <GlassSection eyebrow="Next" title="See the work">
+            <p>
+              Read the{" "}
+              <Link href="/engines" className="text-ink underline decoration-steel/50 underline-offset-4">
+                sixteen detection engines
+              </Link>
+              , the{" "}
+              <Link href="/blog" className="text-ink underline decoration-steel/50 underline-offset-4">
+                research field notes
+              </Link>
+              , or the{" "}
+              <Link href="/pricing" className="text-ink underline decoration-steel/50 underline-offset-4">
+                per-module pricing
+              </Link>
+              .
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2.5">
+              <Link href="/console" className="inline-flex h-10 items-center rounded bg-ink px-4 text-[13px] font-medium text-bg transition-colors hover:bg-white">
+                Open the console
+              </Link>
+              <Link href="/security" className="inline-flex h-10 items-center rounded border border-line-strong px-4 text-[13px] font-medium text-ink transition-colors hover:border-ink/40">
+                Security model
+              </Link>
+            </div>
+          </GlassSection>
+          <GlassSection eyebrow="Contact" title="Report a problem">
+            <p>
+              Security reports and general questions go to{" "}
+              <a href={`mailto:${SECURITY_EMAIL}`} className="text-ink underline decoration-steel/50 underline-offset-4">
+                {SECURITY_EMAIL}
+              </a>
+              . Business details and other channels are on the{" "}
+              <Link href="/contact" className="text-ink underline decoration-steel/50 underline-offset-4">
+                contact page
+              </Link>
+              .
+            </p>
+          </GlassSection>
         </div>
-      </article>
-    </main>
+      </div>
+    </PageShell>
   );
 }

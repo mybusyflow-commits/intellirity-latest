@@ -90,6 +90,7 @@ async def live_event_loop():
 
 # ─── System status ────────────────────────────────────────────────────────────
 
+@router.head("/status")
 @router.get("/status")
 async def system_status():
     return {
@@ -101,6 +102,7 @@ async def system_status():
     }
 
 
+@router.head("/health")
 @router.get("/health")
 async def system_health():
     """Public health probe, reachable through the console's /backend proxy.

@@ -42,7 +42,7 @@ VIEWPORTS = [
     ("tablet", 768, 1024, 2),
     ("desktop", 1280, 800, 1),
 ]
-PAGES = ["/", "/engines", "/pricing", "/security", "/glossary", "/about", "/blog"]
+PAGES = ["/", "/engines", "/pricing", "/security", "/glossary", "/about", "/blog", "/contact", "/research"]
 
 PROBE = r"""
 (() => {

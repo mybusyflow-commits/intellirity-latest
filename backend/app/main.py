@@ -405,6 +405,7 @@ async def root():
     return {"message": "Intellirity API", "docs": _DOCS or "disabled", "health": "/health"}
 
 
+@app.head("/health")
 @app.get("/health")
 async def health_check():
     """Liveness + dependency probe for uptime monitors.

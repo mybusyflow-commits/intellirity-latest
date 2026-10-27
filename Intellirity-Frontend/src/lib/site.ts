@@ -42,3 +42,14 @@ export const CONTACT_EMAIL = "security@intellirity.com";
 export const PRIVACY_EMAIL = "privacy@intellirity.com";
 export const LEGAL_EMAIL = "legal@intellirity.com";
 export const SECURITY_EMAIL = "security@intellirity.com";
+
+/* Business details shown on the contact and policy pages. PayU (and Indian
+   payment onboarding generally) expects a legal name, a registered address
+   and a support phone on the merchant site. Set the NEXT_PUBLIC_* values in
+   Vercel with the real registered details; nothing is invented here. */
+export const COMPANY_LEGAL_NAME =
+  process.env.NEXT_PUBLIC_COMPANY_LEGAL_NAME || "Intellirity";
+export const COMPANY_ADDRESS = process.env.NEXT_PUBLIC_COMPANY_ADDRESS || "";
+export const COMPANY_PHONE = process.env.NEXT_PUBLIC_COMPANY_PHONE || "";
+export const COMPANY_GSTIN = process.env.NEXT_PUBLIC_COMPANY_GSTIN || "";
+

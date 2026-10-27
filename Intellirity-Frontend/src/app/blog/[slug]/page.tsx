@@ -161,12 +161,12 @@ export default async function BlogPostPage({ params }: PageProps) {
   const more = BLOG_POSTS.filter((p) => p.slug !== post.slug).slice(0, 2);
 
   return (
-    <div className="min-h-screen bg-bg text-ink">
+    <div className="page-aurora min-h-screen bg-bg text-ink">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
-      <header className="border-b border-line">
+      <header className="border-b border-white/[0.06] bg-black/10 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-[1100px] items-center justify-between px-5 sm:px-8">
           <Link href="/" aria-label="Intellirity home">
             <Logo />
@@ -241,7 +241,7 @@ export default async function BlogPostPage({ params }: PageProps) {
           </ul>
         </section>
 
-        <section className="mt-12 rounded-lg border border-line bg-raise/30 p-6">
+        <section className="glass-panel mt-12 rounded-2xl p-6">
           <p className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-steel">
             Keep reading
           </p>
@@ -250,7 +250,7 @@ export default async function BlogPostPage({ params }: PageProps) {
               <Link
                 key={p.slug}
                 href={`/blog/${p.slug}`}
-                className="group rounded border border-line p-4 transition-colors hover:border-line-strong"
+                className="glass-panel-soft group rounded-xl p-4 transition-colors hover:border-white/20"
               >
                 <p className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-faint">
                   {p.category}
