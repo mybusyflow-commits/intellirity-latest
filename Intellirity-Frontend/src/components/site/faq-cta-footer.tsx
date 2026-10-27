@@ -12,6 +12,7 @@ import { Turnstile } from "@/components/site/turnstile";
 import { Logo } from "@/components/site/logo";
 import { sendContact } from "@/lib/api";
 import { FAQS } from "@/lib/faq";
+import { COMPANY_ADDRESS, COMPANY_LEGAL_NAME, COMPANY_PHONE } from "@/lib/site";
 
 export function Faq() {
   return (
@@ -332,7 +333,11 @@ export function Footer() {
       </div>
       <Separator />
       <div className="mx-auto flex max-w-[1240px] flex-col items-start justify-between gap-3 px-6 py-5 sm:flex-row sm:items-center">
-        <span className="font-mono text-[11px] text-faint">© 2026 Intellirity, Inc.</span>
+        <span className="font-mono text-[11px] text-faint">
+          © 2026 {COMPANY_LEGAL_NAME}
+          {COMPANY_ADDRESS ? ` · ${COMPANY_ADDRESS}` : ""}
+          {COMPANY_PHONE ? ` · ${COMPANY_PHONE}` : ""}
+        </span>
         <span className="flex items-center gap-2 font-mono text-[11px] text-faint">
           <span className="dot animate-status bg-ok" />
           all systems operational

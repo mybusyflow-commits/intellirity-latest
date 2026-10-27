@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/site/logo";
-import { SITE_NAME } from "@/lib/site";
+import { COMPANY_ADDRESS, COMPANY_LEGAL_NAME, COMPANY_PHONE } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 /* Shared shell for the editorial pages (About, Research, Careers, Contact,
@@ -53,7 +53,9 @@ export function PageShell({
       <footer className="border-t border-white/[0.06]">
         <div className="mx-auto flex max-w-[1120px] flex-col gap-3 px-5 py-8 font-mono text-[10px] uppercase tracking-[0.12em] text-faint sm:flex-row sm:items-center sm:justify-between sm:px-8">
           <span>
-            {SITE_NAME} · AI security operations
+            © 2026 {COMPANY_LEGAL_NAME}
+            {COMPANY_ADDRESS ? ` · ${COMPANY_ADDRESS}` : ""}
+            {COMPANY_PHONE ? ` · ${COMPANY_PHONE}` : ""}
           </span>
           <div className="flex flex-wrap gap-5">
             <Link href="/privacy" className="transition-colors hover:text-ink">Privacy</Link>
