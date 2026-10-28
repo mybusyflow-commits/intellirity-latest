@@ -35,6 +35,10 @@ export function CommandPalette() {
   // The palette indexes what is actually registered on the engine — not a
   // hardcoded list of model names with invented status.
   useEffect(() => {
+    // Load the index only when the palette is opened. Fetching models and
+    // policies on every console page added two cold API round-trips before
+    // the overview had rendered anything.
+    if (!open || models.length > 0 || packs.length > 0) return;
     let alive = true;
     getModelEndpoints()
       .then((d) => alive && setModels(d.models))
@@ -45,7 +49,7 @@ export function CommandPalette() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [open, models.length, packs.length]);
 
   const setOpenWithReset = (v: boolean) => {
     if (v) {
