@@ -74,9 +74,11 @@ const csp = [
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
-  // PayU is a redirect flow: the checkout form must be allowed to POST to
-  // the payment gateway. test.payu.in is the sandbox, secure.payu.in live.
-  "form-action 'self' https://secure.payu.in https://test.payu.in",
+  // PayU is a redirect flow: the checkout form POSTs to secure.payu.in,
+  // which immediately 302s to api.payu.in/public/#/... . CSP form-action is
+  // checked again on that redirect, so the API origin (and PayU's wildcard)
+  // must be allowed or Chrome blocks the payment before the page loads.
+  "form-action 'self' https://payu.in https://*.payu.in https://secure.payu.in https://test.payu.in https://api.payu.in",
   "frame-ancestors 'none'",
   "upgrade-insecure-requests",
 ].join("; ");
