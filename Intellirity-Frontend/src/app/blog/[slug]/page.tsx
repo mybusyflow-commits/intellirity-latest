@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Logo } from "@/components/site/logo";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import { BLOG_POSTS, getPost } from "@/lib/blog";
+import { metaDescription } from "@/lib/seo";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -19,15 +20,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!post) return { title: "Article not found" };
 
   const url = `${SITE_URL}/blog/${post.slug}`;
+  const description = metaDescription(post.description);
   return {
     title: { absolute: `${post.title} | Intellirity` },
-    description: post.description,
+    description,
     keywords: post.keywords,
     alternates: { canonical: url },
     robots: { index: true, follow: true },
     openGraph: {
       title: post.title,
-      description: post.description,
+      description,
       url,
       type: "article",
       publishedTime: post.date,
@@ -45,7 +47,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: "summary_large_image",
       title: post.title,
-      description: post.description,
+      description,
       images: ["/og-image.png"],
     },
   };
