@@ -34,7 +34,9 @@ _CACHE_MAX = 512
 
 def _cached_scan(module_id: str, payload: dict, compute):
     ttl = _CACHEABLE.get(module_id)
-    if not ttl:
+    # A repository snapshot is large and unique per review; caching it would
+    # hold hundreds of kilobytes per entry for almost no repeat hits.
+    if not ttl or payload.get("files"):
         return compute(), False
     try:
         fingerprint = hashlib.sha256(
