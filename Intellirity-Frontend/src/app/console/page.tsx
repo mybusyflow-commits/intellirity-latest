@@ -14,6 +14,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { getSummary, getThreats, type Summary, type Threat } from "@/lib/api";
 import { useEntitlements } from "@/components/console/entitlements";
+import { VibeDemo } from "@/components/console/vibe-demo";
 import type { Action } from "@/lib/console-data";
 import { cn } from "@/lib/utils";
 
@@ -171,6 +172,7 @@ export default function OverviewPage() {
   return (
     <div className="space-y-4">
       <PlanStrip />
+      <VibeDemo />
       {/* KPI strip · live engine */}
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line xl:grid-cols-4">
         {kpis.map((k) => (

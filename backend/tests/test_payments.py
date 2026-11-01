@@ -264,6 +264,41 @@ def test_demo_scan_runs_only_the_free_engine():
     assert body["scan"]["id"].startswith("DEMO-")
 
 
+def test_demo_code_scan_is_public_and_returns_findings():
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    client = TestClient(app)
+    res = client.post(
+        "/api/v1/system/demo-code-scan",
+        json={
+            "code": 'const q = "SELECT * FROM users WHERE id=" + req.query.id;\n'
+            'document.body.innerHTML = req.query.name;\n'
+            'const key = "sk_live_abcd1234";\n'
+        },
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["demo"] is True
+    assert body["vulnerabilities_found"] >= 1
+    categories = {f.get("category") for f in body["findings"]}
+    assert "sql_injection" in categories
+    # The demo must not leak workspace data.
+    assert "owner" not in body and "org_id" not in body and "scan" not in body
+
+
+def test_demo_code_scan_rejects_oversized_snippets():
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    client = TestClient(app)
+    res = client.post(
+        "/api/v1/system/demo-code-scan",
+        json={"code": "x = 1\n" * 3000},
+    )
+    assert res.status_code == 413
+
+
 # --- Sweep enforcement (the console's multi-module path) -----------------
 
 def test_sweep_runs_free_modules_and_reports_locked_ones(monkeypatch):

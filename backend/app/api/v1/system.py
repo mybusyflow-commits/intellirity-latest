@@ -102,6 +102,67 @@ async def system_status():
     }
 
 
+_demo_code_limit = limit("demo-code", 5)
+
+DEMO_CODE = """// example: a small Express route with several classic flaws
+const express = require("express");
+const app = express();
+const API_KEY = "sk_live_example_do_not_use";
+
+app.get("/user", (req, res) => {
+  const q = "SELECT * FROM users WHERE id=" + req.query.id;
+  db.query(q);
+  res.send("<div>" + req.query.name + "</div>");
+});
+
+app.get("/fetch", async (req, res) => {
+  const r = await fetch(req.query.url);
+  res.send(await r.text());
+});
+"""
+
+
+class DemoCodeBody(BaseModel):
+    code: str = ""
+
+
+@router.post("/demo-code-scan", dependencies=[Depends(_demo_code_limit)])
+async def demo_code_scan(body: DemoCodeBody):
+    """One free Vibe-Code Security demo for a signed-out visitor.
+
+    Runs the same detector registry as the paid module on a bounded snippet,
+    returns no tenant data and records nothing. Rate-limited per IP; the
+    frontend also remembers the one use in localStorage.
+    """
+    from app.services.modules.vibe_code_security import vibe_code_security
+
+    code = (body.code or DEMO_CODE).strip()
+    if len(code) > 12_000:
+        raise HTTPException(status_code=413, detail="Demo code is limited to 12,000 characters.")
+    try:
+        result = vibe_code_security({
+            "target_type": "code",
+            "code": code,
+            "text": code,
+            "target": "demo code",
+        })
+    except Exception:
+        raise HTTPException(status_code=503, detail="Demo engine unavailable.")
+    findings = (result.get("vulnerabilities") or [])[:20]
+    return {
+        "demo": True,
+        "target_type": "code",
+        "risk_score": result.get("risk_score", 0.0),
+        "verdict": result.get("verdict", "allow"),
+        "severity": result.get("severity", "none"),
+        "vulnerabilities_found": result.get("vulnerabilities_found", len(findings)),
+        "critical_count": result.get("critical_count", 0),
+        "high_count": result.get("high_count", 0),
+        "findings": findings,
+        "recommendation": result.get("recommendation", ""),
+    }
+
+
 @router.head("/health")
 @router.get("/health")
 async def system_health():

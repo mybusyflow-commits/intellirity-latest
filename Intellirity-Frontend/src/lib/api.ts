@@ -40,6 +40,7 @@ export function markAuthReady() {
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const isPublicRead =
     path.startsWith("/system/public-") ||
+    path.startsWith("/system/demo-") ||
     path.startsWith("/system/status") ||
     path.startsWith("/system/health") ||
     path.startsWith("/billing/products");
@@ -152,6 +153,38 @@ export function demoScan(text: string, target = "") {
   return req<ScanRun>("/system/demo-scan", {
     method: "POST",
     body: JSON.stringify({ text, target }),
+  });
+}
+
+export interface DemoFinding {
+  category?: string;
+  type?: string;
+  title?: string;
+  description?: string;
+  severity?: string;
+  cwe?: string;
+  line?: number | string;
+  remediation?: string;
+}
+
+export interface DemoVibeResult {
+  demo: true;
+  target_type: string;
+  risk_score: number;
+  verdict: string;
+  severity: string;
+  vulnerabilities_found: number;
+  critical_count: number;
+  high_count: number;
+  findings: DemoFinding[];
+  recommendation: string;
+}
+
+/* One free Vibe-Code Security demo for any visitor. Records nothing. */
+export function demoVibeScan(code: string) {
+  return req<DemoVibeResult>("/system/demo-code-scan", {
+    method: "POST",
+    body: JSON.stringify({ code }),
   });
 }
 
