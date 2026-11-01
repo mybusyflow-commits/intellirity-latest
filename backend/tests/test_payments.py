@@ -183,6 +183,28 @@ def test_callback_urls_can_use_the_request_origin(monkeypatch):
     assert furl == surl
 
 
+def test_payu_urls_endpoint_returns_copyable_callback_urls():
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    res = TestClient(app).get("/api/v1/billing/payu/urls")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["callback_url"].endswith("/backend/billing/payu/callback")
+    assert body["webhook_url"].endswith("/backend/billing/payu/webhook")
+    assert body["site_url"].startswith("http")
+
+
+def test_the_callback_url_can_be_opened_without_a_payload():
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    client = TestClient(app)
+    res = client.get("/api/v1/billing/payu/callback", follow_redirects=False)
+    assert res.status_code == 303
+    assert "/pricing?payment=failed" in res.headers["location"]
+
+
 # --- Monthly period and renewal ------------------------------------------
 
 def test_a_purchase_covers_one_month(monkeypatch):

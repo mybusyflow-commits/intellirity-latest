@@ -9,6 +9,7 @@ The order is written to Postgres *before* the browser leaves, because the
 callback can land on a different serverless instance than the checkout.
 """
 from datetime import datetime, timezone
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -21,6 +22,7 @@ from app.services import billing as store
 from app.services import payu
 
 router = APIRouter()
+log = logging.getLogger("intellirity.billing")
 
 
 def _public_base(request: Request | None = None) -> str:
@@ -153,18 +155,23 @@ async def _order_for(txnid: str, udf1: str = "") -> dict | None:
 async def _activate(data: dict, via: str) -> tuple[bool, str]:
     """Verify the reverse hash, then activate. Returns (ok, order_id)."""
     if not payu.verify_response(data):
+        # Never log the form: it carries name, email and phone.
+        log.warning("payu %s rejected: invalid hash (status=%s)", via, data.get("status"))
         return False, ""
     txnid = str(data.get("txnid", "") or data.get("udf1", ""))
     order = await _order_for(txnid, str(data.get("udf1", "")))
     if order is None:
+        log.warning("payu %s: unknown order %s", via, txnid[:40])
         return False, txnid
     status = str(data.get("status", "")).lower()
     if status != "success":
+        log.info("payu %s: order %s came back as %s", via, order["order_id"], status)
         return False, order["order_id"]
 
     store.remember_order(order)
     result = store.mark_paid(order["order_id"], via=via)
     if "error" in result:
+        log.warning("payu %s: order %s could not be marked paid: %s", via, order["order_id"], result["error"])
         return False, order["order_id"]
     order = result["order"]
     order["provider_txnid"] = txnid
@@ -175,8 +182,12 @@ async def _activate(data: dict, via: str) -> tuple[bool, str]:
     # time. grant_entitlements also skips a row already stamped with this
     # order id, as a second line of defence.
     if result.get("newly_paid"):
-        await persist.grant_entitlements(
+        granted = await persist.grant_entitlements(
             order["owner"], order.get("modules", []), order["order_id"]
+        )
+        log.info(
+            "payu %s activated order %s with %s module(s) (granted=%s)",
+            via, order["order_id"], len(order.get("modules", [])), granted,
         )
     return True, order["order_id"]
 
@@ -197,6 +208,34 @@ async def payu_callback(request: Request):
     return RedirectResponse(
         _site(f"/pricing?payment={reason}{suffix}", request), status_code=303
     )
+
+
+@router.get("/payu/callback")
+async def payu_callback_probe(request: Request):
+    """A human opening the callback URL must not see a raw 405.
+
+    PayU posts here; a bookmark or a review click is redirected to pricing
+    with the non-success state instead of an API error page.
+    """
+    return RedirectResponse(_site("/pricing?payment=failed", request), status_code=303)
+
+
+@router.get("/payu/urls")
+async def payu_urls(request: Request):
+    """The exact URLs to paste into the PayU dashboard.
+
+    No secret is returned; this is the same information the checkout form
+    sends to the gateway and what a merchant copies during onboarding.
+    """
+    base = _public_base(request)
+    return {
+        "provider": store.payment_provider(),
+        "mode": payu.mode() if payu.enabled() else None,
+        "site_url": base,
+        "callback_url": f"{base}/backend/billing/payu/callback",
+        "webhook_url": f"{base}/backend/billing/payu/webhook",
+        "sitemap": f"{base}/sitemap.xml",
+    }
 
 
 @router.post("/payu/webhook")
