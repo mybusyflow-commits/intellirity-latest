@@ -589,6 +589,15 @@ def _map_code_scan_findings(findings: list) -> list:
     tier="professional",
 )
 def vibe_code_security(payload: dict) -> dict:
+    # A repository review carries files instead of one snippet. It is the
+    # same detector set plus per-file locations, a threat model, coverage and
+    # a SARIF report, so the paid module reviews a whole project, not a paste.
+    files = payload.get("files")
+    if isinstance(files, list) and files:
+        from app.services.code_review import repository_response
+
+        return repository_response(files, target=str(payload.get("target") or ""))
+
     target = payload.get("target", "")
     code = payload.get("code", "")
     url = payload.get("url", "")

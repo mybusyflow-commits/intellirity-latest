@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { checkoutBundle } from "@/lib/api";
+import { checkoutBundle, getEntitlements, getOrder } from "@/lib/api";
 
 interface Product {
   id: string;
@@ -58,6 +59,12 @@ export function Pricing() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [result, setResult] = useState<{ kind: "success" | "failed"; order: string } | null>(null);
+  // A redirect says PayU was happy; only the engine can say the modules are
+  // actually assigned. This tracks that second, authoritative step.
+  const [access, setAccess] = useState<{
+    state: "idle" | "checking" | "active" | "pending";
+    ids: string[];
+  }>({ state: "idle", ids: [] });
   const [selected, setSelected] = useState<string[]>([]);
   const [openTier, setOpenTier] = useState<"basic" | "core" | null>(null);
   const [order, setOrder] = useState<{ order_id: string; total_inr: number; status: string } | null>(null);
@@ -103,16 +110,64 @@ export function Pricing() {
     };
   }, []);
 
-  // PayU returns the browser here with the outcome. The server has already
-  // verified the reverse hash and activated the order; this only reports it.
+  // PayU returns the browser here with the outcome. The server verifies the
+  // reverse hash and assigns the modules; the redirect alone proves nothing,
+  // so a "success" keeps asking the engine until the plan really includes the
+  // purchased modules.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const payment = params.get("payment");
     if (!payment) return;
+    const orderId = params.get("order") || "";
     setResult({
       kind: payment === "success" ? "success" : "failed",
-      order: params.get("order") || "",
+      order: orderId,
     });
+    if (payment !== "success") return;
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let tries = 0;
+
+    const check = async () => {
+      tries += 1;
+      try {
+        const [status, ent] = await Promise.all([
+          orderId ? getOrder(orderId).catch(() => null) : Promise.resolve(null),
+          getEntitlements().catch(() => null),
+        ]);
+        if (cancelled) return;
+        const modules = status?.modules ?? [];
+        const owned = new Set(ent?.owned ?? []);
+        const active = modules.filter((m) => owned.has(m));
+        const settled =
+          status?.status === "active" ||
+          (modules.length > 0 && active.length === modules.length) ||
+          (!orderId && owned.size > 0);
+        if (settled) {
+          setAccess({
+            state: "active",
+            ids: modules.length ? modules : active.length ? active : [...owned],
+          });
+          return;
+        }
+      } catch {
+        /* the callback may still be settling; keep polling */
+      }
+      if (cancelled) return;
+      if (tries < 12) {
+        timer = setTimeout(check, 2500);
+      } else {
+        setAccess({ state: "pending", ids: [] });
+      }
+    };
+
+    setAccess({ state: "checking", ids: [] });
+    timer = setTimeout(check, 700);
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, []);
 
   // A paywall link carries the module it needs (/pricing?module=wallet-guard).
@@ -175,6 +230,9 @@ export function Pricing() {
 
   const basics = products.filter((p) => p.tier === "basic");
   const core = products.filter((p) => p.tier === "core");
+  const accessNames = products
+    .filter((p) => access.ids.includes(p.id))
+    .map((p) => p.name);
 
   return (
     <section id="pricing" className="relative z-10 mx-auto max-w-[1240px] px-6 py-24 md:py-32">
@@ -188,9 +246,48 @@ export function Pricing() {
                 result.kind === "success" ? "border-ok/40 text-ok" : "border-crit/40 text-crit"
               )}
             >
-              {result.kind === "success"
-                ? `Payment received${result.order ? ` · ${result.order}` : ""}. Your modules are active.`
-                : `Payment was not completed${result.order ? ` · ${result.order}` : ""}. Nothing was charged.`}
+              {result.kind === "success" ? (
+                access.state === "checking" ? (
+                  <>
+                    Payment received{result.order ? ` · ${result.order}` : ""}.
+                    Confirming access to your modules…
+                  </>
+                ) : access.state === "active" ? (
+                  <>
+                    Payment received{result.order ? ` · ${result.order}` : ""}.{" "}
+                    {accessNames.length > 0
+                      ? `${accessNames.join(", ")} ${accessNames.length > 1 ? "are" : "is"} active.`
+                      : "Your modules are active."}{" "}
+                    <Link
+                      href="/console"
+                      className="underline decoration-current/40 underline-offset-4 hover:decoration-current"
+                    >
+                      Open the console
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    Payment received{result.order ? ` · ${result.order}` : ""}. Access
+                    is still confirming — this can take a minute.{" "}
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="underline decoration-current/40 underline-offset-4 hover:decoration-current"
+                    >
+                      Check again
+                    </button>
+                    {" or "}
+                    <Link
+                      href="/contact"
+                      className="underline decoration-current/40 underline-offset-4 hover:decoration-current"
+                    >
+                      contact us
+                    </Link>
+                    .
+                  </>
+                )
+              ) : (
+                `Payment was not completed${result.order ? ` · ${result.order}` : ""}. Nothing was charged.`
+              )}
             </div>
           )}
           <div className="reveal mb-4 flex items-center gap-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-faint">

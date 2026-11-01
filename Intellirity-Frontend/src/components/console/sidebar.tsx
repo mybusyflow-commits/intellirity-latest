@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Radar, ScrollText, Boxes, ShieldCheck, FileSearch, LifeBuoy,
   DatabaseZap, AudioWaveform, Landmark, Fingerprint, Waypoints, ShieldAlert, Bot, Globe, Wallet, Lock,
+  Code2,
 } from "lucide-react";
 import { Logo } from "@/components/site/logo";
 import { getSummary } from "@/lib/api";
@@ -23,6 +24,7 @@ const ICONS: Record<string, typeof Radar> = {
   flow: Waypoints,
   content: ShieldAlert,
   behavior: Bot,
+  code: Code2,
   intel: Globe,
   wallet: Wallet,
   models: Boxes,

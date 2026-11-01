@@ -23,9 +23,33 @@ from app.services import payu
 router = APIRouter()
 
 
-def _site(path: str = "") -> str:
-    base = (settings.PUBLIC_SITE_URL or "http://localhost:3000").rstrip("/")
-    return f"{base}{path}"
+def _public_base(request: Request | None = None) -> str:
+    """The origin a buyer should return to.
+
+    Prefer the configured public site. If it is unset or still a dev URL,
+    fall back to the origin this request actually arrived on: a payment must
+    never be redirected to localhost because an environment variable was
+    missed.
+    """
+    configured = (settings.PUBLIC_SITE_URL or "").strip().rstrip("/")
+    dev = "localhost" in configured or "127.0.0.1" in configured
+    if configured and not dev:
+        return configured
+    if request is not None:
+        host = (request.headers.get("x-forwarded-host") or request.headers.get("host") or "")
+        host = host.split(",")[0].strip()
+        if host and "localhost" not in host and "127.0.0.1" not in host:
+            proto = (
+                request.headers.get("x-forwarded-proto")
+                or request.url.scheme
+                or "https"
+            ).split(",")[0].strip()
+            return f"{proto}://{host}"
+    return configured or "http://localhost:3000"
+
+
+def _site(path: str = "", request: Request | None = None) -> str:
+    return f"{_public_base(request)}{path}"
 
 
 @router.get("/products")
@@ -66,7 +90,7 @@ def _valid_phone(value: str) -> bool:
 
 
 @router.post("/checkout")
-async def checkout(body: CheckoutBody, user: dict = Depends(require_user)):
+async def checkout(body: CheckoutBody, request: Request, user: dict = Depends(require_user)):
     owner = _owner(user)
     order = store.checkout(owner, body.modules)
     if "error" in order:
@@ -93,6 +117,7 @@ async def checkout(body: CheckoutBody, user: dict = Depends(require_user)):
         email=email,
         phone=phone,
         productinfo=f"Intellirity bundle ({len(order['modules'])} modules)",
+        base_url=_public_base(request),
     )
     order["provider"] = "payu"
     order["payu_mode"] = payu.mode()
@@ -163,10 +188,15 @@ async def payu_callback(request: Request):
     data = {str(k): str(v) for k, v in form.items()}
     ok, order_id = await _activate(data, via="payu")
     if ok:
-        return RedirectResponse(_site(f"/pricing?payment=success&order={order_id}"), status_code=303)
+        return RedirectResponse(
+            _site(f"/pricing?payment=success&order={order_id}", request),
+            status_code=303,
+        )
     reason = "failed" if data.get("status", "").lower() != "success" else "invalid"
     suffix = f"&order={order_id}" if order_id else ""
-    return RedirectResponse(_site(f"/pricing?payment={reason}{suffix}"), status_code=303)
+    return RedirectResponse(
+        _site(f"/pricing?payment={reason}{suffix}", request), status_code=303
+    )
 
 
 @router.post("/payu/webhook")

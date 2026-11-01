@@ -127,9 +127,14 @@ def is_success(data: dict) -> bool:
     return verify_response(data) and str(data.get("status", "")).lower() == "success"
 
 
-def callback_urls() -> tuple[str, str]:
-    """Where PayU sends the browser after success / failure."""
-    base = (settings.PUBLIC_SITE_URL or "http://localhost:3000").rstrip("/")
+def callback_urls(base_url: str | None = None) -> tuple[str, str]:
+    """Where PayU sends the browser after success / failure.
+
+    A missing local default must never send a real payment to localhost: the
+    checkout endpoint passes the request's own origin when the configured
+    value is empty or a dev URL.
+    """
+    base = (base_url or settings.PUBLIC_SITE_URL or "http://localhost:3000").rstrip("/")
     url = f"{base}/backend/billing/payu/callback"
     return url, url
 
@@ -143,9 +148,10 @@ def fields(
     email: str,
     phone: str,
     productinfo: str = "Intellirity modules",
+    base_url: str | None = None,
 ) -> dict[str, str]:
     """The complete signed form the browser must POST to `endpoint()`."""
-    surl, furl = callback_urls()
+    surl, furl = callback_urls(base_url)
     amount = _amount(total_inr)
     return {
         "key": settings.PAYU_KEY_ID,

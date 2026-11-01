@@ -30,6 +30,7 @@ export const CONSOLE_ROUTES: RouteDef[] = [
   { path: "/flow", title: "Data flow", sub: "Trace every destination your data reaches", group: "Defend", key: "flow", product: "leakage-guard" },
   { path: "/content", title: "Content guard", sub: "Moderation across seven scored categories", group: "Defend", key: "content", product: "content-guard" },
   { path: "/behavior", title: "Agent behavior", sub: "Session drift and MCP tool governance", group: "Defend", key: "behavior", product: "agent-guard" },
+  { path: "/code", title: "Vibe-Code Security", sub: "Review a repository for code-level weaknesses", group: "Defend", key: "code", product: "vibe-code" },
   { path: "/intel", title: "Threat intel", sub: "Known threats and advanced adversarial probes", group: "Defend", key: "intel" },
   { path: "/proof", title: "Proof of intent", sub: "Certificates binding a human to an action", group: "Govern", key: "proof", product: "vpi" },
   { path: "/policies", title: "Policies", sub: "Guardrail packs, versioned and two-approver promoted", group: "Govern", key: "policies", product: "agent-guard" },

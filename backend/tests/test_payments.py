@@ -176,6 +176,13 @@ def test_a_paid_engine_is_denied_without_a_purchase(monkeypatch):
     assert "not in your plan" in reason
 
 
+def test_callback_urls_can_use_the_request_origin(monkeypatch):
+    _configure(monkeypatch)
+    surl, furl = payu.callback_urls("https://www.intellirity.com")
+    assert surl == "https://www.intellirity.com/backend/billing/payu/callback"
+    assert furl == surl
+
+
 # --- Monthly period and renewal ------------------------------------------
 
 def test_a_purchase_covers_one_month(monkeypatch):
@@ -297,6 +304,53 @@ def test_demo_code_scan_rejects_oversized_snippets():
         json={"code": "x = 1\n" * 3000},
     )
     assert res.status_code == 413
+
+
+def test_repository_review_returns_findings_threat_model_coverage_and_sarif():
+    from app.services.code_review import repository_response
+
+    result = repository_response(
+        [
+            {
+                "path": "server.js",
+                "content": 'app.get("/user", (req, res) => {\n'
+                '  db.query("SELECT * FROM users WHERE id=" + req.query.id);\n'
+                '  res.send("<b>" + req.query.name + "</b>");\n'
+                "});\n"
+                'const key = "sk_live_abcdef123456";\n',
+            },
+            {
+                "path": "package.json",
+                "content": '{\n  "dependencies": {\n    "vm2": "^3.9.0",\n    "left-pad": "*"\n  }\n}\n',
+            },
+            {"path": "logo.png", "content": "binary"},
+        ],
+        target="demo repo",
+    )
+
+    assert result["target_type"] == "repository"
+    report = result["report"]
+    assert report is not None
+    assert report["coverage"]["files_scanned"] == 2
+    assert report["coverage"]["skipped_count"] == 1
+    assert report["severity_counts"]["critical"] >= 2  # secret + vm2
+    assert "Risky dependency: vm2" in {f["title"] for f in report["findings"]}
+    assert {f["file"] for f in report["findings"]} == {"server.js", "package.json"}
+    assert report["threat_model"]["routes"][0]["route"] == "/user"
+    assert report["threat_model"]["threats"]
+    assert report["sarif"]["version"] == "2.1.0"
+    assert len(report["sarif"]["runs"][0]["results"]) == len(report["findings"])
+    assert result["verdict"] in ("block", "flag")
+    # The module result still carries the flat list the console renders.
+    assert len(result["findings"]) == len(report["findings"])
+
+
+def test_repository_review_rejects_an_empty_snapshot():
+    from app.services.code_review import repository_response
+
+    result = repository_response([])
+    assert result["report"] is None
+    assert "No scannable files" in result["error"]
 
 
 # --- Sweep enforcement (the console's multi-module path) -----------------
