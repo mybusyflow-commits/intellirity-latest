@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel
 from app.core.security import require_user
 from app.core.identity import owner as _owner, role as _role, org_id as _org_id
@@ -215,12 +215,51 @@ async def payu_callback(request: Request):
 
 @router.get("/payu/callback")
 async def payu_callback_probe(request: Request):
-    """A human opening the callback URL must not see a raw 405.
+    """A GET on the callback either carries a (rare) signed GET result or is
+    a person/bot opening the URL from the dashboard.
 
-    PayU posts here; a bookmark or a review click is redirected to pricing
-    with the non-success state instead of an API error page.
+    A gateway reviewing this endpoint should see a normal 200 page with a
+    link back to pricing, not a 405/redirect error. A signed GET result is
+    processed exactly like the POST path so no payment is lost.
     """
-    return RedirectResponse(_site("/pricing?payment=failed", request), status_code=303)
+    data = {str(k): str(v) for k, v in request.query_params.items()}
+    if data.get("status") and data.get("hash"):
+        ok, order_id = await _activate(data, via="payu-get")
+        if ok:
+            return RedirectResponse(
+                _site(f"/pricing?payment=success&order={order_id}", request),
+                status_code=303,
+            )
+        reason = "failed" if str(data.get("status", "")).lower() != "success" else "invalid"
+        suffix = f"&order={order_id}" if order_id else ""
+        return RedirectResponse(
+            _site(f"/pricing?payment={reason}{suffix}", request), status_code=303
+        )
+
+    target = _site("/pricing", request)
+    return HTMLResponse(
+        f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Payment callback | Intellirity</title>
+<style>
+ body{{margin:0;min-height:100vh;display:grid;place-items:center;background:#07080a;color:#e7e9ee;
+      font:14px/1.6 ui-sans-serif,system-ui,sans-serif}}
+ main{{max-width:440px;padding:32px;text-align:center}}
+ a{{color:#e7e9ee}}
+</style></head>
+<body><main>
+<p style="letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:#8b909c">
+  Intellirity billing</p>
+<h1 style="font-size:22px;font-weight:500;margin:12px 0">Payment callback</h1>
+<p style="color:#a6abb6">This endpoint receives payment confirmations from the
+payment gateway. Open the pricing page to see your plan.</p>
+<p><a href="{target}">Go to pricing</a></p>
+</main></body></html>""",
+        status_code=200,
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @router.get("/payu/urls")

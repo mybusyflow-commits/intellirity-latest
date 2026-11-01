@@ -201,8 +201,9 @@ def test_the_callback_url_can_be_opened_without_a_payload():
 
     client = TestClient(app)
     res = client.get("/api/v1/billing/payu/callback", follow_redirects=False)
-    assert res.status_code == 303
-    assert "/pricing?payment=failed" in res.headers["location"]
+    assert res.status_code == 200
+    assert "Payment callback" in res.text
+    assert "/pricing" in res.text
 
 
 def test_public_base_follows_the_host_the_buyer_used(monkeypatch):
