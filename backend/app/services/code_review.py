@@ -31,6 +31,11 @@ from app.services.code_analyzer import ALL_RULES
 MAX_FILES = 300
 MAX_FILE_CHARS = 200_000
 MAX_TOTAL_CHARS = 1_500_000
+# A report is meant to be read and downloaded, not to stream a megabyte per
+# repeated line. Findings are grouped per rule and file, then capped; the
+# true occurrence count is kept on the group and in the severity totals.
+MAX_PER_RULE_PER_FILE = 3
+MAX_REPORTED_FINDINGS = 300
 
 SEVERITY_WEIGHT = {"critical": 0.9, "high": 0.6, "medium": 0.3, "low": 0.1, "info": 0.05}
 
@@ -197,6 +202,7 @@ def _scan_file(path: str, content: str) -> list[dict[str, Any]]:
             rx = re.compile(pattern, re.IGNORECASE)
         except re.error:
             continue
+        hits: list[int] = []
         for idx, line in enumerate(lines, start=1):
             if not rx.search(line):
                 continue
@@ -205,11 +211,16 @@ def _scan_file(path: str, content: str) -> list[dict[str, Any]]:
             if rule_id == "ics.sql.format" and re.search(r"%s|%\(", line):
                 if re.search(r",\s*[\(\[\{]", line) and not re.search(r"\+|\.format\(|f['\"]", line):
                     continue
+            hits.append(idx)
+        if not hits:
+            continue
+        for idx in hits[:MAX_PER_RULE_PER_FILE]:
+            snippet = lines[idx - 1].strip()[:200]
             findings.append(
                 {
                     "file": path,
                     "line": idx,
-                    "snippet": line.strip()[:200],
+                    "snippet": snippet,
                     "rule_id": rule_id,
                     "title": title,
                     "severity": severity,
@@ -219,6 +230,7 @@ def _scan_file(path: str, content: str) -> list[dict[str, Any]]:
                     "remediation": remediation,
                     "confidence": "high" if category == "secrets" else "medium",
                     "fix_effort": "trivial" if category == "secrets" else "low" if category == "injection" else "medium",
+                    "occurrences": len(hits),
                 }
             )
     return findings
@@ -501,7 +513,7 @@ def scan_repository(files_raw: Any, target: str = "") -> dict[str, Any]:
                 "path": path,
                 "language": _language(path),
                 "lines": content.count("\n") + 1,
-                "findings": len(file_findings),
+                "findings": sum(f.get("occurrences", 1) for f in file_findings),
             }
         )
 
@@ -511,8 +523,12 @@ def scan_repository(files_raw: Any, target: str = "") -> dict[str, Any]:
 
     counts = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
     for f in findings:
-        counts[f["severity"]] = counts.get(f["severity"], 0) + 1
+        counts[f["severity"]] = counts.get(f["severity"], 0) + f.get("occurrences", 1)
     risk = round(min(sum(SEVERITY_WEIGHT.get(f["severity"], 0.1) for f in findings), 1.0), 3)
+
+    total_occurrences = sum(f.get("occurrences", 1) for f in findings)
+    truncated = len(findings) > MAX_REPORTED_FINDINGS
+    findings = findings[:MAX_REPORTED_FINDINGS]
 
     if risk >= 0.7:
         band, verdict = "critical", "block"
@@ -576,6 +592,9 @@ def scan_repository(files_raw: Any, target: str = "") -> dict[str, Any]:
         "severity": band,
         "verdict": verdict,
         "findings": findings,
+        "findings_shown": len(findings),
+        "occurrences": total_occurrences,
+        "truncated": truncated,
         "files": per_file,
         "threat_model": threats,
         "coverage": coverage,
@@ -631,7 +650,7 @@ def repository_response(files_raw: Any, target: str = "") -> dict[str, Any]:
     return {
         "target_type": "repository",
         "target": report["target"],
-        "vulnerabilities_found": len(vulnerabilities),
+        "vulnerabilities_found": report.get("occurrences", len(vulnerabilities)),
         "vulnerabilities": vulnerabilities,
         "findings": [
             f"[{f['severity']}] {f['title']} ({f['file']}:{f['line']}) - {f['remediation']}"
