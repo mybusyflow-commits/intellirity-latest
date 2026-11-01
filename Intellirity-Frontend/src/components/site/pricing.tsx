@@ -135,7 +135,7 @@ export function Pricing() {
       try {
         const [status, ent] = await Promise.all([
           orderId ? getOrder(orderId).catch(() => null) : Promise.resolve(null),
-          getEntitlements().catch(() => null),
+          getEntitlements(true).catch(() => null),
         ]);
         if (cancelled) return;
         const modules = status?.modules ?? [];

@@ -31,7 +31,7 @@ interface EntitlementState {
   products: Product[];
   periodDays: number;
   isUnlocked: (product?: string) => boolean;
-  refresh: () => Promise<void>;
+  refresh: (fresh?: boolean) => Promise<void>;
 }
 
 const Ctx = createContext<EntitlementState | null>(null);
@@ -42,12 +42,12 @@ export function EntitlementsProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (fresh = false) => {
     try {
       // Never leave the console on "verifying plan" forever if the engine
       // is unreachable. Eight seconds is generous for a single read.
       const next = await Promise.race([
-        getEntitlements(),
+        getEntitlements(fresh),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("timeout")), 8000)
         ),

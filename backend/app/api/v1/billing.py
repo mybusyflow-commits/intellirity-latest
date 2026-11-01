@@ -333,8 +333,13 @@ async def order_status(order_id: str, user: dict = Depends(require_user)):
 
 
 @router.get("/entitlements")
-async def entitlements(user: dict = Depends(require_user)):
+async def entitlements(user: dict = Depends(require_user), fresh: bool = False):
     owner = _owner(user)
+    # A browser returning from a payment must be able to bypass the 120s
+    # per-instance cache: the purchase was just written by the callback and
+    # may have landed on a different instance.
+    if fresh:
+        await persist.hydrate_entitlements(owner)
     details = store.entitlement_details(owner)
     return {
         "owner": owner,

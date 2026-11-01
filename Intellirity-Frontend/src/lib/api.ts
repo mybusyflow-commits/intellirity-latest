@@ -413,4 +413,5 @@ export interface Entitlements {
   period_days: number;
 }
 
-export const getEntitlements = () => req<Entitlements>("/billing/entitlements");
+export const getEntitlements = (fresh = false) =>
+  req<Entitlements>(`/billing/entitlements${fresh ? "?fresh=1" : ""}`);

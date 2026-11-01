@@ -59,7 +59,7 @@ export function Paywall({ route }: { route?: RouteDef }) {
         </Link>
       </div>
       <button
-        onClick={() => refresh()}
+        onClick={() => refresh(true)}
         className="mt-6 font-mono text-[11px] text-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-dim"
       >
         Already paid? Refresh access
