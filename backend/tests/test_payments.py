@@ -357,9 +357,42 @@ def test_demo_code_scan_rejects_oversized_snippets():
     client = TestClient(app)
     res = client.post(
         "/api/v1/system/demo-code-scan",
-        json={"code": "x = 1\n" * 3000},
+        json={"code": "x = 1\n" * 9000},
     )
     assert res.status_code == 413
+
+
+def test_free_vibe_scan_accepts_a_website_url(monkeypatch):
+    from fastapi.testclient import TestClient
+    from app.main import app
+    from app.services.modules import vibe_code_security as module
+
+    captured = {}
+
+    def fake_scan(payload):
+        captured.update(payload)
+        return {
+            "target": payload["url"],
+            "risk_score": 0.1,
+            "verdict": "allow",
+            "severity": "low",
+            "vulnerabilities": [],
+            "vulnerabilities_found": 0,
+            "critical_count": 0,
+            "high_count": 0,
+            "recommendation": "ok",
+        }
+
+    monkeypatch.setattr(module, "vibe_code_security", fake_scan)
+    res = TestClient(app).post(
+        "/api/v1/system/vibe-code-scan",
+        json={"target_type": "url", "input": "example.com"},
+    )
+    assert res.status_code == 200
+    assert captured["target_type"] == "url"
+    assert captured["url"] == "https://example.com"
+    assert res.json()["free"] is True
+    assert res.json()["target_type"] == "url"
 
 
 def test_repository_review_returns_findings_threat_model_coverage_and_sarif():

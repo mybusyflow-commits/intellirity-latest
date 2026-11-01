@@ -102,56 +102,58 @@ async def system_status():
     }
 
 
-_demo_code_limit = limit("demo-code", 5)
-
-DEMO_CODE = """// example: a small Express route with several classic flaws
-const express = require("express");
-const app = express();
-const API_KEY = "sk_live_example_do_not_use";
-
-app.get("/user", (req, res) => {
-  const q = "SELECT * FROM users WHERE id=" + req.query.id;
-  db.query(q);
-  res.send("<div>" + req.query.name + "</div>");
-});
-
-app.get("/fetch", async (req, res) => {
-  const r = await fetch(req.query.url);
-  res.send(await r.text());
-});
-"""
+_demo_code_limit = limit("demo-code", 20)
 
 
-class DemoCodeBody(BaseModel):
-    code: str = ""
+class VibeScanBody(BaseModel):
+    target_type: str = "code"
+    input: str = ""
 
 
-@router.post("/demo-code-scan", dependencies=[Depends(_demo_code_limit)])
-async def demo_code_scan(body: DemoCodeBody):
-    """One free Vibe-Code Security demo for a signed-out visitor.
-
-    Runs the same detector registry as the paid module on a bounded snippet,
-    returns no tenant data and records nothing. Rate-limited per IP; the
-    frontend also remembers the one use in localStorage.
-    """
+def _run_free_vibe_scan(target_type: str, value: str) -> dict:
+    """Run a real Vibe-Code review without creating workspace records."""
     from app.services.modules.vibe_code_security import vibe_code_security
 
-    code = (body.code or DEMO_CODE).strip()
-    if len(code) > 12_000:
-        raise HTTPException(status_code=413, detail="Demo code is limited to 12,000 characters.")
-    try:
-        result = vibe_code_security({
+    value = value.strip()
+    if not value:
+        raise HTTPException(status_code=422, detail="Enter a website URL or paste some code.")
+
+    if target_type == "url":
+        if len(value) > 2048:
+            raise HTTPException(status_code=413, detail="URLs are limited to 2,048 characters.")
+        if not value.startswith(("http://", "https://")):
+            value = f"https://{value}"
+        payload = {
+            "target_type": "url",
+            "target": value,
+            "url": value,
+            "code": "",
+            "text": "",
+        }
+    else:
+        if len(value) > 50_000:
+            raise HTTPException(status_code=413, detail="Free code scans are limited to 50,000 characters.")
+        payload = {
             "target_type": "code",
-            "code": code,
-            "text": code,
-            "target": "demo code",
-        })
+            "target": "pasted code",
+            "url": "",
+            "code": value,
+            "text": value,
+        }
+
+    try:
+        result = vibe_code_security(payload)
+    except HTTPException:
+        raise
     except Exception:
-        raise HTTPException(status_code=503, detail="Demo engine unavailable.")
-    findings = (result.get("vulnerabilities") or [])[:20]
+        raise HTTPException(status_code=503, detail="The scanner is temporarily unavailable.")
+
+    findings = (result.get("vulnerabilities") or [])[:30]
     return {
         "demo": True,
-        "target_type": "code",
+        "free": True,
+        "target_type": target_type,
+        "target": result.get("target") or value,
         "risk_score": result.get("risk_score", 0.0),
         "verdict": result.get("verdict", "allow"),
         "severity": result.get("severity", "none"),
@@ -162,6 +164,28 @@ async def demo_code_scan(body: DemoCodeBody):
         "recommendation": result.get("recommendation", ""),
     }
 
+
+@router.post("/vibe-code-scan", dependencies=[Depends(_demo_code_limit)])
+async def free_vibe_code_scan(body: VibeScanBody):
+    """Free website/code scanner for every signed-in console user.
+
+    This is a real scan, not a locked paywall preview. It uses the same rule
+    registry as the module, writes no tenant data, and is rate-limited per IP.
+    """
+    target_type = body.target_type.lower().strip()
+    if target_type not in ("code", "url"):
+        raise HTTPException(status_code=422, detail="Choose either a website URL or code.")
+    return _run_free_vibe_scan(target_type, body.input)
+
+
+class DemoCodeBody(BaseModel):
+    code: str = ""
+
+
+@router.post("/demo-code-scan", dependencies=[Depends(_demo_code_limit)])
+async def demo_code_scan(body: DemoCodeBody):
+    """Backward-compatible code-only alias for the free scanner."""
+    return _run_free_vibe_scan("code", body.code)
 
 @router.head("/health")
 @router.get("/health")

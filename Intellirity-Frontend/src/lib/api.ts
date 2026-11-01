@@ -169,7 +169,9 @@ export interface DemoFinding {
 
 export interface DemoVibeResult {
   demo: true;
+  free?: boolean;
   target_type: string;
+  target?: string;
   risk_score: number;
   verdict: string;
   severity: string;
@@ -178,6 +180,14 @@ export interface DemoVibeResult {
   high_count: number;
   findings: DemoFinding[];
   recommendation: string;
+}
+
+/* Free Vibe-Code Security scan for a public URL or pasted code. */
+export function scanVibeCode(targetType: "code" | "url", input: string) {
+  return req<DemoVibeResult>("/system/vibe-code-scan", {
+    method: "POST",
+    body: JSON.stringify({ target_type: targetType, input }),
+  });
 }
 
 /* One free Vibe-Code Security demo for any visitor. Records nothing. */

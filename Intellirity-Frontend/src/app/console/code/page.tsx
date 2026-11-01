@@ -12,6 +12,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { scanModule } from "@/lib/api";
+import { FreeVibeScanner } from "@/components/console/free-vibe-scanner";
+import { useEntitlements } from "@/components/console/entitlements";
 import { cn } from "@/lib/utils";
 
 /* Repository review for Vibe-Code Security.
@@ -146,6 +148,8 @@ flask==3.0.0
 ];
 
 export default function CodeReviewPage() {
+  const { enforced, owned } = useEntitlements();
+  const canUseRepository = !enforced || owned.has("vibe-code");
   const dirRef = useRef<HTMLInputElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [files, setFiles] = useState<RepoFile[]>([]);
@@ -243,6 +247,10 @@ export default function CodeReviewPage() {
 
   return (
     <div className="space-y-4">
+      <FreeVibeScanner />
+
+      {canUseRepository && (
+        <>
       <div className="panel overflow-hidden rounded-lg">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
           <span className="flex items-center gap-2.5 font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
@@ -610,6 +618,8 @@ export default function CodeReviewPage() {
               </div>
             </div>
           </div>
+        </>
+      )}
         </>
       )}
     </div>

@@ -17,7 +17,7 @@ import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 const HOME_TITLE = "AI Security Platform for LLMs & Agents";
 const HOME_DESCRIPTION =
-  "Intellirity is an AI security platform for prompts, models and agents, with real-time prompt injection, jailbreak and data-loss controls.";
+  "Intellirity is an AI security platform for prompts, models and agents, with real-time prompt injection, jailbreak, data-loss and agent-abuse controls.";
 
 export const metadata: Metadata = {
   title: { absolute: `${HOME_TITLE} | ${SITE_NAME}` },

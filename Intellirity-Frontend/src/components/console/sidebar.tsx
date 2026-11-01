@@ -36,6 +36,7 @@ const ICONS: Record<string, typeof Radar> = {
 const HINTS: Record<string, string | undefined> = {
   verdicts: "live",
   intel: "live",
+  code: "free",
 };
 
 /* Built from the shared route registry, so a new console page appears in
