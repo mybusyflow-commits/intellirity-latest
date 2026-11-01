@@ -67,6 +67,11 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
     changeFrequency: "weekly",
   },
   {
+    path: "/free-scan",
+    priority: 0.9,
+    changeFrequency: "weekly",
+  },
+  {
     path: "/glossary",
     priority: 0.7,
     changeFrequency: "monthly",

@@ -41,6 +41,7 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const isPublicRead =
     path.startsWith("/system/public-") ||
     path.startsWith("/system/demo-") ||
+    path.startsWith("/system/vibe-code-scan") ||
     path.startsWith("/system/status") ||
     path.startsWith("/system/health") ||
     path.startsWith("/billing/products");

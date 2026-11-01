@@ -23,7 +23,7 @@ PRODUCTS = [
     {"id": "vibe-code", "name": "Vibe-Code Security", "price": 99,
      "blurb": "SQLi, XSS, secrets and supply-chain checks on AI-written code.",
      "engines": ["vibe_code_security", "model_supply_chain_security"],
-     "href": "/console/code", "tier": "basic"},
+     "href": "/free-scan", "tier": "basic"},
     {"id": "leakage-guard", "name": "Leakage Guard", "price": 99,
      "blurb": "PII, secrets and pipeline-hop tracing on every output.",
      "engines": ["data_loss_prevention", "data_flow_tracker"],
