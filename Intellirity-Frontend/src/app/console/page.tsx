@@ -13,6 +13,7 @@ import { chartCssVars } from "@/components/charts/chart-context";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { getSummary, getThreats, type Summary, type Threat } from "@/lib/api";
+import { useEntitlements } from "@/components/console/entitlements";
 import type { Action } from "@/lib/console-data";
 import { cn } from "@/lib/utils";
 
@@ -90,6 +91,44 @@ const RANGE_HOURS: Record<RangeKey, number> = { "24H": 24, "7D": 168, "30D": 720
 
 /* ---------- page ---------- */
 
+function PlanStrip() {
+  const { enforced, owned, products, entitlements, loading } = useEntitlements();
+  if (!enforced) return null;
+  const active = products.filter((p) => owned.has(p.id));
+  const soonest = active
+    .map((p) => entitlements[p.id]?.days_left)
+    .filter((d): d is number => typeof d === "number");
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-line bg-raise/60 px-5 py-4 sm:flex-row sm:items-center">
+      <div className="min-w-0">
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-faint">
+          your modules
+        </p>
+        <p className="mt-1 truncate text-[14px] text-ink">
+          {loading
+            ? "loading plan…"
+            : active.length
+              ? active.map((p) => p.name).join(" · ")
+              : "Free tier only — buy a module to unlock paid pages."}
+        </p>
+      </div>
+      <div className="flex shrink-0 items-center gap-3 sm:ml-auto">
+        {active.length > 0 && soonest.length > 0 && (
+          <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-faint">
+            renews in {Math.min(...soonest)}d
+          </span>
+        )}
+        <Link
+          href="/pricing"
+          className="inline-flex h-8 items-center rounded border border-line-strong px-3 font-mono text-[10.5px] uppercase tracking-[0.1em] text-dim transition-colors hover:text-ink"
+        >
+          {active.length ? "renew" : "view plans"}
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default function OverviewPage() {
   const [range, setRange] = useState<RangeKey>("24H");
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -131,6 +170,7 @@ export default function OverviewPage() {
 
   return (
     <div className="space-y-4">
+      <PlanStrip />
       {/* KPI strip · live engine */}
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line xl:grid-cols-4">
         {kpis.map((k) => (

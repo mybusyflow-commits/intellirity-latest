@@ -78,6 +78,11 @@ PERIOD_DAYS = 30
 # owner -> {product_id: expiry as unix seconds}. Memory-first like the rest
 # of the dev stack; Postgres is the authority across instances/restarts.
 _entitlements: dict[str, dict[str, float]] = {}
+# When each owner's entitlements were last read from Postgres. Serverless
+# instances start empty; without this a purchase made on one instance was
+# invisible (and unpaid modules looked paid) on every other instance.
+_entitlements_loaded_at: dict[str, float] = {}
+_ENTITLEMENT_CACHE_TTL = 120.0
 _orders: dict[str, dict] = {}
 
 
@@ -110,6 +115,19 @@ def is_enforced() -> bool:
 
 def _active(expires_at: float | None) -> bool:
     return expires_at is None or expires_at > time.time()
+
+
+def entitlements_stale(owner: str) -> bool:
+    loaded = _entitlements_loaded_at.get(owner)
+    return loaded is None or (time.time() - loaded) > _ENTITLEMENT_CACHE_TTL
+
+
+def set_entitlements(owner: str, values: dict[str, float]) -> None:
+    """Replace an owner's cache after a database read."""
+    if not owner:
+        return
+    _entitlements[owner] = dict(values)
+    _entitlements_loaded_at[owner] = time.time()
 
 
 def owned_products(owner: str) -> set[str]:
@@ -151,6 +169,7 @@ def grant(owner: str, product_ids: list[str], period_days: int = PERIOD_DAYS) ->
         return owned_products(owner)
     now = time.time()
     owned = _entitlements.setdefault(owner, {})
+    _entitlements_loaded_at[owner] = time.time()
     for pid in product_ids:
         current = owned.get(pid)
         start = current if current and current > now else now

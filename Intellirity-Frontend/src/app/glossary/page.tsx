@@ -6,7 +6,7 @@ import { SITE_NAME, SITE_URL } from "@/lib/site";
 export const metadata: Metadata = {
   title: "AI Security Glossary",
   description:
-    "Definitions for prompt injection, LLM jailbreaks, LLM firewalls, AI guardrails, AI data loss prevention, MCP security, AI red teaming, denial of wallet, proof of intent and more.",
+    "Definitions for prompt injection, LLM jailbreaks, LLM firewalls, AI guardrails, AI DLP, MCP security, AI red teaming and audit trails.",
   keywords: PAGE_KEYWORDS["/glossary"],
   alternates: { canonical: `${SITE_URL}/glossary` },
   robots: { index: true, follow: true },

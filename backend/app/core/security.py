@@ -207,7 +207,27 @@ def verify_clerk_token(token: str, secret: str) -> dict:
     return payload
 
 
-def require_user(
+async def _hydrate_entitlements(user: dict) -> None:
+    """Ensure this instance knows the owner's paid modules.
+
+    A purchase is written by whichever serverless instance handled the
+    callback. Without this per-owner read, the next request could land on an
+    instance whose cache predates the purchase and lock a module the customer
+    just paid for.
+    """
+    try:
+        from app.core.identity import owner as _owner
+        from app.services import billing
+        owner_key = _owner(user)
+        if owner_key and billing.entitlements_stale(owner_key):
+            from app.db import persist
+            await persist.hydrate_entitlements(owner_key)
+    except Exception:
+        # A cache miss must never turn a valid session into a 500.
+        pass
+
+
+async def require_user(
     authorization: Optional[str] = Header(default=None),
     x_api_key: Optional[str] = Header(default=None, alias="X-API-Key"),
 ) -> dict:
@@ -227,6 +247,7 @@ def require_user(
     if x_api_key:
         identity = verify_api_key(x_api_key)
         if identity is not None:
+            await _hydrate_entitlements(identity)
             return identity
         # A key was presented but is not valid. Reject it even in open
         # mode: a client with a stale or mistyped key must never silently
@@ -238,7 +259,9 @@ def require_user(
         if not authorization or not authorization.lower().startswith("bearer "):
             raise HTTPException(status_code=401, detail="Missing bearer token")
         token = authorization.split(" ", 1)[1].strip()
-        return verify_clerk_token(token, settings.CLERK_SECRET_KEY)
+        user = verify_clerk_token(token, settings.CLERK_SECRET_KEY)
+        await _hydrate_entitlements(user)
+        return user
 
     # 3. Open mode (no auth configured at all).
     if settings.ENVIRONMENT == "production":

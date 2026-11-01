@@ -6,7 +6,7 @@ import { SITE_NAME, SITE_URL } from "@/lib/site";
 export const metadata: Metadata = {
   title: "AI Security Model",
   description:
-    "The Intellirity AI security model: fail-closed screening, tamper-evident audit evidence, tenant isolation, no traffic retention and coordinated disclosure — controls the running product enforces.",
+    "Intellirity's AI security model: fail-closed screening, tamper-evident evidence, tenant isolation, no traffic retention and coordinated disclosure.",
   keywords: PAGE_KEYWORDS["/security"],
   alternates: { canonical: `${SITE_URL}/security` },
   robots: { index: true, follow: true },

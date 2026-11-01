@@ -6,7 +6,7 @@ import { COMPANY_LEGAL_NAME, SECURITY_EMAIL, SITE_NAME, SITE_URL } from "@/lib/s
 export const metadata: Metadata = {
   title: { absolute: "Refund & Cancellation Policy | Intellirity" },
   description:
-    "Intellirity refund, cancellation and delivery policy for per-module AI security subscriptions: 30-day access, manual renewal, duplicate-charge refunds and how to request one.",
+    "Intellirity refund, cancellation and delivery policy: 30-day access, manual renewal, duplicate-charge refunds and how to request one.",
   keywords: [
     "Intellirity refund policy",
     "AI security subscription refund",

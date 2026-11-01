@@ -7,7 +7,7 @@ import { SITE_NAME, SITE_URL } from "@/lib/site";
 export const metadata: Metadata = {
   title: "AI Security Detection Engines",
   description:
-    "Sixteen AI security detection engines covering prompt injection, LLM jailbreaks, AI data loss prevention, agent abuse, MCP security, model supply chain attacks, AI red teaming and runaway spend.",
+    "Sixteen AI security engines for prompt injection, LLM jailbreaks, AI data loss prevention, agent abuse, MCP security and model supply chain risk.",
   keywords: PAGE_KEYWORDS["/engines"],
   alternates: { canonical: `${SITE_URL}/engines` },
   robots: { index: true, follow: true },

@@ -8,6 +8,7 @@ created on boot and ledger records dual-write automatically.
 import json
 import logging
 import os
+import time
 import uuid
 
 log = logging.getLogger("intellirity.db")
@@ -336,6 +337,7 @@ async def save_order(order: dict) -> bool:
     if not DB_CONNECTED or not isinstance(order, dict) or not order.get("order_id"):
         return False
     try:
+        from datetime import datetime, timezone
         from app.db.session import async_session
         from app.models.models import Order
 
@@ -354,6 +356,17 @@ async def save_order(order: dict) -> bool:
             row.provider = str(order.get("provider", "payu"))
             row.provider_txnid = str(order.get("provider_txnid", ""))
             row.paid_via = str(order.get("paid_via", ""))
+            paid_at = order.get("paid_at")
+            if paid_at:
+                if isinstance(paid_at, (int, float)):
+                    row.paid_at = datetime.fromtimestamp(float(paid_at), timezone.utc)
+                else:
+                    try:
+                        row.paid_at = datetime.fromisoformat(
+                            str(paid_at).replace("Z", "+00:00")
+                        )
+                    except ValueError:
+                        pass
             await session.commit()
         return True
     except Exception as exc:
@@ -473,6 +486,51 @@ async def grant_entitlements(
         return False
 
 
+async def hydrate_entitlements(owner: str) -> bool:
+    """Load one owner's entitlements when a serverless instance has not seen
+    them yet.
+
+    Orders and entitlements are written by the callback instance, but every
+    later request can land on a different instance. Relying on a boot-time
+    restore meant a paid module appeared active on one instance and locked on
+    another. This is the per-owner read that closes that gap.
+    """
+    if not DB_CONNECTED or not owner:
+        return False
+    try:
+        from datetime import datetime, timedelta, timezone
+        from sqlalchemy import select
+        from app.db.session import async_session
+        from app.models.models import Entitlement
+        from app.services import billing
+
+        now = datetime.now(timezone.utc)
+        values: dict[str, float] = {}
+        changed = False
+        async with async_session() as session:
+            rows = (await session.execute(
+                select(Entitlement).where(Entitlement.owner == owner)
+            )).scalars().all()
+            for row in rows:
+                expires = row.expires_at
+                if expires is not None and expires.tzinfo is None:
+                    expires = expires.replace(tzinfo=timezone.utc)
+                if expires is None:
+                    expires = now + timedelta(days=billing.PERIOD_DAYS)
+                    row.expires_at = expires
+                    changed = True
+                if expires <= now:
+                    continue
+                values[row.product_id] = expires.timestamp()
+            if changed:
+                await session.commit()
+        billing.set_entitlements(owner, values)
+        return True
+    except Exception as exc:
+        log.warning("entitlement hydrate skipped: %s", str(exc)[:160])
+        return False
+
+
 async def restore_entitlements() -> int:
     """Load purchased modules into the in-process cache on boot.
 
@@ -508,6 +566,7 @@ async def restore_entitlements() -> int:
                 billing._entitlements.setdefault(row.owner, {})[row.product_id] = (
                     expires.timestamp()
                 )
+                billing._entitlements_loaded_at[row.owner] = time.time()
                 loaded += 1
             if changed:
                 await session.commit()

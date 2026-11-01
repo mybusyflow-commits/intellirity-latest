@@ -7,7 +7,7 @@ import { SECURITY_EMAIL, SITE_NAME, SITE_URL } from "@/lib/site";
 export const metadata: Metadata = {
   title: { absolute: "Research | Intellirity" },
   description:
-    "Intellirity's adversarial AI security research: prompt injection, agent abuse, MCP risk and the detections that follow. Responsible disclosure and published field notes.",
+    "Intellirity's adversarial AI security research: prompt injection, agent abuse, MCP risk and the detections that follow.",
   keywords: [
     "AI security research",
     "prompt injection research",

@@ -6,7 +6,7 @@ import { SITE_NAME, SITE_URL } from "@/lib/site";
 export const metadata: Metadata = {
   title: "AI Data Privacy Policy",
   description:
-    "How Intellirity handles AI data privacy: what the engine collects, what it never trains on, which subprocessors are involved, retention windows, and your rights.",
+    "How Intellirity handles AI data privacy: what the engine collects, what it never trains on, subprocessors, retention and your rights.",
   keywords: PAGE_KEYWORDS["/privacy"],
   alternates: { canonical: `${SITE_URL}/privacy` },
   robots: { index: true, follow: true },

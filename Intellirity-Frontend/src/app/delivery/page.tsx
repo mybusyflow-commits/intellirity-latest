@@ -6,7 +6,7 @@ import { SECURITY_EMAIL, SITE_NAME, SITE_URL } from "@/lib/site";
 export const metadata: Metadata = {
   title: { absolute: "Delivery Policy | Intellirity" },
   description:
-    "How Intellirity delivers digital AI security modules after payment: instant workspace activation, no physical shipping, receipts and what to do if access does not appear.",
+    "How Intellirity delivers digital AI security modules: instant workspace activation, no physical shipping and clear access support.",
   keywords: ["Intellirity delivery policy", "digital delivery", "AI security activation"],
   alternates: { canonical: `${SITE_URL}/delivery` },
   robots: { index: true, follow: true },
