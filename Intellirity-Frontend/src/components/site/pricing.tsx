@@ -19,7 +19,7 @@ interface Product {
 /* Mirrors the engine's catalogue; used only if the backend is unreachable. */
 const FALLBACK: Product[] = [
   { id: "injection-shield", name: "Injection Shield", price: 99, blurb: "Jailbreak + advanced encoding defense.", engines: [], href: "/console/scanner", tier: "basic" },
-  { id: "vibe-code", name: "Vibe-Code Security", price: 99, blurb: "SQLi, XSS, secrets and supply-chain checks.", engines: [], href: "/console/scanner", tier: "basic" },
+  { id: "vibe-code", name: "Vibe-Code Security", price: 99, blurb: "SQLi, XSS, secrets and supply-chain checks.", engines: [], href: "/console/code", tier: "basic" },
   { id: "leakage-guard", name: "Leakage Guard", price: 99, blurb: "PII, secrets and pipeline-hop tracing.", engines: [], href: "/console/leakage", tier: "basic" },
   { id: "content-guard", name: "Content Guard", price: 79, blurb: "Spam, abuse and violence screening.", engines: [], href: "/console/content", tier: "basic" },
   { id: "agent-guard", name: "Agent Guard", price: 99, blurb: "Policy, drift, MCP and workflow checks.", engines: [], href: "/console/behavior", tier: "basic" },
@@ -93,6 +93,7 @@ export function Pricing() {
                   price: live.price ?? p.price,
                   blurb: live.blurb ?? p.blurb,
                   engines: live.engines ?? p.engines,
+                  href: live.href ?? p.href,
                 }
               : p;
           })
