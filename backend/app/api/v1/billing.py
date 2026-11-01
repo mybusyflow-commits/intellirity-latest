@@ -28,25 +28,28 @@ log = logging.getLogger("intellirity.billing")
 def _public_base(request: Request | None = None) -> str:
     """The origin a buyer should return to.
 
-    Prefer the configured public site. If it is unset or still a dev URL,
-    fall back to the origin this request actually arrived on: a payment must
-    never be redirected to localhost because an environment variable was
-    missed.
+    The domain the browser actually used wins: the site is served on both
+    the apex and www (with a redirect between them), so a hard-coded value
+    would send the gateway to the other host and add a redirect to a POST.
+    Only this site's own domains are trusted from the request headers; the
+    configured value is the fallback and the only option in local dev.
     """
     configured = (settings.PUBLIC_SITE_URL or "").strip().rstrip("/")
-    dev = "localhost" in configured or "127.0.0.1" in configured
-    if configured and not dev:
-        return configured
+
     if request is not None:
         host = (request.headers.get("x-forwarded-host") or request.headers.get("host") or "")
-        host = host.split(",")[0].strip()
-        if host and "localhost" not in host and "127.0.0.1" not in host:
+        host = host.split(",")[0].strip().split(":")[0].lower()
+        if host == "intellirity.com" or host.endswith(".intellirity.com"):
             proto = (
                 request.headers.get("x-forwarded-proto")
                 or request.url.scheme
                 or "https"
             ).split(",")[0].strip()
             return f"{proto}://{host}"
+
+    dev = "localhost" in configured or "127.0.0.1" in configured
+    if configured and not dev:
+        return configured
     return configured or "http://localhost:3000"
 
 

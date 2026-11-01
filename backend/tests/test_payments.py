@@ -205,6 +205,39 @@ def test_the_callback_url_can_be_opened_without_a_payload():
     assert "/pricing?payment=failed" in res.headers["location"]
 
 
+def test_public_base_follows_the_host_the_buyer_used(monkeypatch):
+    from starlette.requests import Request
+    from app.api.v1 import billing as billing_api
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(
+        billing_api, "settings", SimpleNamespace(PUBLIC_SITE_URL="https://intellirity.com")
+    )
+
+    def make(host: str, proto: str = "https") -> Request:
+        return Request(
+            {
+                "type": "http",
+                "scheme": proto,
+                "server": (host, 443),
+                "path": "/",
+                "query_string": b"",
+                "headers": [
+                    (b"x-forwarded-host", host.encode()),
+                    (b"x-forwarded-proto", proto.encode()),
+                ],
+            }
+        )
+
+    assert billing_api._public_base(make("www.intellirity.com")) == "https://www.intellirity.com"
+    assert billing_api._public_base(make("intellirity.com")) == "https://intellirity.com"
+    # An unrelated host never overrides the configured site.
+    assert (
+        billing_api._public_base(make("intellirity-backend.vercel.app"))
+        == "https://intellirity.com"
+    )
+
+
 # --- Monthly period and renewal ------------------------------------------
 
 def test_a_purchase_covers_one_month(monkeypatch):
