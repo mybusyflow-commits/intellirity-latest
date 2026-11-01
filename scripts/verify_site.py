@@ -2,7 +2,7 @@
 """Smoke-test a running deployment: status, canonicals, indexing, assets.
 
     python scripts/verify_site.py                                   # local
-    python scripts/verify_site.py --base https://intellirity.com    # production
+    python scripts/verify_site.py --base https://www.intellirity.com  # production
 
 This is the post-deploy check. It looks at what a crawler and a browser
 actually receive, not at the source tree.
@@ -67,7 +67,9 @@ def expected_domain() -> str:
         for line in env.read_text(encoding="utf-8", errors="ignore").splitlines():
             if line.strip().startswith("NEXT_PUBLIC_SITE_URL="):
                 return line.split("=", 1)[1].strip().strip('"').strip("'").rstrip("/")
-    return "https://intellirity.com"
+    # Production canonical host. The apex redirects to www, so checking
+    # canonicals against the apex reports a false failure on every page.
+    return "https://www.intellirity.com"
 
 
 def main(argv: list[str] | None = None) -> int:
