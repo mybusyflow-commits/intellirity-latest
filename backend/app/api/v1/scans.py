@@ -120,6 +120,14 @@ async def create_scan(
     if _memory_scans and _memory_scans[0].get("scan_type") == "Automated Multi-Module Sweep":
         _memory_scans.pop(0)
     _memory_scans.insert(0, record)
+    from app.db import persist
+
+    await persist.save_scan_activity(
+        _billing_owner(user),
+        record.get("scan_type", "Security scan"),
+        float(record.get("risk_score", 0)),
+        int(record.get("findings_count", 0)),
+    )
     return SecurityScanResponse(**record)
 
 
@@ -247,7 +255,27 @@ def run_full_scan_sync(payload: dict, owner: str | None = None) -> dict:
 @router.post("/run")
 async def run_full_scan(payload: dict, user: dict = Depends(require_user)):
     """Run an automated sweep across multiple security modules (live)."""
-    return run_full_scan_sync(payload, owner=_billing_owner(user))
+    owner = _billing_owner(user)
+    result = run_full_scan_sync(payload, owner=owner)
+    from app.db import persist
+
+    await persist.save_scan_activity(
+        owner,
+        "Multi-module sweep",
+        float(result.get("max_risk_score", 0)),
+        int(result.get("total_findings", 0)),
+    )
+    return result
+
+
+@router.get("/activity")
+async def scan_activity(hours: int = 720, user: dict = Depends(require_user)):
+    """Real scan activity for this workspace, for the console chart."""
+    from app.db import persist
+
+    owner = _billing_owner(user)
+    items = await persist.scan_activity(owner, hours=hours, limit=3000)
+    return {"items": items, "hours": hours}
 
 
 @router.get("/", response_model=list[SecurityScanResponse], dependencies=[Depends(require_user)])

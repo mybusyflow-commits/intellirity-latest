@@ -78,6 +78,8 @@ export default function ScannerPage() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobStatus, setJobStatus] = useState("");
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const scanRunning = useRef(false);
+  const progressFrame = useRef(0);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
   const finishScan = useCallback((data: ScanRun, label: string, t: string, elapsedSec: number) => {
@@ -148,21 +150,37 @@ export default function ScannerPage() {
     timers.current.forEach(clearTimeout);
     timers.current = [];
     const start = performance.now();
+    scanRunning.current = true;
     const tick = () => {
+      if (!scanRunning.current) return;
       const elapsed = (performance.now() - start) / 1000;
       setPct(Math.min(92, Math.round(elapsed * 22)));
-      if (phase !== "done") requestAnimationFrame(tick);
+      progressFrame.current = requestAnimationFrame(tick);
     };
-    requestAnimationFrame(tick);
+    progressFrame.current = requestAnimationFrame(tick);
+    let timeout: ReturnType<typeof setTimeout> | undefined;
     try {
-      const data = await runScan(t, s.modules);
+      const data = await Promise.race([
+        runScan(t, s.modules),
+        new Promise<never>((_, reject) => {
+          timeout = setTimeout(
+            () => reject(new Error("The scan timed out. Please run it again.")),
+            45_000
+          );
+        }),
+      ]);
       finishScan(data, s.label, t, (performance.now() - start) / 1000);
     } catch (e) {
-      setLines((p) => [...p, "✕ engine unreachable. Is the backend running on :8000?"]);
+      const message = e instanceof Error ? e.message : "The scan could not complete.";
+      setLines((p) => [...p, `x ${message}`]);
       setPct(100);
       setPhase("done");
+    } finally {
+      scanRunning.current = false;
+      cancelAnimationFrame(progressFrame.current);
+      if (timeout) clearTimeout(timeout);
     }
-  }, [profile, target, phase, finishScan]);
+  }, [profile, target, finishScan]);
 
   const queueSweep = useCallback(async () => {
     const s = PROFILES[profile];

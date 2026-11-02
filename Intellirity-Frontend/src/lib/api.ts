@@ -147,7 +147,8 @@ export const getPublicStats = () => req<Summary>("/system/public-stats");
 export const getThreats = () => req<Threat[]>("/threats");
 
 /* The landing page may only see the labelled demo stream. */
-export const getPublicFeed = () => req<Threat[]>("/system/public-feed");
+export const getPublicFeed = (limit = 500) =>
+  req<Threat[]>(`/system/public-feed?limit=${limit}`);
 
 /* Free-engine demo scan for signed-out visitors; records nothing. */
 export function demoScan(text: string, target = "") {
@@ -203,6 +204,12 @@ export interface ThreatPage {
   items: Threat[];
   next_cursor: string | null;
   has_more: boolean;
+}
+
+export function getScanActivity(hours = 720) {
+  return req<{ items: { created_at: string; risk_score: number; scan_type: string }[]; hours: number }>(
+    `/scans/activity?hours=${hours}`
+  );
 }
 
 export function getThreatsPage(opts: { limit?: number; cursor?: string | null; severity?: string } = {}) {

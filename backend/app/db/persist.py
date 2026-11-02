@@ -243,6 +243,84 @@ async def restore_ledger_chain(limit: int = 5000) -> int:
         return 0
 
 
+async def save_scan_activity(
+    owner: str,
+    scan_type: str,
+    risk_score: float,
+    findings_count: int = 0,
+    target: str = "",
+) -> bool:
+    """Persist one scan event for the real activity charts.
+
+    The chart must not be a static demo series. Only metadata is stored
+    here: owner, type, risk and time. Free public scans call this with a
+    neutral target, so a tenant's URL or prompt never enters the aggregate.
+    """
+    if not DB_CONNECTED:
+        return False
+    try:
+        from datetime import datetime, timezone
+        from app.db.session import async_session
+        from app.models.models import SecurityScan
+
+        now = datetime.now(timezone.utc)
+        async with async_session() as session:
+            session.add(
+                SecurityScan(
+                    id=str(uuid.uuid4()),
+                    user_id=str(owner or "demo")[:200],
+                    organization_id=None,
+                    scan_type=str(scan_type or "Security scan")[:120],
+                    target=str(target or "")[:500],
+                    status="completed",
+                    findings=str(int(findings_count)),
+                    risk_score=float(risk_score or 0),
+                    created_at=now,
+                    completed_at=now,
+                )
+            )
+            await session.commit()
+        return True
+    except Exception as exc:
+        log.warning("scan activity persist skipped: %s", str(exc)[:160])
+        return False
+
+
+async def scan_activity(owner: str | None = None, hours: int = 720, limit: int = 5000) -> list[dict]:
+    """Recent scan events, newest first. ``owner=None`` is the public aggregate.
+
+    Returns timestamps and scores only; no target, prompt or finding text is
+    returned to a caller that asks for the public view.
+    """
+    if not DB_CONNECTED:
+        return []
+    try:
+        from datetime import datetime, timedelta, timezone
+        from sqlalchemy import select
+        from app.db.session import async_session
+        from app.models.models import SecurityScan
+
+        since = datetime.now(timezone.utc) - timedelta(hours=max(1, min(int(hours), 24 * 90)))
+        async with async_session() as session:
+            stmt = select(
+                SecurityScan.created_at, SecurityScan.risk_score, SecurityScan.scan_type
+            ).where(SecurityScan.created_at >= since).order_by(SecurityScan.created_at.desc()).limit(limit)
+            if owner is not None:
+                stmt = stmt.where(SecurityScan.user_id == owner)
+            rows = (await session.execute(stmt)).all()
+        return [
+            {
+                "created_at": row[0].isoformat() if hasattr(row[0], "isoformat") else str(row[0]),
+                "risk_score": float(row[1] or 0),
+                "scan_type": row[2] or "Security scan",
+            }
+            for row in rows
+        ]
+    except Exception as exc:
+        log.warning("scan activity read skipped: %s", str(exc)[:160])
+        return []
+
+
 async def save_escrow_hold(hold: dict) -> bool:
     """Best-effort upsert of an escrow hold. Never raises."""
     if not DB_CONNECTED or not isinstance(hold, dict) or not hold.get("escrow_id"):

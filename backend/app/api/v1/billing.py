@@ -333,6 +333,41 @@ async def payu_urls(request: Request):
     }
 
 
+@router.get("/payu/webhook")
+async def payu_webhook_probe():
+    """A browser opening the webhook URL should see an explanation, not 405.
+
+    The endpoint itself accepts only a signed POST from PayU. PayU does not
+    require a webhook for the redirect flow; both URLs are valid and can be
+    configured, but the callback alone is enough to activate an order.
+    """
+    return HTMLResponse(
+        """<!doctype html>
+<html lang="en"><head><meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Payment webhook | Intellirity</title>
+<style>
+ body{margin:0;min-height:100vh;display:grid;place-items:center;background:#07080a;color:#e7e9ee;
+      font:14px/1.6 ui-sans-serif,system-ui,sans-serif}
+ main{max-width:480px;padding:32px;text-align:center}
+ code{color:#b9c0cc}
+</style></head>
+<body><main>
+<p style="letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:#8b909c">Intellirity billing</p>
+<h1 style="font-size:22px;font-weight:500;margin:12px 0">Payment webhook</h1>
+<p style="color:#a6abb6">This URL accepts signed server-to-server payment
+notifications from the gateway. Opening it in a browser is not an error:
+there is nothing to show without a signed POST.</p>
+<p style="color:#a6abb6">The success and failure callback URL is
+<code>/backend/billing/payu/callback</code>. The webhook is optional.</p>
+<p><a href="/pricing" style="color:#e7e9ee">Go to pricing</a></p>
+</main></body></html>""",
+        status_code=200,
+        headers={"Cache-Control": "no-store"},
+    )
+
+
 @router.post("/payu/webhook")
 async def payu_webhook(request: Request):
     """Optional server-to-server webhook. Same hash, no browser."""

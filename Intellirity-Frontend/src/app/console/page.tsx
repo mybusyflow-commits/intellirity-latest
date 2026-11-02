@@ -12,7 +12,7 @@ import { ChartTooltip } from "@/components/charts/tooltip/chart-tooltip";
 import { chartCssVars } from "@/components/charts/chart-context";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { getSummary, getThreats, type Summary, type Threat } from "@/lib/api";
+import { getScanActivity, getSummary, getThreats, type Summary, type Threat } from "@/lib/api";
 import { useEntitlements } from "@/components/console/entitlements";
 import { VibeDemo } from "@/components/console/vibe-demo";
 import type { Action } from "@/lib/console-data";
@@ -68,7 +68,10 @@ function ago(iso: string | undefined): string {
   return `${Math.floor(m / 60)}h ago`;
 }
 
-function bucketize(threats: Threat[], hours: number) {
+function bucketizeActivity(
+  rows: { created_at: string; risk_score: number }[],
+  hours: number
+) {
   const now = Date.now();
   const size = (hours * 3600 * 1000) / 24;
   const buckets = Array.from({ length: 24 }, (_, i) => ({
@@ -76,13 +79,13 @@ function bucketize(threats: Threat[], hours: number) {
     blocked: 0,
     flagged: 0,
   }));
-  for (const t of threats) {
-    const ts = Date.parse(t.created_at);
+  for (const row of rows) {
+    const ts = Date.parse(row.created_at);
     if (Number.isNaN(ts)) continue;
     const idx = Math.floor((ts - (now - hours * 3600 * 1000)) / size);
     if (idx < 0 || idx > 23) continue;
-    if (t.severity.toLowerCase() === "high") buckets[idx].blocked += 1;
-    else if (t.severity.toLowerCase() === "medium") buckets[idx].flagged += 1;
+    if (row.risk_score >= 0.7) buckets[idx].blocked += 1;
+    else if (row.risk_score > 0) buckets[idx].flagged += 1;
   }
   return buckets;
 }
@@ -134,15 +137,23 @@ export default function OverviewPage() {
   const [range, setRange] = useState<RangeKey>("24H");
   const [summary, setSummary] = useState<Summary | null>(null);
   const [threats, setThreats] = useState<Threat[]>([]);
+  const [activity, setActivity] = useState<
+    { created_at: string; risk_score: number; scan_type: string }[]
+  >([]);
 
   useEffect(() => {
     let live = true;
     const load = async () => {
       try {
-        const [s, t] = await Promise.all([getSummary(), getThreats()]);
+        const [s, t, a] = await Promise.all([
+          getSummary(),
+          getThreats(),
+          getScanActivity(720),
+        ]);
         if (!live) return;
         setSummary(s);
         setThreats(t);
+        setActivity(a.items ?? []);
       } catch {
         /* panels keep their loading state */
       }
@@ -155,7 +166,10 @@ export default function OverviewPage() {
     };
   }, []);
 
-  const data = useMemo(() => bucketize(threats, RANGE_HOURS[range]), [threats, range]);
+  const data = useMemo(
+    () => bucketizeActivity(activity, RANGE_HOURS[range]),
+    [activity, range]
+  );
   const open = useMemo(() => threats.filter((t) => !t.is_resolved), [threats]);
   const openQueue = useMemo(
     () => open.filter((t) => t.severity.toLowerCase() !== "low").slice(0, 5),
@@ -193,7 +207,7 @@ export default function OverviewPage() {
         <div className="panel rounded-lg p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-4 font-mono text-[11px] text-dim">
-              <span className="uppercase tracking-[0.12em] text-faint">live engine volume</span>
+              <span className="uppercase tracking-[0.12em] text-faint">your scan volume</span>
               <span className="flex items-center gap-1.5">
                 <span className="h-[3px] w-4 rounded-full" style={{ background: chartCssVars.linePrimary }} />
                 blocked

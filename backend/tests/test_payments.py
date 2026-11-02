@@ -512,6 +512,37 @@ def test_repository_review_rejects_an_empty_snapshot():
     assert "No scannable files" in result["error"]
 
 
+def test_public_feed_reports_real_scan_activity(monkeypatch):
+    from fastapi.testclient import TestClient
+    from app.main import app
+    from app.api.v1 import system
+    from app.db import persist as db
+
+    async def fake_activity(owner=None, hours=0, limit=0):
+        assert owner is None
+        return [
+            {"created_at": "2026-11-02T12:00:00+00:00", "risk_score": 0.9, "scan_type": "Multi-module sweep"},
+            {"created_at": "2026-11-02T12:01:00+00:00", "risk_score": 0.4, "scan_type": "Free Vibe-Code scan"},
+        ]
+
+    monkeypatch.setattr(db, "scan_activity", fake_activity)
+    monkeypatch.setattr(system, "_public_feed_cache", None)
+    rows = TestClient(app).get("/api/v1/system/public-feed?limit=500").json()
+    assert [r["severity"] for r in rows] == ["high", "medium"]
+    assert all(r["origin"] == "detection" for r in rows)
+    assert all("target" not in r for r in rows)
+
+
+def test_webhook_url_can_be_opened_and_explains_post_only():
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    res = TestClient(app).get("/api/v1/billing/payu/webhook", follow_redirects=False)
+    assert res.status_code == 200
+    assert "Payment webhook" in res.text
+    assert "callback" in res.text
+
+
 # --- Sweep enforcement (the console's multi-module path) -----------------
 
 def test_sweep_runs_free_modules_and_reports_locked_ones(monkeypatch):

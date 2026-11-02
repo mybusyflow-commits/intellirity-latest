@@ -55,7 +55,7 @@ export function ThreatPulse() {
     let live = true;
     const load = async () => {
       try {
-        const items = await getPublicFeed();
+        const items = await getPublicFeed(500);
         if (live) setThreats(items);
       } catch {
         /* chart keeps its empty state offline */
@@ -93,8 +93,8 @@ export function ThreatPulse() {
           </h2>
         </div>
         <p className="reveal max-w-sm text-[14.5px] leading-relaxed text-dim">
-          Every prompt, completion, and tool call, scored by the live
-          detection engine. Below is the live engine feed.
+          Real scans completed across Intellirity workspaces, aggregated by
+          risk. No customer payloads or workspace names are shown.
         </p>
       </div>
 
@@ -172,7 +172,7 @@ export function ThreatPulse() {
               </div>
             </div>
             <div className="ml-auto hidden font-mono text-[10.5px] uppercase tracking-[0.12em] text-faint sm:block">
-              live engine feed
+              real scan volume
             </div>
           </div>
         </div>
