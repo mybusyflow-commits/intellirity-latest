@@ -11,6 +11,7 @@ from __future__ import annotations
 import ipaddress
 import re
 import socket
+import urllib.error
 import urllib.request
 from typing import Any
 from urllib.parse import urlparse
@@ -38,7 +39,7 @@ SECRET_RULES = [
      r"(?:password|passwd|pwd|secret|api[_-]?key|access[_-]?token|token)\s*[:=]\s*['\"][^'\"]{6,}['\"]",
      "Read credentials from environment or a secret manager instead of literals."),
     ("ics.secret.url_creds", "Credentials in URL", "high", "CWE-598", "secrets",
-     r"https?://[^/\s:@]+:[^/\s:@]+@", "Avoid embedding credentials in URLs; use headers or token auth."),
+     r"""https?://[^/\s:@\"'{}]+:[^/\s:@\"'{}]+@[A-Za-z0-9.-]+""", "Avoid embedding credentials in URLs; use headers or token auth."),
 ]
 
 INJECTION_RULES = [
@@ -168,6 +169,108 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+MAX_PAGE_BYTES = 300_000
+
+
+def _scan_page_html(html: str, base_url: str) -> list[dict]:
+    """Review the HTML and inline scripts of a public page.
+
+    Only inline scripts are fed to the code rules. Running them over the whole
+    document would flag ordinary markup and third-party bundles, which turns a
+    useful report into noise.
+    """
+    findings: list[dict] = []
+    lines = html.splitlines()
+
+    for match in re.finditer(r"<script\b(?![^>]*\bsrc=)[^>]*>(.*?)</script>", html, re.I | re.S):
+        script = match.group(1)
+        tag = match.group(0).split(">", 1)[0]
+        kind = re.search(r"""type\s*=\s*["']([^"']+)""", tag, re.I)
+        if kind and kind.group(1).lower() not in (
+            "module", "text/javascript", "application/javascript",
+        ):
+            # JSON-LD and data blocks are documents, not executable code.
+            continue
+        if not script.strip() or "self.__next_f" in script or len(script) > 50_000:
+            continue
+        start_line = html.count("\n", 0, match.start()) + 1
+        for item in _scan_code(script):
+            findings.append(
+                {
+                    **item,
+                    "title": f"Inline script: {item['title']}",
+                    "line": start_line + max(0, int(item.get("line", 1)) - 1),
+                    "snippet": item.get("snippet", "")[:160],
+                }
+            )
+
+    # Secrets can sit in markup attributes, comments or config blobs, not only
+    # inside a script tag.
+    for rule_id, title, severity, cwe, category, pattern, remediation in SECRET_RULES:
+        try:
+            rx = re.compile(pattern, re.IGNORECASE)
+        except re.error:
+            continue
+        for idx, line in enumerate(lines, start=1):
+            if rx.search(line):
+                findings.append(
+                    {
+                        "id": rule_id,
+                        "title": f"Page source: {title}",
+                        "severity": severity,
+                        "cwe": cwe,
+                        "category": category,
+                        "line": idx,
+                        "snippet": line.strip()[:160],
+                        "remediation": remediation,
+                    }
+                )
+
+    if base_url.startswith("https://"):
+        for idx, line in enumerate(lines, start=1):
+            if re.search(r"""(?:src|href|action)\s*=\s*["']http://""", line, re.I):
+                findings.append(
+                    {
+                        "id": "ics.page.mixed_content",
+                        "title": "Mixed Content on an HTTPS Page",
+                        "severity": "high",
+                        "cwe": "CWE-319",
+                        "category": "transport",
+                        "line": idx,
+                        "snippet": line.strip()[:160],
+                        "remediation": "Load every script, stylesheet and form target over HTTPS.",
+                    }
+                )
+
+    for match in re.finditer(r"""<script\b[^>]*\bsrc\s*=\s*["'](https?://[^"']+)""", html, re.I):
+        tag = match.group(0)
+        if "integrity=" not in tag.lower():
+            findings.append(
+                {
+                    "id": "ics.page.sri_missing",
+                    "title": "External Script Without Subresource Integrity",
+                    "severity": "low",
+                    "cwe": "CWE-353",
+                    "category": "supply_chain",
+                    "line": html.count("\n", 0, match.start()) + 1,
+                    "snippet": tag[:160],
+                    "remediation": "Pin a version and add an integrity hash so a changed host cannot alter the script.",
+                }
+            )
+            break
+
+    # One finding per rule and line is enough for a page review.
+    seen: set[tuple[str, int]] = set()
+    unique: list[dict] = []
+    for finding in findings:
+        key = (finding["id"], int(finding.get("line", 0)))
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(finding)
+    return unique
+
+
 def _scan_url(url: str) -> list[dict]:
     findings: list[dict] = []
     ok, why = _is_safe_url(url)
@@ -190,13 +293,24 @@ def _scan_url(url: str) -> list[dict]:
             "cwe": "CWE-601", "category": "transport", "line": 0,
             "snippet": url, "remediation": "Validate redirect targets against an allowlist.",
         })
-    # Probe live headers (best-effort, short timeout). Redirects are NOT followed
-    # — following them could route the probe to an internal/metadata address.
+    # Probe live headers and page source (best-effort, short timeout). Redirects
+    # are NOT followed: an internal redirect would bypass the SSRF guard.
     try:
         opener = urllib.request.build_opener(_NoRedirect())
-        req = urllib.request.Request(url, method="GET", headers={"User-Agent": "Intellirity-Security/1.0"})
-        with opener.open(req, timeout=6) as resp:
+        req = urllib.request.Request(
+            url,
+            method="GET",
+            headers={
+                "User-Agent": "Mozilla/5.0 (compatible; Intellirity-Security/1.0; +https://www.intellirity.com)",
+                "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5",
+            },
+        )
+        with opener.open(req, timeout=8) as resp:
             headers = {k.lower(): v for k, v in resp.getheaders()}
+            content_type = headers.get("content-type", "")
+            body = b""
+            if "text/html" in content_type or "javascript" in content_type:
+                body = resp.read(MAX_PAGE_BYTES)
         for header, label, sev in [
             ("strict-transport-security", "HSTS", "medium"),
             ("content-security-policy", "Content-Security-Policy", "medium"),
@@ -209,11 +323,77 @@ def _scan_url(url: str) -> list[dict]:
                     "severity": sev, "cwe": "CWE-693", "category": "headers", "line": 0,
                     "snippet": header, "remediation": f"Add the {label} response header.",
                 })
+
+        if "x-powered-by" in headers:
+            findings.append({
+                "id": "ics.header.x_powered_by", "title": "Server Technology Disclosure",
+                "severity": "low", "cwe": "CWE-200", "category": "headers", "line": 0,
+                "snippet": f"X-Powered-By: {headers['x-powered-by'][:80]}",
+                "remediation": "Remove X-Powered-By so the stack is not advertised.",
+            })
+
+        csp = headers.get("content-security-policy", "")
+        script_src = next(
+            (part.strip() for part in csp.split(";") if part.strip().lower().startswith("script-src")),
+            "",
+        )
+        if ("unsafe-inline" in script_src or "unsafe-eval" in script_src) and "nonce-" not in script_src:
+            findings.append({
+                "id": "ics.header.csp_weak", "title": "Content-Security-Policy Allows Unsafe Scripts",
+                "severity": "low", "cwe": "CWE-693", "category": "headers", "line": 0,
+                "snippet": script_src[:160],
+                "remediation": "Remove unsafe-inline/unsafe-eval from script-src and use nonces or hashes.",
+            })
+
+        if (
+            headers.get("access-control-allow-origin", "").strip() == "*"
+            and headers.get("access-control-allow-credentials", "").strip().lower() == "true"
+        ):
+            findings.append({
+                "id": "ics.header.cors_wildcard", "title": "CORS Allows Every Origin",
+                "severity": "medium", "cwe": "CWE-942", "category": "headers", "line": 0,
+                "snippet": "Access-Control-Allow-Origin: *",
+                "remediation": "Restrict CORS to the origins that need the response.",
+            })
+
+        for cookie in headers.get("set-cookie", "").split("\n"):
+            cookie = cookie.strip()
+            if not cookie:
+                continue
+            lowered = cookie.lower()
+            missing = [flag for flag in ("secure", "httponly", "samesite") if flag not in lowered]
+            if missing:
+                findings.append({
+                    "id": "ics.cookie.flags", "title": "Cookie Missing Security Flags",
+                    "severity": "medium", "cwe": "CWE-614", "category": "cookies", "line": 0,
+                    "snippet": cookie.split(";")[0][:120],
+                    "remediation": f"Set {', '.join(missing)} on cookies that carry a session.",
+                })
+                break
+
+        if body:
+            html = body.decode(resp.headers.get_content_charset() or "utf-8", "replace")
+            findings.extend(_scan_page_html(html, url))
+    except urllib.error.HTTPError as exc:
+        if 300 <= exc.code < 400:
+            location = exc.headers.get("location", "") if exc.headers else ""
+            findings.append({
+                "id": "ics.url.redirect", "title": "Target Redirects Before Serving the Page",
+                "severity": "info", "cwe": "N/A", "category": "transport", "line": 0,
+                "snippet": f"{exc.code} -> {location[:160]}",
+                "remediation": "Scan the final URL (usually the www or https version) so the page source itself is reviewed.",
+            })
+        else:
+            findings.append({
+                "id": "ics.url.unreachable", "title": f"Target Returned HTTP {exc.code}",
+                "severity": "info", "cwe": "N/A", "category": "transport", "line": 0,
+                "snippet": url, "remediation": "Only public pages that return 200 can be reviewed.",
+            })
     except Exception:
         findings.append({
-            "id": "ics.url.unreachable", "title": "Target Not Reachable for Live Header Probe",
+            "id": "ics.url.unreachable", "title": "Target Not Reachable for Live Probe",
             "severity": "info", "cwe": "N/A", "category": "transport", "line": 0,
-            "snippet": url, "remediation": "Intellirity analyzed the URL statically; live header checks require a reachable host.",
+            "snippet": url, "remediation": "Intellirity analyzed the URL statically; live checks require a reachable host.",
         })
     return findings
 

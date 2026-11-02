@@ -573,7 +573,7 @@ def _map_code_scan_findings(findings: list) -> list:
             "category": f.get("category", "unknown"),
             "type": f.get("id", "issue"),
             "title": f.get("title", "Issue") + (f" (line {f['line']})" if f.get("line") else ""),
-            "description": f.get("remediation", ""),
+            "description": "",
             "severity": f.get("severity", "low"),
             "cwe": f.get("cwe", ""),
             "remediation": f.get("remediation", ""),
