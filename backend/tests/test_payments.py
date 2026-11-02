@@ -291,6 +291,76 @@ def test_a_replayed_callback_does_not_add_a_free_month(monkeypatch):
     assert billing._entitlements[owner]["content-guard"] == expiry
 
 
+# --- Captured money without a callback ------------------------------------
+
+def test_verify_payment_signs_the_merchant_query(monkeypatch):
+    _configure(monkeypatch)
+    captured = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return (
+                b'{"status":1,"transaction_details":{"ORD-1":'
+                b'{"status":"success","amt":"79.00","txnid":"ORD-1","mihpayid":"999"}}}'
+            )
+
+    def fake_urlopen(request, timeout=0):
+        captured["body"] = request.data.decode()
+        captured["url"] = request.full_url
+        return FakeResponse()
+
+    monkeypatch.setattr(payu.urllib.request, "urlopen", fake_urlopen)
+    result = payu.verify_payment("ORD-1")
+    assert result["ok"] == "true"
+    assert result["amount"] == "79.00"
+    fields = dict(pair.split("=", 1) for pair in captured["body"].split("&"))
+    expected = _sha("testkey|verify_payment|ORD-1|testsalt")
+    assert fields["hash"] == expected
+    assert "test.payu.in/merchant/postservice.php" in captured["url"]
+
+
+def test_a_verified_capture_grants_the_modules_once(monkeypatch):
+    import asyncio
+    from app.api.v1 import billing as billing_api
+
+    monkeypatch.setenv("BILLING_ENFORCED", "true")
+    order = billing.checkout("owner-sync-test", ["content-guard"])
+    assert order["status"] == "pending-payment"
+    granted = []
+
+    async def fake_update(*args, **kwargs):
+        return True
+
+    async def fake_grant(owner, modules, order_id):
+        granted.append((owner, tuple(modules), order_id))
+        return True
+
+    monkeypatch.setattr(billing_api.persist, "update_order", fake_update)
+    monkeypatch.setattr(billing_api.persist, "grant_entitlements", fake_grant)
+
+    async def run():
+        return await billing_api._grant_paid(order, order["order_id"], "payu-sync")
+
+    ok, paid = asyncio.run(run())
+    assert ok is True
+    assert paid["status"] == "active"
+    assert granted == [("owner-sync-test", ("content-guard",), order["order_id"])]
+
+    # A replay of the same order must not extend the entitlement again.
+    async def replay():
+        return await billing_api._grant_paid(paid, order["order_id"], "payu-sync")
+
+    ok_again, _ = asyncio.run(replay())
+    assert ok_again is True
+    assert len(granted) == 1
+
+
 # --- Public marketing data -----------------------------------------------
 
 def test_public_stats_and_feed_need_no_session():

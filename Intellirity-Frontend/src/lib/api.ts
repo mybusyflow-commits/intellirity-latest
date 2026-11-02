@@ -408,6 +408,20 @@ export const getOrder = (orderId: string) =>
     paid_via: string;
   }>(`/billing/orders/${encodeURIComponent(orderId)}`);
 
+/* Ask the server to verify a captured payment with the gateway when the
+   browser callback was lost. Only the order owner can trigger this. */
+export const syncPayuOrder = (orderId: string) =>
+  req<{
+    synced: boolean;
+    already_active?: boolean;
+    status?: string;
+    message?: string;
+    modules?: string[];
+  }>("/billing/payu/sync", {
+    method: "POST",
+    body: JSON.stringify({ order_id: orderId }),
+  });
+
 export interface EntitlementDetail {
   active: boolean;
   expires_at: string | null;

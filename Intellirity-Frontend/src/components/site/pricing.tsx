@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { checkoutBundle, getEntitlements, getOrder } from "@/lib/api";
+import { checkoutBundle, getEntitlements, getOrder, syncPayuOrder } from "@/lib/api";
 
 interface Product {
   id: string;
@@ -133,6 +133,12 @@ export function Pricing() {
     const check = async () => {
       tries += 1;
       try {
+        // A lost callback is the classic "money left, no module" bug. On the
+        // first and fourth attempt ask PayU directly; the server grants only
+        // if the captured amount matches this order.
+        if (orderId && (tries === 1 || tries === 4)) {
+          await syncPayuOrder(orderId).catch(() => null);
+        }
         const [status, ent] = await Promise.all([
           orderId ? getOrder(orderId).catch(() => null) : Promise.resolve(null),
           getEntitlements(true).catch(() => null),

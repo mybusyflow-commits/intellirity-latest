@@ -8,6 +8,7 @@ before any module is granted.
 The order is written to Postgres *before* the browser leaves, because the
 callback can land on a different serverless instance than the checkout.
 """
+import asyncio
 from datetime import datetime, timezone
 import logging
 
@@ -155,6 +156,30 @@ async def _order_for(txnid: str, udf1: str = "") -> dict | None:
     return None
 
 
+async def _grant_paid(order: dict, txnid: str, via: str) -> tuple[bool, dict]:
+    """Mark an order paid and grant its modules exactly once."""
+    store.remember_order(order)
+    result = store.mark_paid(order["order_id"], via=via)
+    if "error" in result:
+        log.warning("payu %s: order %s could not be marked paid: %s", via, order["order_id"], result["error"])
+        return False, order
+    paid = result["order"]
+    paid["provider_txnid"] = txnid or order.get("provider_txnid", "")
+    paid["paid_at"] = datetime.now(timezone.utc).isoformat()
+    await persist.update_order(paid)
+    # Only a real transition may extend the paid-through date. PayU retries
+    # callbacks; grant_entitlements also skips an order already stamped.
+    if result.get("newly_paid"):
+        granted = await persist.grant_entitlements(
+            paid["owner"], paid.get("modules", []), paid["order_id"]
+        )
+        log.info(
+            "payu %s activated order %s with %s module(s) (granted=%s)",
+            via, paid["order_id"], len(paid.get("modules", [])), granted,
+        )
+    return True, paid
+
+
 async def _activate(data: dict, via: str) -> tuple[bool, str]:
     """Verify the reverse hash, then activate. Returns (ok, order_id)."""
     if not payu.verify_response(data):
@@ -171,28 +196,56 @@ async def _activate(data: dict, via: str) -> tuple[bool, str]:
         log.info("payu %s: order %s came back as %s", via, order["order_id"], status)
         return False, order["order_id"]
 
-    store.remember_order(order)
-    result = store.mark_paid(order["order_id"], via=via)
-    if "error" in result:
-        log.warning("payu %s: order %s could not be marked paid: %s", via, order["order_id"], result["error"])
-        return False, order["order_id"]
-    order = result["order"]
-    order["provider_txnid"] = txnid
-    order["paid_at"] = datetime.now(timezone.utc).isoformat()
-    await persist.update_order(order)
-    # Only a real transition may extend the paid-through date. PayU retries
-    # webhooks; granting on every replay would hand out a free month each
-    # time. grant_entitlements also skips a row already stamped with this
-    # order id, as a second line of defence.
-    if result.get("newly_paid"):
-        granted = await persist.grant_entitlements(
-            order["owner"], order.get("modules", []), order["order_id"]
+    ok, paid = await _grant_paid(order, txnid, via)
+    return ok, paid["order_id"]
+
+
+class PayuSyncBody(BaseModel):
+    order_id: str
+
+
+@router.post("/payu/sync")
+async def payu_sync(body: PayuSyncBody, user: dict = Depends(require_user)):
+    """Recover a captured payment whose browser callback was lost.
+
+    The buyer's own session must match the order. PayU is the authority for
+    the transaction state, and the amount must equal what the order charges
+    before a single module is granted.
+    """
+    owner = _owner(user)
+    order = await _order_for(body.order_id)
+    if not order or order.get("owner") != owner:
+        raise HTTPException(status_code=404, detail="Unknown order.")
+    if order.get("status") == "active":
+        return {"synced": True, "already_active": True, "order": order}
+    if not order.get("provider_txnid") and order.get("provider") != "payu":
+        raise HTTPException(status_code=409, detail="This order is not a PayU payment.")
+
+    result = await asyncio.to_thread(payu.verify_payment, body.order_id)
+    if result.get("ok") != "true":
+        return {
+            "synced": False,
+            "status": result.get("status", "pending"),
+            "message": result.get("message", "PayU has not confirmed this payment yet."),
+        }
+    try:
+        paid_amount = round(float(result.get("amount") or 0), 2)
+    except (TypeError, ValueError):
+        paid_amount = -1
+    if abs(paid_amount - float(order.get("total_inr", 0))) > 0.01:
+        log.warning(
+            "payu sync: amount mismatch for %s (expected %s, got %s)",
+            order["order_id"], order.get("total_inr"), result.get("amount"),
         )
-        log.info(
-            "payu %s activated order %s with %s module(s) (granted=%s)",
-            via, order["order_id"], len(order.get("modules", [])), granted,
-        )
-    return True, order["order_id"]
+        raise HTTPException(status_code=409, detail="The paid amount does not match this order.")
+
+    ok, paid = await _grant_paid(order, str(result.get("txnid") or body.order_id), "payu-sync")
+    return {
+        "synced": ok,
+        "already_active": False,
+        "order": paid,
+        "modules": paid.get("modules", []),
+    }
 
 
 @router.post("/payu/callback")

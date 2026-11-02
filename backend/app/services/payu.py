@@ -16,6 +16,9 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
+import urllib.parse
+import urllib.request
 from decimal import Decimal, ROUND_HALF_UP
 
 from app.core.config import settings
@@ -166,4 +169,58 @@ def fields(
         "udf1": order_id,
         "service_provider": "payu_paisa",
         "hash": request_hash(txnid, amount, productinfo, firstname, email, udf1=order_id),
+    }
+
+def verify_payment(txnid: str) -> dict[str, str]:
+    """Ask PayU for the authoritative state of one transaction.
+
+    The browser callback is best-effort: a closed tab, a proxy timeout or a
+    redirect can lose it even though the money moved. This server-to-server
+    lookup is what lets the buyer recover access without contacting support.
+    """
+    if not enabled() or not txnid:
+        return {"ok": "false", "status": "unavailable", "message": "PayU is not configured."}
+    command = "verify_payment"
+    signature = hashlib.sha512(
+        f"{settings.PAYU_KEY_ID}|{command}|{txnid}|{settings.PAYU_KEY_SECRET}".encode("utf-8")
+    ).hexdigest()
+    body = urllib.parse.urlencode(
+        {
+            "key": settings.PAYU_KEY_ID,
+            "command": command,
+            "var1": txnid,
+            "hash": signature,
+        }
+    ).encode("utf-8")
+    endpoint = (
+        "https://test.payu.in/merchant/postservice.php?form=2"
+        if mode() == "test"
+        else "https://info.payu.in/merchant/postservice.php?form=2"
+    )
+    request = urllib.request.Request(
+        endpoint,
+        data=body,
+        method="POST",
+        headers={
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "Intellirity-Billing/1.0",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=12) as response:
+            payload = json.loads(response.read().decode("utf-8", "replace"))
+    except Exception as exc:
+        return {"ok": "false", "status": "unreachable", "message": str(exc)[:160]}
+
+    details = (payload.get("transaction_details") or {}).get(txnid) or {}
+    status = str(details.get("status", "not-found")).lower()
+    success = status == "success"
+    return {
+        "ok": "true" if success else "false",
+        "status": status,
+        "amount": str(details.get("amt", "") or details.get("transaction_amount", "")),
+        "txnid": str(details.get("txnid", txnid)),
+        "mihpayid": str(details.get("mihpayid", "")),
+        "error_code": str(details.get("error_code", "")),
+        "message": str(details.get("error_Message", "") or payload.get("msg", ""))[:160],
     }
