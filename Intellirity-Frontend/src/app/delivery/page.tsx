@@ -37,9 +37,9 @@ export default function DeliveryPage() {
         </GlassSection>
         <GlassSection eyebrow="02" title="When access appears">
           <p>
-            PayU confirms the payment and returns the browser to the pricing
-            page. The server verifies the signed response, activates the
-            entitlement and stores it in Postgres. Access normally appears
+            PayU confirms the payment and returns the browser to the payment
+            confirmation route. The server verifies the signed response,
+            activates the agreed coverage and stores it against the workspace. Access normally appears
             immediately; a new deployment or a different browser may need a
             refresh or a sign-in with the same workspace.
           </p>

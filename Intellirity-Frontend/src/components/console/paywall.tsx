@@ -16,13 +16,13 @@ function useProductInfo(productId?: string) {
   const { products } = useEntitlements();
   const product = products.find((p) => p.id === productId);
   if (!product) return null;
-  return { name: product.name, price: product.price };
+  return { name: product.name };
 }
 
 export function Paywall({ route }: { route?: RouteDef }) {
   const { refresh, periodDays, error } = useEntitlements();
   const info = useProductInfo(route?.product);
-  const href = route?.product ? `/pricing?module=${route.product}#pricing` : "/pricing#pricing";
+  const href = "/pricing";
 
   return (
     <div className="mx-auto flex max-w-[620px] flex-col items-center py-16 text-center md:py-24">
@@ -39,17 +39,17 @@ export function Paywall({ route }: { route?: RouteDef }) {
       </h1>
       <p className="mt-4 max-w-[46ch] text-[14.5px] leading-relaxed text-dim">
         {info
-          ? `Add ${info.name} (₹${info.price}/month) to unlock this console and its engines.`
-          : "Add this module to your plan to unlock the console and its engines."}{" "}
-        A purchase covers {periodDays} days and can be renewed from the pricing
-        page.
+          ? `Add ${info.name} to unlock this console and its engines.`
+          : "Add this capability to your plan to unlock the console and its engines."}{" "}
+        Coverage is configured with our team for {periodDays}-day periods and
+        is not renewed automatically.
       </p>
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
         <Link
           href={href}
           className="inline-flex h-10 items-center rounded bg-ink px-5 text-[13px] font-medium text-bg transition-colors hover:bg-white"
         >
-          Unlock with {info ? info.name : "a module"}
+          Configure your plan
         </Link>
         <Link
           href="/console"
@@ -133,7 +133,7 @@ export function PaywallNotice() {
             href="/pricing"
             className="inline-flex h-9 flex-1 items-center justify-center rounded bg-ink px-4 text-[13px] font-medium text-bg transition-colors hover:bg-white"
           >
-            Go to pricing
+            Talk to us
           </Link>
           <button
             onClick={() => setOpen(false)}
@@ -142,11 +142,9 @@ export function PaywallNotice() {
             Not now
           </button>
         </div>
-        {products.length > 0 && (
-          <p className="mt-3 text-center font-mono text-[10.5px] text-faint">
-            modules from ₹{Math.min(...products.map((p) => p.price))}/month
-          </p>
-        )}
+        <p className="mt-3 text-center font-mono text-[10.5px] text-faint">
+          coverage is scoped with the team
+        </p>
       </div>
     </div>
   );

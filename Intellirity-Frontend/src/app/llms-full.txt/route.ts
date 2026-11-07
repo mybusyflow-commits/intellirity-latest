@@ -47,13 +47,12 @@ ${docText("terms-use")}
 
 ${docText("cookies")}
 
-## Pricing
+## Plans
 
-Intellirity is billed per detection module, per month, in Indian rupees.
-There are no tiers and no seat counts. Prices run from ₹79 to ₹399 per
-module per month across nine purchasable modules, and are served live from
-the billing API. All nine modules bought together receive a 20% bundle
-discount. The full list with live prices is at ${SITE_URL}/pricing.
+Intellirity coverage is configured directly with the team for the AI systems
+and data a client runs. There is no public price list. Plans are scoped in
+writing, cover an agreed period, and do not renew automatically. To discuss
+coverage, start at ${SITE_URL}/pricing or ${SITE_URL}/contact.
 
 ## AI security glossary
 

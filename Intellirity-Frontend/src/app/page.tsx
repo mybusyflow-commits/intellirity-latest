@@ -10,7 +10,7 @@ import { Platform } from "@/components/site/platform";
 import { KineticBreak } from "@/components/site/kinetic-break";
 import { Scanner } from "@/components/site/scanner";
 import { Metrics } from "@/components/site/metrics";
-import { Pricing } from "@/components/site/pricing";
+import { PlanCta } from "@/components/site/plan-cta";
 import { Faq, FinalCta, Footer } from "@/components/site/faq-cta-footer";
 import { PAGE_KEYWORDS } from "@/lib/keywords";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
@@ -74,7 +74,7 @@ export default function Home() {
           <Scanner />
         </section>
         <Metrics />
-        <Pricing />
+        <PlanCta />
         <Faq />
         <FinalCta />
       </main>

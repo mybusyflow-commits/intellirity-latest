@@ -13,7 +13,7 @@ const LINKS = [
   { href: "#pulse", label: "Live threats" },
   { href: "#platform", label: "Platform" },
   { href: "#scanner", label: "Scanner" },
-  { href: "#pricing", label: "Pricing" },
+  { href: "#plans", label: "Plans" },
 ];
 
 function Wordmark() {

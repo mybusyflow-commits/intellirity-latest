@@ -768,7 +768,7 @@ That sequence reduces blast radius before it tries to improve classification. De
     related: [
       { label: "See the engines in action", href: "/engines" },
       { label: "API security guide", href: "/blog/api-security-for-ai-applications" },
-      { label: "Pricing and modules", href: "/pricing" },
+      { label: "Talk to us", href: "/contact" },
     ],
   },
 ];

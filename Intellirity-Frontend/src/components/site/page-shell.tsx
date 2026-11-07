@@ -32,7 +32,7 @@ export function PageShell({
               Engines
             </Link>
             <Link href="/pricing" className="hidden transition-colors hover:text-ink sm:inline">
-              Pricing
+              Plans
             </Link>
             <Link href="/console" className="transition-colors hover:text-ink">
               Console

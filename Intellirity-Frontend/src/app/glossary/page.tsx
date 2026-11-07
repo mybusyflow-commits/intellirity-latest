@@ -130,7 +130,7 @@ const TERMS: Term[] = [
     term: "AI escrow",
     definition:
       "Holding an agent's funds or permissions until an independent check confirms the work was done. Escrow limits the damage a compromised or mistaken agent can do with money or authority.",
-    related: { label: "Agent escrow pricing", href: "/pricing" },
+    related: { label: "Talk to us about coverage", href: "/contact" },
   },
   {
     slug: "ai-content-moderation",

@@ -181,7 +181,7 @@ export function Sidebar({ drawer = false }: { drawer?: boolean }) {
         </div>
         {enforced && activeEntitlements.length > 0 && (
           <Link
-            href="/pricing#pricing"
+            href="/pricing"
             className="mt-2 flex items-center justify-between rounded border border-line bg-sunken px-3 py-2 font-mono text-[10.5px] uppercase tracking-[0.1em] text-faint transition-colors hover:text-dim"
           >
             <span>{activeEntitlements.length} module{activeEntitlements.length === 1 ? "" : "s"}</span>

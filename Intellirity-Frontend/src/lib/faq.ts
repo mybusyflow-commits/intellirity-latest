@@ -61,11 +61,11 @@ export const FAQS: Array<{ q: string; a: AnswerSeg[] }> = [
     ],
   },
   {
-    q: "How much does it cost?",
+    q: "How do we get a plan?",
     a: [
-      { t: "Intellirity is billed per detection module, per month: nine modules from ₹79 to ₹399. There are no tiers and no seat counts — you toggle the coverage you need and pay the sum. Taking all nine together is 20% off the total. Compare every module in " },
-      { t: "pricing", href: "/pricing" },
-      { t: "." },
+      { t: "Coverage is configured with our team based on the AI systems you run and the data they touch. " },
+      { t: "Talk to us", href: "/contact" },
+      { t: " to scope a plan; there is no public price list." },
     ],
   },
   {

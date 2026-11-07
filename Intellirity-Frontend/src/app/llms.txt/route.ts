@@ -26,13 +26,13 @@ ${(engines as Array<{ id: string; name: string; description: string }>)
 
 ## How to use it
 
-- [Pricing](${SITE_URL}/pricing): per-module billing in INR, from ₹79 to ₹399 per month. No tiers, no seat counts.
+- [Plans](${SITE_URL}/pricing): coverage is configured with the team for the AI systems and data a client runs. No public price list.
 - [Security model](${SITE_URL}/security): fail-closed screening, signed evidence, tenant isolation, no traffic retention.
 - [About Intellirity](${SITE_URL}/about): the company, what it builds, and founder Shreyansh Krishna.
 - [AI security blog](${SITE_URL}/blog): ten detailed guides on prompt injection, LLM and chatbot security, AI agents, API security and a developer checklist.
 - [AI security glossary](${SITE_URL}/glossary): definitions for prompt injection, LLM jailbreaks, LLM firewalls, AI guardrails, AI DLP, MCP security, AI red teaming and the rest of the vocabulary.
 - [Privacy policy](${SITE_URL}/privacy): what is collected, subprocessors, retention, and data-subject rights.
-- [Terms of service](${SITE_URL}/terms): per-module billing, acceptable use, data ownership, liability.
+- [Terms of service](${SITE_URL}/terms): scoped plans, acceptable use, data ownership, liability.
 - [Full text](${SITE_URL}/llms-full.txt): the same content as one long document, for direct ingestion.
 
 ## Facts worth quoting

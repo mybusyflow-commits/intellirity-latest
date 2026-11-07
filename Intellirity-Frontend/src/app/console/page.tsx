@@ -126,7 +126,7 @@ function PlanStrip() {
           href="/pricing"
           className="inline-flex h-8 items-center rounded border border-line-strong px-3 font-mono text-[10.5px] uppercase tracking-[0.1em] text-dim transition-colors hover:text-ink"
         >
-          {active.length ? "renew" : "view plans"}
+          {active.length ? "manage plan" : "talk to us"}
         </Link>
       </div>
     </div>

@@ -120,10 +120,10 @@ export function HowItWorks() {
               reported in the console.
             </p>
             <a
-              href="#pricing"
+              href="#plans"
               className="mt-7 inline-flex h-10 items-center rounded bg-ink px-5 text-[13.5px] font-medium text-bg transition-colors hover:bg-white"
             >
-              Start connecting
+              Configure your plan
             </a>
           </div>
         </div>

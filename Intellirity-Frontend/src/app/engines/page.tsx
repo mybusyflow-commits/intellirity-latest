@@ -113,10 +113,10 @@ export default function EnginesPage() {
           Run a live scan
         </Link>
         <Link
-          href="/pricing"
+          href="/contact"
           className="inline-flex h-11 items-center rounded border border-line-strong px-5 text-[13.5px] font-medium transition-colors hover:border-ink/40"
         >
-          See pricing
+          Talk to us
         </Link>
       </div>
 

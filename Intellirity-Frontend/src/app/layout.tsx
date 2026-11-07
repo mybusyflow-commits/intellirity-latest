@@ -171,15 +171,6 @@ function JsonLd() {
           "Autonomous escrow",
           "Screening reverse proxy",
         ],
-        offers: {
-          "@type": "AggregateOffer",
-          priceCurrency: "INR",
-          lowPrice: "79",
-          highPrice: "399",
-          offerCount: "9",
-          description:
-            "Per-module pricing, billed monthly. Prices are served live by the billing API.",
-        },
       },
       {
         "@type": "WebSite",

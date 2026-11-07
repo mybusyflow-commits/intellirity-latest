@@ -155,7 +155,7 @@ export default function AboutPage() {
               </Link>
               , or the{" "}
               <Link href="/pricing" className="text-ink underline decoration-steel/50 underline-offset-4">
-                per-module pricing
+                commercial plans
               </Link>
               .
             </p>

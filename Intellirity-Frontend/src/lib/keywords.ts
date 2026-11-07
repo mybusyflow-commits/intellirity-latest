@@ -98,12 +98,12 @@ export const PAGE_KEYWORDS: Record<string, string[]> = {
     "denial of wallet",
   ],
   "/pricing": [
-    "AI security pricing",
-    "LLM security pricing",
-    "AI guardrails pricing",
-    "AI security cost",
-    "per-module AI security",
     "AI security plans",
+    "enterprise AI security",
+    "AI security consultation",
+    "configure AI security",
+    "AI guardrails plan",
+    "AI security coverage",
   ],
   "/security": [
     "AI security model",

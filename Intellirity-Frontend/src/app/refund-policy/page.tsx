@@ -41,10 +41,10 @@ export default function RefundPolicyPage() {
       <div className="grid gap-4">
         <GlassSection eyebrow="01" title="What you are buying">
           <p>
-            {COMPANY_LEGAL_NAME} sells access to AI security modules for a
-            workspace. Each payment covers one module for 30 days. The price is
-            shown in Indian rupees on the pricing page before checkout. There is
-            no automatic charge and no stored card.
+            {COMPANY_LEGAL_NAME} sells access to AI security coverage for a
+            workspace. The scope and commercial terms are agreed with the team
+            in writing before payment. Each paid period covers the agreed scope
+            for 30 days. There is no automatic charge and no stored card.
           </p>
         </GlassSection>
 
