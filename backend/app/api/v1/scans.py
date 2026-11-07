@@ -128,6 +128,8 @@ async def create_scan(
         float(record.get("risk_score", 0)),
         int(record.get("findings_count", 0)),
     )
+    if sweep.get("threat"):
+        await persist.save_threat(sweep["threat"])
     return SecurityScanResponse(**record)
 
 
@@ -211,9 +213,10 @@ def run_full_scan_sync(payload: dict, owner: str | None = None) -> dict:
     # Repeat sweeps reuse cached module results; only a fresh computation
     # (any module newly evaluated) may log a threat — never twice per input.
     status = "completed"
+    threat = None
     if max_risk >= 0.7 and fresh:
         # Trigger automatic threat detection event
-        add_threat_event(
+        threat = add_threat_event(
             threat_type="Adversarial Scan Threat",
             severity="high",
             source=target,
@@ -221,7 +224,7 @@ def run_full_scan_sync(payload: dict, owner: str | None = None) -> dict:
             owner=owner or "demo",
         )
     elif max_risk >= 0.3 and fresh:
-        add_threat_event(
+        threat = add_threat_event(
             threat_type="Suspicious Pattern Detected",
             severity="medium",
             source=target,
@@ -249,6 +252,7 @@ def run_full_scan_sync(payload: dict, owner: str | None = None) -> dict:
         "max_risk_score": round(max_risk, 3),
         "total_findings": len(all_findings),
         "denied_modules": denied,
+        "threat": threat,
     }
 
 
@@ -265,6 +269,8 @@ async def run_full_scan(payload: dict, user: dict = Depends(require_user)):
         float(result.get("max_risk_score", 0)),
         int(result.get("total_findings", 0)),
     )
+    if result.get("threat"):
+        await persist.save_threat(result["threat"])
     return result
 
 

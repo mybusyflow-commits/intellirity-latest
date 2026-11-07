@@ -65,6 +65,15 @@ def test_health_reports_the_components_an_operator_needs():
     assert body["status"] == "healthy"  # development runs memory-first
 
 
+def test_the_public_health_probe_does_not_leak_infrastructure():
+    r = client.get("/api/v1/system/health")
+    body = r.json()
+    assert r.status_code == 200
+    assert set(body.keys()) == {"status", "service", "version", "timestamp"}
+    for key in ("environment", "database", "database_latency_ms", "ledger_records", "ledger_head"):
+        assert key not in body
+
+
 def test_the_api_router_exposes_the_same_health_probe():
     # Uptime monitors cannot reach /health behind the console rewrite, so
     # the API router carries an equivalent probe.

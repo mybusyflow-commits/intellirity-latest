@@ -192,9 +192,10 @@ async def run_module_scan(module_id: str, payload: dict, user: dict = Depends(re
         if isinstance(hold, dict) and hold.get("escrow_id"):
             await save_escrow_hold(hold)
 
+    created_threat = None
     if _should_log:
         if verdict == "block" or risk_score >= 0.6:
-            add_threat_event(
+            created_threat = add_threat_event(
                 threat_type=f"{module_info['name']} Threat",
                 severity="high",
                 source=payload.get("source", "Model Inference Engine"),
@@ -202,13 +203,18 @@ async def run_module_scan(module_id: str, payload: dict, user: dict = Depends(re
                 owner=owner,
             )
         elif verdict == "flag" or risk_score >= 0.3:
-            add_threat_event(
+            created_threat = add_threat_event(
                 threat_type=f"{module_info['name']} Anomaly",
                 severity="medium",
                 source=payload.get("source", "Model Inference Engine"),
                 description=f"FLAGGED suspicious activity via {module_info['name']}: {findings[:1] if findings else 'Medium risk detection'}",
                 owner=owner,
             )
+
+    if created_threat:
+        from app.db import persist
+
+        await persist.save_threat(created_threat)
 
     return {"module_id": module_id, "module_name": module_info["name"], "result": result, "cached": cached}
 

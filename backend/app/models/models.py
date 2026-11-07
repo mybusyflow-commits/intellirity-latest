@@ -157,3 +157,37 @@ class ThreatDetection(Base):
     is_resolved: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class WorkspaceState(Base):
+    """Durable per-tenant workspace configuration.
+
+    Model endpoints and policy packs used to live only in process memory,
+    so a serverless cold start silently reset a customer's configuration.
+    Each item is a JSON document keyed by owner, kind and item id.
+    """
+    __tablename__ = "workspace_state"
+
+    owner: Mapped[str] = mapped_column(String, primary_key=True)
+    kind: Mapped[str] = mapped_column(String, primary_key=True)
+    item_id: Mapped[str] = mapped_column(String, primary_key=True)
+    data: Mapped[str] = mapped_column(Text, default="{}")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class RateEvent(Base):
+    """Short-lived request counters for costly endpoints.
+
+    In-process counters are per serverless instance; a caller can multiply
+    the quota by hitting different instances. These rows make the expensive
+    limits hold across the deployment.
+    """
+    __tablename__ = "rate_events"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    key: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )

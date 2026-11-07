@@ -72,7 +72,7 @@ THREAT_DB = [
 @register_feature(
     key="threat_intelligence_feed",
     name="Threat Intelligence Feed",
-    description="Live feed of new AI attack patterns shared across all customers.",
+    description="Curated catalogue of known AI attack patterns with type, severity and indicators for reference and UI display.",
     tier="enterprise",
 )
 def threat_intelligence_feed(payload: dict) -> dict:

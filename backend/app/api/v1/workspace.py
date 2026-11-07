@@ -78,21 +78,44 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _get_workspace(owner: str) -> dict:
-    ws = _workspaces.get(owner)
-    if ws is None:
-        ws = {
-            "models": [
-                {**m, "last_risk": None, "last_scan": None, "created_at": _now()}
-                for m in SEED_MODELS
-            ],
-            "policies": [
-                {**p, "updated_at": _now(), "promoted_at": None, "promoted_by": None,
-                 "approved_by": [], "promotions": 0}
-                for p in SEED_POLICY_PACKS
-            ],
-        }
-        _workspaces[owner] = ws
+def _seed_workspace() -> dict:
+    return {
+        "models": [
+            {**m, "last_risk": None, "last_scan": None, "created_at": _now()}
+            for m in SEED_MODELS
+        ],
+        "policies": [
+            {**p, "updated_at": _now(), "promoted_at": None, "promoted_by": None,
+             "approved_by": [], "promotions": 0}
+            for p in SEED_POLICY_PACKS
+        ],
+    }
+
+
+async def _get_workspace(owner: str) -> dict:
+    """Seed defaults, then overlay the tenant's durable saved items."""
+    ws = _workspaces.setdefault(owner, _seed_workspace())
+    try:
+        from app.db import persist
+
+        saved = await persist.load_workspace_items(owner)
+        for kind, key in (("model", "models"), ("policy", "policies")):
+            rows = saved.get(kind) or []
+            if not rows:
+                continue
+            by_id = {item.get("id"): item for item in ws[key]}
+            for row in rows:
+                rid = row.get("id")
+                if not rid:
+                    continue
+                if rid in by_id:
+                    by_id[rid].update(row)
+                else:
+                    ws[key].append(row)
+                    by_id[rid] = row
+    except Exception:
+        # The in-process seed remains usable if the database is unavailable.
+        pass
     return ws
 
 
@@ -115,12 +138,13 @@ class PolicyUpdate(BaseModel):
 
 @router.get("/models")
 async def list_models(user: dict = Depends(require_user)):
-    return {"models": _get_workspace(_owner(user))["models"]}
+    return {"models": (await _get_workspace(_owner(user)))["models"]}
 
 
 @router.post("/models")
 async def register_model(body: ModelCreate, user: dict = Depends(require_user)):
-    ws = _get_workspace(_owner(user))
+    owner = _owner(user)
+    ws = await _get_workspace(owner)
     mid = body.id.strip()
     if not mid:
         raise HTTPException(status_code=422, detail="id is required")
@@ -137,15 +161,22 @@ async def register_model(body: ModelCreate, user: dict = Depends(require_user)):
         "created_at": _now(),
     }
     ws["models"].append(entry)
+    from app.db import persist
+
+    await persist.save_workspace_item(owner, "model", mid, entry)
     return {"model": entry}
 
 
 @router.post("/models/{model_id}/status")
 async def set_model_status(model_id: str, body: ModelStatus, user: dict = Depends(require_user)):
-    ws = _get_workspace(_owner(user))
+    owner = _owner(user)
+    ws = await _get_workspace(owner)
     for m in ws["models"]:
         if m["id"] == model_id:
             m["paused"] = bool(body.paused)
+            from app.db import persist
+
+            await persist.save_workspace_item(owner, "model", model_id, m)
             return {"model": m}
     raise HTTPException(status_code=404, detail=f"Endpoint '{model_id}' not found")
 
@@ -153,27 +184,35 @@ async def set_model_status(model_id: str, body: ModelStatus, user: dict = Depend
 @router.post("/models/{model_id}/scan-result")
 async def record_scan(model_id: str, body: ModelScanResult, user: dict = Depends(require_user)):
     """Store the outcome of a real scan so the card shows real numbers."""
-    ws = _get_workspace(_owner(user))
+    owner = _owner(user)
+    ws = await _get_workspace(owner)
     for m in ws["models"]:
         if m["id"] == model_id:
             m["last_risk"] = round(float(body.risk_score or 0.0), 3)
             m["last_scan"] = _now()
+            from app.db import persist
+
+            await persist.save_workspace_item(owner, "model", model_id, m)
             return {"model": m}
     raise HTTPException(status_code=404, detail=f"Endpoint '{model_id}' not found")
 
 
 @router.get("/policies")
 async def list_policies(user: dict = Depends(require_user)):
-    return {"policies": _get_workspace(_owner(user))["policies"]}
+    return {"policies": (await _get_workspace(_owner(user)))["policies"]}
 
 
 @router.post("/policies/{pack_id}")
 async def set_policy(pack_id: str, body: PolicyUpdate, user: dict = Depends(require_user)):
-    ws = _get_workspace(_owner(user))
+    owner = _owner(user)
+    ws = await _get_workspace(owner)
     for p in ws["policies"]:
         if p["id"] == pack_id:
             p["enabled"] = bool(body.enabled)
             p["updated_at"] = _now()
+            from app.db import persist
+
+            await persist.save_workspace_item(owner, "policy", pack_id, p)
             return {"policy": p}
     raise HTTPException(status_code=404, detail=f"Policy pack '{pack_id}' not found")
 
@@ -192,7 +231,8 @@ async def promote_policy(pack_id: str, user: dict = Depends(require_user)):
             status_code=403,
             detail="Only an organization admin can approve a policy promotion",
         )
-    ws = _get_workspace(_owner(user))
+    owner = _owner(user)
+    ws = await _get_workspace(owner)
     for p in ws["policies"]:
         if p["id"] == pack_id:
             approver = _actor_id(user)
@@ -206,6 +246,9 @@ async def promote_policy(pack_id: str, user: dict = Depends(require_user)):
             p["promoted_by"] = approver
             p["promoted_at"] = _now()
             p["promotions"] = p.get("promotions", 0) + 1
+            from app.db import persist
+
+            await persist.save_workspace_item(owner, "policy", pack_id, p)
             return {
                 "policy": p,
                 "approved": True,

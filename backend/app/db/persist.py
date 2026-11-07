@@ -321,6 +321,216 @@ async def scan_activity(owner: str | None = None, hours: int = 720, limit: int =
         return []
 
 
+async def save_threat(threat: dict) -> bool:
+    """Persist one real detection so the verdict stream survives restarts."""
+    if not DB_CONNECTED or not isinstance(threat, dict) or not threat.get("id"):
+        return False
+    try:
+        from datetime import datetime, timezone
+        from app.db.session import async_session
+        from app.models.models import ThreatDetection
+
+        created = threat.get("created_at")
+        if isinstance(created, str):
+            try:
+                created = datetime.fromisoformat(created.replace("Z", "+00:00"))
+            except ValueError:
+                created = datetime.now(timezone.utc)
+        if not isinstance(created, datetime):
+            created = datetime.now(timezone.utc)
+        async with async_session() as session:
+            session.add(
+                ThreatDetection(
+                    id=str(threat["id"]),
+                    organization_id=str(threat.get("owner") or "demo")[:200],
+                    threat_type=str(threat.get("threat_type") or "Threat")[:200],
+                    severity=str(threat.get("severity") or "low")[:40],
+                    source=str(threat.get("source") or "Unknown")[:300],
+                    description=str(threat.get("description") or "")[:4000],
+                    is_resolved=bool(threat.get("is_resolved", False)),
+                    created_at=created,
+                )
+            )
+            await session.commit()
+        return True
+    except Exception as exc:
+        log.warning("threat persist skipped: %s", str(exc)[:160])
+        return False
+
+
+def _threat_row(row) -> dict:
+    return {
+        "id": row.id,
+        "threat_type": row.threat_type,
+        "severity": row.severity,
+        "source": row.source,
+        "description": row.description,
+        "is_resolved": bool(row.is_resolved),
+        "created_at": row.created_at,
+        "origin": "detection",
+        "owner": row.organization_id,
+    }
+
+
+async def load_threats(owner: str | None = None, limit: int = 500) -> list[dict]:
+    """Durable detections for one tenant, newest first."""
+    if not DB_CONNECTED or not owner:
+        return []
+    try:
+        from sqlalchemy import select
+        from app.db.session import async_session
+        from app.models.models import ThreatDetection
+
+        async with async_session() as session:
+            rows = (await session.execute(
+                select(ThreatDetection)
+                .where(ThreatDetection.organization_id == owner)
+                .order_by(ThreatDetection.created_at.desc())
+                .limit(max(1, min(int(limit), 2000)))
+            )).scalars().all()
+        return [_threat_row(r) for r in rows]
+    except Exception as exc:
+        log.warning("threat read skipped: %s", str(exc)[:160])
+        return []
+
+
+async def load_threat(threat_id: str, owner: str | None = None) -> dict | None:
+    if not DB_CONNECTED or not threat_id:
+        return None
+    try:
+        from sqlalchemy import select
+        from app.db.session import async_session
+        from app.models.models import ThreatDetection
+
+        async with async_session() as session:
+            stmt = select(ThreatDetection).where(ThreatDetection.id == threat_id)
+            if owner:
+                stmt = stmt.where(ThreatDetection.organization_id == owner)
+            row = (await session.execute(stmt)).scalar_one_or_none()
+        return _threat_row(row) if row else None
+    except Exception as exc:
+        log.warning("threat read skipped: %s", str(exc)[:160])
+        return None
+
+
+async def resolve_threat(threat_id: str, owner: str | None = None) -> dict | None:
+    if not DB_CONNECTED or not threat_id:
+        return None
+    try:
+        from datetime import datetime, timezone
+        from sqlalchemy import select
+        from app.db.session import async_session
+        from app.models.models import ThreatDetection
+
+        async with async_session() as session:
+            stmt = select(ThreatDetection).where(ThreatDetection.id == threat_id)
+            if owner:
+                stmt = stmt.where(ThreatDetection.organization_id == owner)
+            row = (await session.execute(stmt)).scalar_one_or_none()
+            if row is None:
+                return None
+            row.is_resolved = True
+            row.resolved_at = datetime.now(timezone.utc)
+            await session.commit()
+            await session.refresh(row)
+        return _threat_row(row)
+    except Exception as exc:
+        log.warning("threat resolve skipped: %s", str(exc)[:160])
+        return None
+
+
+async def rate_limit_allow(key: str, max_calls: int, window: int) -> bool | None:
+    """Durable per-key request limit. None means the caller should fall back."""
+    if not DB_CONNECTED or not key:
+        return None
+    try:
+        from datetime import datetime, timedelta, timezone
+        from sqlalchemy import delete, func, select
+        from app.db.session import async_session
+        from app.models.models import RateEvent
+
+        now = datetime.now(timezone.utc)
+        cutoff = now - timedelta(seconds=max(1, int(window)))
+        async with async_session() as session:
+            await session.execute(
+                delete(RateEvent).where(
+                    RateEvent.key == key, RateEvent.created_at < cutoff
+                )
+            )
+            count = (await session.execute(
+                select(func.count()).select_from(RateEvent).where(
+                    RateEvent.key == key, RateEvent.created_at >= cutoff
+                )
+            )).scalar_one()
+            if count >= max_calls:
+                await session.commit()
+                return False
+            session.add(RateEvent(key=key, created_at=now))
+            await session.commit()
+        return True
+    except Exception as exc:
+        log.warning("distributed rate limit skipped: %s", str(exc)[:160])
+        return None
+
+
+async def save_workspace_item(owner: str, kind: str, item_id: str, data: dict) -> bool:
+    """Upsert one model endpoint or policy pack for a tenant."""
+    if not DB_CONNECTED or not owner or not item_id:
+        return False
+    try:
+        from sqlalchemy import select
+        from app.db.session import async_session
+        from app.models.models import WorkspaceState
+
+        payload = json.dumps(data, default=str)
+        async with async_session() as session:
+            row = (await session.execute(
+                select(WorkspaceState).where(
+                    WorkspaceState.owner == owner,
+                    WorkspaceState.kind == kind,
+                    WorkspaceState.item_id == item_id,
+                )
+            )).scalar_one_or_none()
+            if row:
+                row.data = payload
+            else:
+                session.add(WorkspaceState(
+                    owner=owner, kind=kind, item_id=item_id, data=payload
+                ))
+            await session.commit()
+        return True
+    except Exception as exc:
+        log.warning("workspace persist skipped: %s", str(exc)[:160])
+        return False
+
+
+async def load_workspace_items(owner: str) -> dict[str, list[dict]]:
+    """All saved models and policies for a tenant."""
+    if not DB_CONNECTED or not owner:
+        return {"model": [], "policy": []}
+    try:
+        from sqlalchemy import select
+        from app.db.session import async_session
+        from app.models.models import WorkspaceState
+
+        async with async_session() as session:
+            rows = (await session.execute(
+                select(WorkspaceState).where(WorkspaceState.owner == owner)
+            )).scalars().all()
+        out: dict[str, list[dict]] = {"model": [], "policy": []}
+        for row in rows:
+            try:
+                data = json.loads(row.data or "{}")
+            except Exception:
+                continue
+            if isinstance(data, dict):
+                out.setdefault(row.kind, []).append(data)
+        return out
+    except Exception as exc:
+        log.warning("workspace read skipped: %s", str(exc)[:160])
+        return {"model": [], "policy": []}
+
+
 async def save_escrow_hold(hold: dict) -> bool:
     """Best-effort upsert of an escrow hold. Never raises."""
     if not DB_CONNECTED or not isinstance(hold, dict) or not hold.get("escrow_id"):

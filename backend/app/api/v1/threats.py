@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from itertools import count
 from uuid import uuid4
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
@@ -71,9 +70,6 @@ _INITIAL_THREATS = [
 
 _memory_threats: list[dict] = [dict(t, origin="sample", owner="demo") for t in _INITIAL_THREATS]
 
-# Monotonic ID counter. IDs were previously derived from len(store),
-# which repeats once the store hits its size cap. A counter never repeats.
-_threat_id_seq = count(4822)
 
 
 def add_threat_event(threat_type: str, severity: str, source: str, description: str,
@@ -85,7 +81,7 @@ def add_threat_event(threat_type: str, severity: str, source: str, description: 
     origin="sample"     — static seed row
     """
     threat = {
-        "id": f"EVT-{next(_threat_id_seq)}",
+        "id": f"EVT-{uuid4().hex[:10].upper()}",
         "threat_type": threat_type,
         "severity": severity,
         "source": source,
@@ -144,6 +140,20 @@ async def list_threats(
         if owner
         else list(_memory_threats)
     )
+    if owner:
+        # Postgres is the durable history. The in-process rows are merged so
+        # an event created in this instance appears immediately.
+        from app.db import persist
+
+        durable = await persist.load_threats(owner, limit=1000)
+        by_id = {t.get("id"): t for t in durable}
+        for row in results:
+            by_id[row["id"]] = row
+        results = sorted(
+            by_id.values(),
+            key=lambda t: t.get("created_at") or datetime.min.replace(tzinfo=timezone.utc),
+            reverse=True,
+        )
     if status == "active":
         results = [t for t in results if not t["is_resolved"]]
     elif status == "resolved":
@@ -166,15 +176,35 @@ async def get_threat(threat_id: str, user: dict = Depends(require_user)):
     for t in _memory_threats:
         if t["id"] == threat_id and (owner is None or t.get("owner") == owner):
             return ThreatDetectionResponse(**t)
+    if owner:
+        from app.db import persist
+
+        row = await persist.load_threat(threat_id, owner)
+        if row is not None:
+            return ThreatDetectionResponse(**row)
     raise HTTPException(status_code=404, detail=f"Threat {threat_id} not found")
 
 
 @router.post("/{threat_id}/resolve", response_model=ThreatDetectionResponse)
 async def resolve_threat(threat_id: str, user: dict = Depends(require_user)):
     owner = _owner(user) if user else None
+    found = None
     for t in _memory_threats:
         if t["id"] == threat_id and (owner is None or t.get("owner") == owner):
             t["is_resolved"] = True
-            return ThreatDetectionResponse(**t)
+            found = t
+            break
+    if found is not None:
+        if owner:
+            from app.db import persist
+
+            await persist.resolve_threat(threat_id, owner)
+        return ThreatDetectionResponse(**found)
+    if owner:
+        from app.db import persist
+
+        row = await persist.resolve_threat(threat_id, owner)
+        if row is not None:
+            return ThreatDetectionResponse(**row)
     raise HTTPException(status_code=404, detail=f"Threat {threat_id} not found")
 

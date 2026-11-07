@@ -220,20 +220,16 @@ async def system_health():
     from fastapi.responses import JSONResponse as _JSONResponse
     from app.core.config import settings as _settings
     from app.db import persist
-    from app.services.notify import notification_configured
 
     db = await persist.db_health()
-    ledger = await persist.ledger_health()
     healthy = db["connected"] or _settings.ENVIRONMENT != "production"
+    # A public probe returns liveness only. Environment, database latency,
+    # ledger size/head and notification configuration are reconnaissance
+    # data; the detailed view stays on the direct /health route.
     body = {
         "status": "healthy" if healthy else "degraded",
         "service": "intellirity",
-        "environment": _settings.ENVIRONMENT,
-        "database": "connected" if db["connected"] else "memory",
-        "database_latency_ms": db["latency_ms"],
-        "ledger_records": ledger["stored"],
-        "ledger_head": ledger["head"],
-        "contact_notifications": "configured" if notification_configured() else "unconfigured",
+        "version": "0.1.0",
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
     return _JSONResponse(content=body, status_code=200 if healthy else 503)
@@ -244,18 +240,48 @@ async def system_health():
 
 @router.get("/summary")
 async def system_summary(user: dict = Depends(require_user)):
-    return _summary_payload(owner=_owner(user) if user else None)
+    owner = _owner(user) if user else None
+    extra_threats = []
+    scan_count = None
+    scan_avg_risk = None
+    if owner:
+        from app.db import persist
+
+        extra_threats = await persist.load_threats(owner, limit=1000)
+        activity = await persist.scan_activity(owner, hours=24 * 30, limit=5000)
+        if activity:
+            scan_count = len(activity)
+            scan_avg_risk = round(
+                sum(float(row.get("risk_score") or 0) for row in activity) / len(activity), 3
+            )
+    return _summary_payload(
+        owner=owner,
+        extra_threats=extra_threats,
+        scan_count=scan_count,
+        scan_avg_risk=scan_avg_risk,
+    )
 
 
-def _summary_payload(owner: str | None = None, public: bool = False) -> dict:
+def _summary_payload(
+    owner: str | None = None,
+    public: bool = False,
+    extra_threats: list[dict] | None = None,
+    scan_count: int | None = None,
+    scan_avg_risk: float | None = None,
+) -> dict:
     """Aggregate KPIs, computed from real detections only.
 
     Shared by the authenticated console summary and the public marketing
     endpoint. It contains counts only: no tenant ids, no threat text, no
     model names. That is what makes it safe to serve signed-out visitors.
     """
-    threats = get_threats_store()
+    threats = list(get_threats_store())
     scans = get_scans_store()
+    if extra_threats:
+        by_id = {t.get("id"): t for t in threats}
+        for row in extra_threats:
+            by_id[row.get("id")] = row
+        threats = list(by_id.values())
 
     # Split the store: real detections vs demo/sample rows. Headline metrics
     # are computed from real detections only so the numbers mean something.
@@ -287,7 +313,12 @@ def _summary_payload(owner: str | None = None, public: bool = False) -> dict:
         and (owner is None or s.get("owner") == owner)
     ]
     risk_scores = [s.get("risk_score", 0.0) for s in real_scans if s.get("risk_score") is not None]
-    avg_risk = round(sum(risk_scores) / len(risk_scores), 3) if risk_scores else 0.0
+    avg_risk = (
+        scan_avg_risk
+        if scan_avg_risk is not None
+        else round(sum(risk_scores) / len(risk_scores), 3) if risk_scores else 0.0
+    )
+    total_scans = scan_count if scan_count is not None else len(real_scans)
 
     # Models actually monitored = distinct model sources seen in real detections.
     models_monitored = len({t.get("source") for t in real if t.get("source")})
@@ -324,7 +355,7 @@ def _summary_payload(owner: str | None = None, public: bool = False) -> dict:
         "threats_high": sum(1 for t in active if t["severity"] == "high"),
         "models_monitored": models_monitored,
         "compliance_score": compliance_score,
-        "total_scans": len(real_scans),
+        "total_scans": total_scans,
         "average_risk_score": avg_risk,
         "synthetic_threats": len(synthetic),
         "sample_threats": len(sample),

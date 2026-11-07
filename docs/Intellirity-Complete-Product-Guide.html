@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Intellirity — Complete Product, Security & Business Guide</title>
+<style>
+  :root {
+    --ink:#172026;
+    --muted:#59646d;
+    --faint:#7c8790;
+    --line:#dce2e6;
+    --paper:#ffffff;
+    --soft:#f4f7f8;
+    --soft2:#eef5f4;
+    --brand:#0c6b63;
+    --brand-dark:#084b46;
+    --accent:#b85b2a;
+    --danger:#a33131;
+    --warn:#8a5a18;
+    --ok:#236548;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    font-size: 10.4pt;
+    line-height: 1.58;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  @page { size: A4; margin: 16mm 14mm 16mm 14mm; }
+  .cover {
+    min-height: 262mm;
+    margin: -16mm -14mm 0 -14mm;
+    padding: 30mm 22mm;
+    background:
+      radial-gradient(circle at 85% 12%, rgba(50,180,165,.28), transparent 30%),
+      radial-gradient(circle at 10% 90%, rgba(184,91,42,.22), transparent 34%),
+      linear-gradient(145deg, #07110f 0%, #0a1d1a 58%, #0d2724 100%);
+    color: #eef7f5;
+    page-break-after: always;
+  }
+  .cover .wordmark {
+    font-size: 13pt; letter-spacing: .32em; text-transform: uppercase;
+    color: #8cd9ce; font-weight: 600;
+  }
+  .cover .rule { width: 46mm; height: 1.5pt; background: #3a9f93; margin: 9mm 0 14mm; }
+  .cover h1 {
+    font-size: 34pt; line-height: 1.06; letter-spacing: -.035em;
+    margin: 0 0 7mm; max-width: 150mm; font-weight: 600;
+  }
+  .cover .sub {
+    font-size: 14pt; line-height: 1.5; color: #b9d2ce;
+    max-width: 142mm; margin: 0 0 22mm;
+  }
+  .cover .meta { font-size: 9.4pt; color: #8eaaa5; line-height: 1.9; }
+  .cover .badge {
+    display:inline-block; border:1px solid rgba(140,217,206,.35); border-radius: 999px;
+    padding: 2.2mm 4mm; font-size: 8.4pt; letter-spacing:.12em; text-transform:uppercase;
+    color:#8cd9ce; margin-bottom: 10mm;
+  }
+  .cover .foot { margin-top: 34mm; font-size: 9.2pt; color:#7f9b96; }
+  h2 {
+    font-size: 20pt; line-height: 1.15; letter-spacing: -.02em;
+    color: var(--brand-dark); margin: 0 0 4mm; font-weight: 600;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 13.2pt; line-height:1.25; color: var(--ink);
+    margin: 7mm 0 2.2mm; font-weight: 600; page-break-after: avoid;
+  }
+  h4 {
+    font-size: 10.8pt; margin: 4.5mm 0 1.5mm; color: var(--brand-dark);
+    page-break-after: avoid;
+  }
+  p { margin: 0 0 2.6mm; }
+  ul, ol { margin: 1mm 0 3mm; padding-left: 5.5mm; }
+  li { margin-bottom: 1.1mm; }
+  strong { font-weight: 600; color: #11191d; }
+  a { color: var(--brand); text-decoration: none; }
+  .section { page-break-before: always; }
+  .section:first-of-type { page-break-before: auto; }
+  .kicker {
+    font-size: 8.2pt; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--brand); font-weight: 600; margin-bottom: 2mm;
+  }
+  .lead { font-size: 12.2pt; line-height:1.55; color:#35434b; margin: 0 0 5mm; }
+  .divider { height:1px; background:var(--line); margin: 6mm 0; }
+  .callout {
+    background: var(--soft2); border-left: 3px solid var(--brand);
+    padding: 3.4mm 4mm; margin: 4mm 0; page-break-inside: avoid;
+  }
+  .callout.warn { background:#fbf5ec; border-left-color: var(--warn); }
+  .callout.danger { background:#fbf0f0; border-left-color: var(--danger); }
+  .callout .label {
+    font-size: 8pt; text-transform: uppercase; letter-spacing:.14em;
+    font-weight:600; color:var(--brand); margin-bottom:1.2mm;
+  }
+  .callout.warn .label { color: var(--warn); }
+  .callout.danger .label { color: var(--danger); }
+  table {
+    width:100%; border-collapse: collapse; margin: 3mm 0 4.5mm;
+    font-size: 9.1pt; page-break-inside: auto;
+  }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  th {
+    background: #e9f1f0; color: var(--brand-dark); text-align:left;
+    padding: 2.2mm 2.4mm; font-weight:600; border-bottom: 1px solid #c8d7d4;
+    font-size:8.7pt; letter-spacing:.01em;
+  }
+  td { padding: 2.1mm 2.4mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:nth-child(even) td { background: #fafcfc; }
+  .small { font-size:8.6pt; color:var(--muted); }
+  .tiny { font-size:7.9pt; color:var(--faint); line-height:1.5; }
+  .tag {
+    display:inline-block; padding: .4mm 1.8mm; border-radius: 2px;
+    font-size:7.4pt; font-weight:600; letter-spacing:.03em; white-space:nowrap;
+  }
+  .tag.free { background:#e5f4ec; color:#1d5c40; }
+  .tag.paid { background:#f1ece1; color:#765221; }
+  .tag.core { background:#ece9f4; color:#4b3f72; }
+  .tag.low { background:#eef1f3; color:#4d5b64; }
+  .tag.med { background:#fbf1df; color:#7c5317; }
+  .tag.high { background:#f8e8e6; color:#8a2d26; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap: 5mm; }
+  .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap: 4mm; }
+  .card {
+    border:1px solid var(--line); border-radius: 3mm; padding: 3.4mm 4mm;
+    background:#fff; page-break-inside: avoid;
+  }
+  .card .num { font-size:8pt; letter-spacing:.14em; color:var(--faint); margin-bottom:1.6mm; }
+  .card h4 { margin-top:0; }
+  .quote {
+    font-size: 11.2pt; line-height:1.55; color:#2c3a42;
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+    padding: 4mm 0; margin: 5mm 0;
+  }
+  .toc { columns: 2; column-gap: 10mm; font-size: 9.6pt; }
+  .toc div { break-inside: avoid; padding: 1.2mm 0; border-bottom:1px dotted #e0e5e8; }
+  .toc span { color:var(--brand); font-weight:600; display:inline-block; width:8mm; }
+  .mono { font-family: Consolas, "Courier New", monospace; font-size:8.8pt; }
+  .box-note {
+    border:1px solid var(--line); border-radius:2mm; background:#fbfcfc;
+    padding: 3mm 4mm; margin: 4mm 0; font-size:9.1pt; page-break-inside: avoid;
+  }
+  .section-intro { color: var(--muted); margin-bottom: 4mm; }
+  .keep { page-break-inside: avoid; }
+  .cover-logo {
+    font-size: 26pt; font-weight:700; letter-spacing:-.04em; color:#fff;
+    margin-bottom: 2mm;
+  }
+  .cover-logo span { color:#59c4b7; }
+  .pillars { display:grid; grid-template-columns: repeat(4,1fr); gap:3mm; margin: 5mm 0; }
+  .pillar { background:var(--soft); border-top:2px solid var(--brand); padding:3mm; border-radius:2mm; }
+  .pillar b { display:block; font-size:10.2pt; margin-bottom:1mm; }
+  .pillar span { font-size:8.4pt; color:var(--muted); }
+  .flow {
+    border:1px solid var(--line); border-radius:3mm; padding:4mm;
+    background:linear-gradient(180deg,#fbfdfd,#f4f8f7); margin:4mm 0;
+    font-size:9pt; page-break-inside:avoid;
+  }
+  .flow-row { display:flex; align-items:stretch; gap:2mm; margin:2mm 0; }
+  .flow-box { flex:1; background:#fff; border:1px solid #cfdcda; border-radius:2mm; padding:2.5mm; }
+  .flow-box b { display:block; color:var(--brand-dark); font-size:9.2pt; margin-bottom:.8mm; }
+  .arrow { display:grid; place-items:center; color:var(--brand); font-weight:700; }
+  .footer-note {
+    margin-top: 8mm; padding-top: 3mm; border-top:1px solid var(--line);
+    font-size:8pt; color:var(--faint);
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= COVER ================= -->
+<section class="cover">
+  <div class="wordmark">Intellirity</div>
+  <div class="rule"></div>
+  <div class="badge">Internal &amp; client-facing reference</div>
+  <h1>Security operations for AI.</h1>
+  <p class="sub">The complete guide to what Intellirity does, how it works, what each module solves, how clients buy and use it, what is live today, and what is still deliberately unfinished.</p>
+  <div class="cover-logo">INTEL<span>LIRITY</span></div>
+  <p class="meta">
+    Document version 1.0 · 7 November 2026<br />
+    Product: https://www.intellirity.com<br />
+    Scope: marketing site, free scanner, console, 16 engines, 9 paid modules, billing, security model, operations, limitations
+  </p>
+  <p class="foot">Use this document to answer client, procurement, security-review and investor questions without guessing. Facts marked “currently” reflect the deployed codebase on the date above.</p>
+</section>
+
+<!-- ================= CONTENTS ================= -->
+<section class="section">
+  <div class="kicker">Contents</div>
+  <h2>What this guide covers</h2>
+  <p class="lead">A single source of truth for the product, the engineering, and the commercial model.</p>
+  <div class="toc">
+    <div><span>01</span> Executive summary</div>
+    <div><span>02</span> The problem we solve</div>
+    <div><span>03</span> Who we sell to</div>
+    <div><span>04</span> Product surfaces</div>
+    <div><span>05</span> Architecture</div>
+    <div><span>06</span> Request lifecycle</div>
+    <div><span>07</span> The 16 detection engines</div>
+    <div><span>08</span> Paid modules and pricing</div>
+    <div><span>09</span> Console: page by page</div>
+    <div><span>10</span> Free scanner and Vibe-Code</div>
+    <div><span>11</span> Client lifecycle</div>
+    <div><span>12</span> Payments, settlement and refunds</div>
+    <div><span>13</span> Data, identity and tenancy</div>
+    <div><span>14</span> Security model</div>
+    <div><span>15</span> Operations and testing</div>
+    <div><span>16</span> Known limitations and fixes</div>
+    <div><span>17</span> Client conversation guide</div>
+    <div><span>18</span> API and configuration appendix</div>
+  </div>
+
+  <div class="callout">
+    <div class="label">The one-sentence answer</div>
+    <p>Intellirity screens prompts, AI-generated code and agent actions before they reach a model or perform an action, then records evidence that the decision happened — sold as individual security modules rather than a seat-based platform.</p>
+  </div>
+
+  <h3>How to use this document</h3>
+  <ul>
+    <li><strong>Sales conversation:</strong> read sections 2, 3, 8 and 17.</li>
+    <li><strong>Technical evaluation:</strong> read sections 5, 6, 7, 13 and 14.</li>
+    <li><strong>Security review:</strong> read sections 13, 14, 15 and 16.</li>
+    <li><strong>Billing or partnership query:</strong> read sections 8, 11 and 12.</li>
+    <li><strong>Investor / strategy conversation:</strong> read sections 1, 2, 8, 16 and 17.</li>
+  </ul>
+</section>
+
+<!-- ================= 01 ================= -->
+<section class="section">
+  <div class="kicker">01 · Executive summary</div>
+  <h2>What Intellirity is</h2>
+  <p class="lead">Intellirity is an AI security platform. It checks the text, code and actions that surround a language model or autonomous agent, decides whether they are safe, and records proof of the decision.</p>
+  <p>AI applications are different from ordinary web applications. They accept free-form language, retrieve content from the internet, call tools, spend money and make decisions with incomplete instructions. A traditional firewall can see a request; it cannot see that a retrieved web page is trying to instruct the model, that an agent has been quietly redirected to a new goal, or that a generated code block contains a live database password.</p>
+  <p>Intellirity adds a security layer around those behaviours. It runs sixteen deterministic detection engines — no “ask another model whether this looks bad” dependency for the core verdict — and exposes them through a marketing site, a free scanner and an authenticated console. The commercial product is split into nine buyable modules so a customer can pay for the coverage they actually run.</p>
+  <div class="pillars">
+    <div class="pillar"><b>Screen</b><span>Prompts, retrieved content, outputs, code and agent actions are checked before they are trusted.</span></div>
+    <div class="pillar"><b>Decide</b><span>Each engine returns a risk score, findings, severity and an allow / flag / block-style verdict.</span></div>
+    <div class="pillar"><b>Control</b><span>Agent escrow, action policy, proof of intent and spend ceilings turn a verdict into an enforced action.</span></div>
+    <div class="pillar"><b>Prove</b><span>A hash-chained ledger, verification and signed certificates make the decision reconstructable later.</span></div>
+  </div>
+  <h3>What is live today</h3>
+  <ul>
+    <li><strong>Public site</strong> with engine catalogue, pricing, glossary, blog, research, contact, security model, policies and sitemap.</li>
+    <li><strong>Free security scanner</strong> at <span class="mono">/free-scan</span>: website URL or pasted code, no account.</li>
+    <li><strong>Console</strong> with 16 workspace pages for scanning, verdicts, leakage, content, agents, policies, escrow, proof, models and audit.</li>
+    <li><strong>16 detection engines</strong>, all deterministic analysers, exposed through one module API.</li>
+    <li><strong>9 paid modules</strong> from ₹79 to ₹399/month, 20% off when all nine are taken.</li>
+    <li><strong>Clerk authentication</strong>, per-user and per-organisation tenancy.</li>
+    <li><strong>PayU hosted checkout</strong> with signed hashes, callback verification, idempotent grants and a recovery path.</li>
+    <li><strong>Postgres persistence</strong> for orders, entitlements, scans, threats, workspace models, policies, ledger records, escrow and contacts.</li>
+    <li><strong>Python SDK, JavaScript SDK, MCP server, Chrome extension and VPC sidecar</strong> as integration surfaces.</li>
+  </ul>
+  <div class="callout warn">
+    <div class="label">What is not finished</div>
+    <p>The autonomous “run exploits in a sandbox and prove them” part of Vibe-Code is not deployed because it requires a Docker worker and an LLM budget. PayU settlement is configured inside the PayU merchant dashboard, not in this codebase. Threat history and model/policy configuration are now durable in Postgres. Section 16 lists every remaining gap honestly.</p>
+  </div>
+</section>
+
+<!-- ================= 02 ================= -->
+<section class="section">
+  <div class="kicker">02 · The problem</div>
+  <h2>The problem we solve</h2>
+  <p class="lead">AI systems fail in ways that ordinary application security does not model. Intellirity was built around those failure modes, not around a generic “AI firewall” label.</p>
+
+  <h3>2.1 The core risk: text becomes authority</h3>
+  <p>In a normal application, data and instructions are structurally separate. In a language model, both arrive as text. A retrieved web page, PDF, email, code comment or tool result can contain instructions the model follows as if they came from the application owner. This is <strong>indirect prompt injection</strong>. A user can also try to override the system prompt directly — that is <strong>direct prompt injection</strong> or a <strong>jailbreak</strong>.</p>
+  <p>The consequence is not just an embarrassing answer. If the model has tools, the consequence is a database query, an email, a payment, a file write or a cloud API call.</p>
+
+  <h3>2.2 The six practical problems customers bring us</h3>
+  <table>
+    <thead><tr><th style="width:25%">Problem</th><th style="width:42%">What goes wrong</th><th>What Intellirity does</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Prompt injection and jailbreaks</strong></td><td>Users or retrieved content override policy, leak the system prompt, or unlock prohibited behaviour.</td><td>Layered pattern, encoding, persona and exfiltration detection before the model is called; input and output direction supported.</td></tr>
+      <tr><td><strong>Unsafe AI-generated code</strong></td><td>“Vibe-coded” features ship with SQL injection, XSS, exposed keys, SSRF or unsafe dependencies.</td><td>Static code, URL, repository, dependency, secrets, threat-model and SARIF review.</td></tr>
+      <tr><td><strong>Data leaving through AI</strong></td><td>PII, credentials, source code or regulated data appears in prompts, outputs or tool calls.</td><td>DLP with PII, secret, code-leak and custom-pattern detection plus data-flow destination tracing.</td></tr>
+      <tr><td><strong>Agent abuse</strong></td><td>An agent is redirected, misuses a tool, escalates privilege, poisons memory or calls an unauthorised MCP server.</td><td>Action policy, behavioural drift, MCP governance, workflow anomaly and spend protection.</td></tr>
+      <tr><td><strong>Runaway cost</strong></td><td>A loop, retry storm or abusive client burns API budget faster than a human can react.</td><td>Token, cost, call-count and repeating-pattern ceilings in the Denial-of-Wallet engine.</td></tr>
+      <tr><td><strong>No evidence</strong></td><td>After an incident nobody can reconstruct what the model saw, which control ran, who approved it, or whether logs were altered.</td><td>Hash-chained ledger, signed proof-of-intent certificates and escrow state transitions.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.3 Why a WAF is not enough</h3>
+  <p>A WAF understands HTTP methods, paths, headers and known payload signatures. It does not understand that a paragraph inside a support ticket is attempting to change an agent’s objective, or that a model output is about to be rendered as HTML. Intellirity sits at the semantic layer: before the model consumes text, before a generated artefact is trusted, and before an agent action is released.</p>
+
+  <h3>2.4 The design principles behind the product</h3>
+  <ul>
+    <li><strong>Deterministic first.</strong> The detection engines are regex, statistical and state-machine analysers. They do not depend on an external LLM to produce a verdict.</li>
+    <li><strong>Fail closed.</strong> If an engine errors in the screening path, the request is denied rather than forwarded unchecked.</li>
+    <li><strong>Evidence by default.</strong> A verdict is useful only if it can be reconstructed. The ledger is append-only and hash-linked.</li>
+    <li><strong>Per-module commerce.</strong> A customer should not have to buy the entire platform to solve one problem.</li>
+    <li><strong>Tenant isolation.</strong> A user or Clerk organisation owns its own workspace, billing, models, policies and escrow.</li>
+  </ul>
+</section>
+
+<!-- ================= 03 ================= -->
+<section class="section">
+  <div class="kicker">03 · Buyers</div>
+  <h2>Who we sell to</h2>
+  <p class="lead">The product is horizontal: any team putting a language model, AI-generated code or an autonomous agent into production has the same control problem.</p>
+  <table>
+    <thead><tr><th style="width:24%">Buyer</th><th style="width:35%">What they are building</th><th>Why they buy</th></tr></thead>
+    <tbody>
+      <tr><td><strong>AI product teams</strong></td><td>Chatbots, copilots, summarisers, RAG applications, customer support automation.</td><td>Prompt injection, jailbreak and data-leak controls without building a detection team.</td></tr>
+      <tr><td><strong>Platform / security teams</strong></td><td>Internal AI platform used by many product teams.</td><td>One policy and evidence layer across models, agents and vendors.</td></tr>
+      <tr><td><strong>Engineering teams using AI code generation</strong></td><td>Fast-moving products written with coding assistants.</td><td>A free URL/code scan now, repository review and SARIF when the team is ready to formalise it.</td></tr>
+      <tr><td><strong>Agent / automation builders</strong></td><td>Workflows that call tools, spend money or act on customer records.</td><td>Action policy, MCP governance, escrow, human proof and spend limits.</td></tr>
+      <tr><td><strong>Regulated or procurement-heavy organisations</strong></td><td>Finance, healthcare, legal, public sector or enterprise vendors.</td><td>Evidence, tenant isolation, a sovereign sidecar option and an honest statement of certifications not yet held.</td></tr>
+      <tr><td><strong>Agencies and consultancies</strong></td><td>They build AI systems for clients and need a repeatable security check.</td><td>Free scanner for evaluation, per-module subscriptions for client work, repository review and reports.</td></tr>
+    </tbody>
+  </table>
+  <h3>Who it is not for (yet)</h3>
+  <ul>
+    <li>Teams that only need a content filter and nothing else — the free engine may be enough; do not oversell.</li>
+    <li>Buyers who require SOC 2 Type II or ISO 27001 today — we do not hold those certifications and do not claim them.</li>
+    <li>Buyers who expect an autonomous penetration test that actively exploits a live target — that deep worker is not deployed.</li>
+    <li>Buyers who need us to hold their money or act as a payment processor — PayU processes the payment; settlement is a PayU merchant-account function.</li>
+  </ul>
+  <div class="callout">
+    <div class="label">Positioning line</div>
+    <p>“We are the control and evidence layer around AI behaviour: screen the input, constrain the action, prove the decision. You buy only the controls you run.”</p>
+  </div>
+</section>
+
+<!-- ================= 04 ================= -->
+<section class="section">
+  <div class="kicker">04 · Product surfaces</div>
+  <h2>Every surface a client can touch</h2>
+  <p class="lead">Intellirity is not just a website and a dashboard. There are seven usable surfaces, all backed by the same module registry.</p>
+  <table>
+    <thead><tr><th style="width:20%">Surface</th><th style="width:30%">Where it is</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Marketing site</strong></td><td><span class="mono">intellirity.com</span></td><td>Explains the problem, the 16 engines, pricing, policies and research; carries the SEO and answer-engine content.</td></tr>
+      <tr><td><strong>Free scanner</strong></td><td><span class="mono">/free-scan</span></td><td>No-account URL or code security scan. Real detector registry, results in the browser.</td></tr>
+      <tr><td><strong>Console</strong></td><td><span class="mono">/console</span></td><td>Authenticated workspace with 16 pages covering scans, verdicts, modules, policies, models, escrow, proof and audit.</td></tr>
+      <tr><td><strong>Module API</strong></td><td><span class="mono">/backend/modules/{engine}/scan</span></td><td>One authenticated endpoint per engine. Returns structured findings and a risk score.</td></tr>
+      <tr><td><strong>Python SDK</strong></td><td><span class="mono">sdk/intellirity</span></td><td><span class="mono">from intellirity import Shield</span> — modules, trust machinery and proxy helpers.</td></tr>
+      <tr><td><strong>JavaScript SDK</strong></td><td><span class="mono">sdk/js</span></td><td><span class="mono">import { Shield } from "@intellirity/shield"</span> plus <span class="mono">proxyChat</span>.</td></tr>
+      <tr><td><strong>MCP server + extension</strong></td><td><span class="mono">mcp-server/</span>, <span class="mono">extension/</span></td><td>15 MCP tools for Claude Desktop / MCP Inspector; Chrome MV3 popup that screens a pasted prompt.</td></tr>
+      <tr><td><strong>VPC sidecar</strong></td><td><span class="mono">docker-compose.sidecar.yml</span></td><td>Runs the engine beside the customer workload so prompts never leave their network.</td></tr>
+    </tbody>
+  </table>
+  <h3>Public pages</h3>
+  <p>The indexable site includes: home, <span class="mono">/engines</span>, <span class="mono">/pricing</span>, <span class="mono">/free-scan</span>, <span class="mono">/glossary</span>, <span class="mono">/about</span>, <span class="mono">/blog</span> (10 articles), <span class="mono">/research</span>, <span class="mono">/careers</span>, <span class="mono">/contact</span>, <span class="mono">/refund-policy</span>, <span class="mono">/delivery</span>, <span class="mono">/privacy</span>, <span class="mono">/terms</span> and <span class="mono">/security</span>. The console is deliberately <span class="mono">noindex</span> and excluded from the sitemap.</p>
+</section>
+
+<!-- ================= 05 ================= -->
+<section class="section">
+  <div class="kicker">05 · Architecture</div>
+  <h2>How the software is built</h2>
+  <p class="lead">A Next.js frontend and a FastAPI engine, deployed as two services on Vercel with Postgres as the durable authority.</p>
+  <div class="flow">
+    <div class="flow-row">
+      <div class="flow-box"><b>Visitor / client</b>Browser, SDK, MCP client or sidecar.</div>
+      <div class="arrow">→</div>
+      <div class="flow-box"><b>Next.js app</b>Marketing, free scanner, console UI, Clerk session, <span class="mono">/backend</span> proxy.</div>
+      <div class="arrow">→</div>
+      <div class="flow-box"><b>FastAPI engine</b>16 modules, risk scoring, auth, tenancy, rate limits.</div>
+      <div class="arrow">→</div>
+      <div class="flow-box"><b>Postgres</b>Orders, entitlements, scans, ledger, escrow, contacts.</div>
+    </div>
+  </div>
+  <table>
+    <thead><tr><th style="width:22%">Layer</th><th style="width:30%">Technology</th><th>Responsibility</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Frontend</strong></td><td>Next.js App Router, React, TypeScript, Tailwind-style tokens, Framer Motion, local Sora / Manrope / JetBrains Mono fonts.</td><td>Marketing pages, free scanner, console, SEO, structured data, Clerk UI, consent-gated analytics.</td></tr>
+      <tr><td><strong>Backend</strong></td><td>Python, FastAPI, Pydantic v2, SQLAlchemy async, Uvicorn; Mangum entrypoint for Vercel.</td><td>All 16 detection engines, auth, tenancy, billing, persistence, jobs, rate limits, health.</td></tr>
+      <tr><td><strong>Database</strong></td><td>PostgreSQL (Neon-compatible), asyncpg.</td><td>Durable records: users, organisations, scans, threats, ledger, escrow, orders, entitlements, contacts.</td></tr>
+      <tr><td><strong>Identity</strong></td><td>Clerk (RS256 JWKS / HS256 fallback), API keys hashed with SHA-256.</td><td>Human sessions and machine identities; org context decides tenant ownership.</td></tr>
+      <tr><td><strong>Payments</strong></td><td>PayU India hosted checkout, SHA-512 request/reverse hashes.</td><td>Checkout, callback, optional webhook, server-to-server payment recovery.</td></tr>
+      <tr><td><strong>Email / abuse</strong></td><td>Resend-style notification config, Cloudflare Turnstile, per-IP limits.</td><td>Contact submissions, bot protection, abuse ceilings.</td></tr>
+      <tr><td><strong>Optional LLM</strong></td><td>OpenAI-compatible upstream (opencode/zen, Groq, etc.).</td><td>Used only for reasoning/proxy features, never for the core detection verdict.</td></tr>
+    </tbody>
+  </table>
+  <h3>Deployment shape</h3>
+  <ul>
+    <li><strong>Managed:</strong> frontend + API on Vercel, Postgres hosted, Clerk and PayU as SaaS dependencies.</li>
+    <li><strong>Sovereign:</strong> the same engine as a sidecar container inside the customer’s VPC; prompts stay inside the network.</li>
+    <li><strong>Local/dev:</strong> <span class="mono">uvicorn</span> on port 8000, Next on port 3000, optional Docker Compose with Postgres.</li>
+  </ul>
+  <div class="box-note"><strong>Important engineering detail:</strong> the browser never talks to FastAPI directly in production. Vercel rewrites <span class="mono">/backend/*</span> to the API service, so cookies, CSP and same-origin behaviour stay consistent.</div>
+</section>
+
+<!-- ================= 06 ================= -->
+<section class="section">
+  <div class="kicker">06 · Request lifecycle</div>
+  <h2>What happens when a scan runs</h2>
+  <p class="lead">One request passes through identity, tenancy, plan enforcement, one or more engines, scoring, logging and evidence. This is the path to explain in any technical review.</p>
+  <ol>
+    <li><strong>Identity.</strong> The request carries either a Clerk bearer token (human), an <span class="mono">X-API-Key</span> (machine) or, in local development only, an open-mode identity. An invalid key is always rejected.</li>
+    <li><strong>Tenant resolution.</strong> An active Clerk organisation becomes <span class="mono">org:&lt;id&gt;</span>; without one the user owns <span class="mono">user:&lt;id&gt;</span>; a machine key owns its own service tenant.</li>
+    <li><strong>Entitlement hydration.</strong> The API loads that tenant’s paid modules from Postgres when the instance cache is empty or older than 120 seconds. This is what makes a purchase work across serverless instances.</li>
+    <li><strong>Plan enforcement.</strong> Each requested engine maps to a product. If the tenant does not own the product, the engine is denied. Free engines remain available.</li>
+    <li><strong>Input bounds.</strong> Text fields are capped, code scans have a size limit, URL scans resolve DNS and refuse private, loopback, link-local or reserved addresses.</li>
+    <li><strong>Engine execution.</strong> The engine runs deterministic rules, state machines or statistical checks. A multi-module sweep runs independent engines concurrently.</li>
+    <li><strong>Scoring.</strong> Findings are weighted by severity; the module returns a risk score, findings, severity and verdict. Bands differ by engine but generally map to allow / flag / block.</li>
+    <li><strong>Response shaping.</strong> The UI receives structured JSON. API responses are <span class="mono">private, no-store</span> with an authorization-aware <span class="mono">Vary</span> header.</li>
+    <li><strong>Evidence.</strong> A high or medium risk event can create a threat record. Ledger writes are chained and persisted. Escrow transitions are validated and persisted.</li>
+    <li><strong>Activity.</strong> A completed scan writes a small activity row (owner, type, risk, time) used by the real charts. The raw prompt is not written there.</li>
+  </ol>
+  <h3>What the client sees</h3>
+  <p>The scanner returns a terminal-style report with a verdict, risk, per-engine findings and locked-module notices. The console overview shows the workspace’s active modules, real scan volume, open threats and KPI strip. Free scanner users see only the relevant findings and fixes.</p>
+  <div class="callout">
+    <div class="label">Failure behaviour</div>
+    <p>If an engine raises, the module API returns an error instead of a fabricated verdict. In the screening-proxy path, a failure is a deny, not a pass. The UI surfaces a clear timeout or error rather than leaving a progress bar running forever.</p>
+  </div>
+</section>
+
+<!-- ================= 07 ================= -->
+<section class="section">
+  <div class="kicker">07 · Engines</div>
+  <h2>The 16 detection engines</h2>
+  <p class="lead">Every engine is a real analyser registered in one feature registry. None of the core verdicts depends on a third-party language model. The tiers below are catalogue tiers; commercial packaging is in section 8.</p>
+  <table>
+    <thead><tr><th style="width:4%">#</th><th style="width:26%">Engine</th><th style="width:10%">Tier</th><th>Core job</th></tr></thead>
+    <tbody>
+      <tr><td>01</td><td><strong>Jailbreak &amp; Injection Protection</strong></td><td><span class="tag free">free</span></td><td>Direct override, persona jailbreak, encoding/obfuscation and prompt-leak / exfiltration patterns on input and output.</td></tr>
+      <tr><td>02</td><td><strong>Advanced Threat Intelligence</strong></td><td><span class="tag paid">enterprise</span></td><td>Broader adversarial pattern families, behavioural drift, obfuscation, MCP abuse and multi-category correlation.</td></tr>
+      <tr><td>03</td><td><strong>Vibe Code Security</strong></td><td><span class="tag paid">professional</span></td><td>Static review of code, URLs, repositories and dependencies with findings, fixes, threat model and SARIF.</td></tr>
+      <tr><td>04</td><td><strong>AI Model Supply Chain Security</strong></td><td><span class="tag paid">enterprise</span></td><td>Model provenance, expected hash, unsafe pickle formats and known vulnerability checks before deployment.</td></tr>
+      <tr><td>05</td><td><strong>Data Loss Prevention (DLP)</strong></td><td><span class="tag paid">professional</span></td><td>PII, credentials, regulated data, source-code leaks and customer-defined patterns in model input/output.</td></tr>
+      <tr><td>06</td><td><strong>Data Flow Tracker</strong></td><td><span class="tag paid">professional</span></td><td>Every pipeline destination, trusted/blocked domains, sensitive-field access, destructive tools and external callbacks.</td></tr>
+      <tr><td>07</td><td><strong>Content Moderation</strong></td><td><span class="tag paid">professional</span></td><td>Seven content categories with layered severity scoring: spam, sexual, minor safety, profanity, violence, self-harm and hate/harassment.</td></tr>
+      <tr><td>08</td><td><strong>AI Action Policy Enforcer</strong></td><td><span class="tag paid">professional</span></td><td>Goal hijacking, tool misuse, privilege escalation, exfiltration, memory poisoning and denial-of-wallet at the action layer.</td></tr>
+      <tr><td>09</td><td><strong>Behavioural Analysis Engine</strong></td><td><span class="tag paid">professional</span></td><td>Session-history drift, anomalous action sequences and behavioural policy violations over time.</td></tr>
+      <tr><td>10</td><td><strong>MCP Security &amp; Tool Governance</strong></td><td><span class="tag paid">enterprise</span></td><td>MCP server and tool-call review: poisoning, confused-deputy paths and unauthorised tool usage.</td></tr>
+      <tr><td>11</td><td><strong>Workflow Anomaly Detector</strong></td><td><span class="tag paid">professional</span></td><td>Hidden workflows, repeating loops, runaway spend, iteration/time limits and cascading side effects.</td></tr>
+      <tr><td>12</td><td><strong>Denial-of-Wallet Protector</strong></td><td><span class="tag paid">professional</span></td><td>Token, cost and call ceilings; repeating API patterns; resource-exhaustion and spend-abuse alerts.</td></tr>
+      <tr><td>13</td><td><strong>Autonomous Escrow</strong></td><td><span class="tag core">premium</span></td><td>State-machine hold on agent funds until a trusted oracle releases or rejects; one decision only.</td></tr>
+      <tr><td>14</td><td><strong>Black Box Ledger</strong></td><td><span class="tag core">premium</span></td><td>Append-only, hash-chained audit records with Merkle root, verification and query.</td></tr>
+      <tr><td>15</td><td><strong>Verifiable Proof of Intent</strong></td><td><span class="tag core">premium</span></td><td>HMAC-signed certificate binding a human, an instruction hash, a scope, an expiry and a nonce.</td></tr>
+      <tr><td>16</td><td><strong>Threat Intelligence Feed</strong></td><td><span class="tag paid">enterprise</span></td><td>Catalogue of known AI attack patterns with type, severity and indicators for client consumption.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>7.1 Jailbreak &amp; Injection Protection</h3>
+  <p>The free entry point and the most used engine. It combines seventeen pattern families and 113 patterns covering direct instruction override, “ignore previous instructions”, roleplay/persona jailbreaks, safety-disabling language, encoded payloads (base64 and similar), prompt-extraction attempts and exfiltration framing. It supports an input or output direction, returns a sanitized-text field, a recommendation and the list of modules triggered.</p>
+
+  <h3>7.2 Advanced Threat Intelligence</h3>
+  <p>A broader adversarial layer for teams that need more than the free engine. It maintains a threat catalogue and pattern families across prompt injection, jailbreak, obfuscation, data exfiltration, agent abuse, privilege escalation, MCP abuse, model supply chain, denial of service and behavioural drift. It correlates multiple signals rather than returning one regex hit.</p>
+
+  <h3>7.3 Vibe Code Security</h3>
+  <p>Two products share the name: a free public scanner for a URL or pasted code, and the paid repository review inside the console. The module looks for SQL injection, dynamic SQL, XSS sinks, command execution, SSRF, path traversal, insecure deserialization, weak crypto, hardcoded secrets, unsafe random generation, ReDoS and more. The repository path adds per-file line numbers, CWE, confidence, fix effort, a derived threat model, coverage, an ordered remediation plan and a SARIF 2.1.0 report. It does not execute the code.</p>
+
+  <h3>7.4 AI Model Supply Chain Security</h3>
+  <p>Reviews the model source and format before deployment. Unverified/community/unofficial sources are flagged; an expected SHA-256 can be compared; pickle formats are treated as code-execution risk; caller-supplied known vulnerabilities are included. It returns a block/flag/allow verdict and a deployment recommendation.</p>
+
+  <h3>7.5 Data Loss Prevention</h3>
+  <p>Detects email, US SSN, phone, credit-card-shaped numbers, IP addresses and date-of-birth context; cloud keys, GitHub tokens, Stripe keys, Google API keys, Slack tokens, JWTs, private-key blocks and password assignments; SQL/XSS/code-execution output; and customer-supplied regex patterns. The action escalates from <span class="mono">log</span> to <span class="mono">redact</span> to <span class="mono">block</span>.</p>
+
+  <h3>7.6 Data Flow Tracker</h3>
+  <p>Maps each pipeline stage and destination. It flags destinations on a blocked list or outside a trusted list, sensitive fields accessed by a sensitive/restricted classification, destructive tool calls, external callback URLs and excessive reasoning-chain length.</p>
+
+  <h3>7.7 Content Moderation</h3>
+  <p>Seven categories with independent pattern families and a weighted score. The engine deliberately allows mild profanity and keeps the severe terms narrow to reduce false positives. Minor-safety sexual framing is treated as critical.</p>
+
+  <h3>7.8 AI Action Policy Enforcer</h3>
+  <p>Evaluates an agent action, action type, tool calls, session context and policy object. It returns <span class="mono">allowed</span>, violations, abuse categories, risk score, critical count and a recommendation. This is the policy layer behind the Policies console page.</p>
+
+  <h3>7.9 Behavioural Analysis Engine</h3>
+  <p>Compares the current action against session history. It reports actions analysed, anomalies, behavioural drift, risk level and a recommendation. It is designed for traces, not one-off prompts.</p>
+
+  <h3>7.10 MCP Security &amp; Tool Governance</h3>
+  <p>Checks MCP servers and tool calls for poisoning, confused-deputy patterns and tools outside the allowed set. It returns servers checked, tool calls checked, findings, risk and status.</p>
+
+  <h3>7.11 Workflow Anomaly Detector</h3>
+  <p>Ingests a workflow’s actions with cost and duration. It detects repeated action sequences, excessive iterations, spend above a configured ceiling, timeouts and cascading side effects. The console turns a comma-separated action list into that payload.</p>
+
+  <h3>7.12 Denial-of-Wallet Protector</h3>
+  <p>Detects API loops, token and cost ceilings, unusual call counts and resource exhaustion. It returns alerts, total tokens, total cost, call count, risk and an action, and is wired to the Wallet page.</p>
+
+  <h3>7.13 Autonomous Escrow</h3>
+  <p>A real state machine: <span class="mono">held → released</span> or <span class="mono">held → rejected</span>, exactly once. It rejects unknown IDs, invalid amounts and replays. Holds are persisted in Postgres and restored across instances.</p>
+
+  <h3>7.14 Black Box Ledger</h3>
+  <p>Append-only records sealed with a hash that commits to the previous record; a Merkle root summarises the set. Verification walks the chain and reports tampering. In production the database is the authority: appends are serialized against the database tail so multiple processes cannot fork the chain.</p>
+
+  <h3>7.15 Verifiable Proof of Intent</h3>
+  <p>Issues an HMAC-SHA256 certificate containing the human ID, instruction hash, action scope, timestamp, expiry and nonce. Verification rejects a forged signature, an expired certificate and an action outside the signed scope. This is proof that a human authorised a class of action, not proof that the model behaved.</p>
+
+  <h3>7.16 Threat Intelligence Feed</h3>
+  <p>Returns a catalogue of known AI attack patterns with type, severity and indicators. <strong>Currently this is a curated static catalogue of eight patterns, not a live external intelligence subscription.</strong> It is useful as a reference and UI feed; it should not be sold as a continuously updated commercial threat feed without adding that data pipeline.</p>
+</section>
+
+<!-- ================= 08 ================= -->
+<section class="section">
+  <div class="kicker">08 · Commercial model</div>
+  <h2>Modules, pricing and what a client buys</h2>
+  <p class="lead">The commercial unit is a module for 30 days. There are no seats, no platform fee and no automatic renewal.</p>
+  <table>
+    <thead><tr><th style="width:22%">Product</th><th style="width:10%">Price</th><th style="width:33%">Engines included</th><th>Console destination</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Injection Shield</strong></td><td>₹99 / 30 days</td><td>Jailbreak &amp; Injection Protection + Advanced Threat Intelligence</td><td>Scanner</td></tr>
+      <tr><td><strong>Vibe-Code Security</strong></td><td>₹99 / 30 days</td><td>Vibe Code Security + Model Supply Chain Security</td><td>Free scanner; repository review in console</td></tr>
+      <tr><td><strong>Leakage Guard</strong></td><td>₹99 / 30 days</td><td>Data Loss Prevention + Data Flow Tracker</td><td>Leakage, Data flow</td></tr>
+      <tr><td><strong>Content Guard</strong></td><td>₹79 / 30 days</td><td>Content Moderation</td><td>Content guard</td></tr>
+      <tr><td><strong>Agent Guard</strong></td><td>₹99 / 30 days</td><td>Action Policy, Behavioural Analysis, MCP Security, Workflow Anomaly</td><td>Agent behaviour, Policies, Anomalies, Models</td></tr>
+      <tr><td><strong>Wallet Guard</strong></td><td>₹79 / 30 days</td><td>Denial-of-Wallet Protector</td><td>Wallet guard</td></tr>
+      <tr><td><strong>Agent Escrow</strong></td><td>₹399 / 30 days</td><td>Autonomous Escrow</td><td>Agent escrow</td></tr>
+      <tr><td><strong>Evidence Ledger</strong></td><td>₹299 / 30 days</td><td>Black Box Ledger</td><td>Audit log</td></tr>
+      <tr><td><strong>Proof of Intent</strong></td><td>₹299 / 30 days</td><td>Verifiable Proof of Intent</td><td>Proof of intent</td></tr>
+    </tbody>
+  </table>
+  <table>
+    <thead><tr><th>Commercial rule</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Bundle</strong></td><td>All nine modules: 20% off. Catalogue subtotal ₹1,551; bundle total ₹1,241 for 30 days.</td></tr>
+      <tr><td><strong>Term</strong></td><td>30 days per payment. Access continues to the end of the paid period.</td></tr>
+      <tr><td><strong>Renewal</strong></td><td>Manual. Early renewal extends from the current expiry; late renewal starts from now. Nothing auto-charges.</td></tr>
+      <tr><td><strong>Free tier</strong></td><td>Jailbreak engine, threat feed, free Vibe-Code URL/code scanner, console overview / scanner / verdicts / intel. A working free engine, not a time-limited trial of a different product.</td></tr>
+      <tr><td><strong>Currency</strong></td><td>Indian rupees (INR), processed by PayU India.</td></tr>
+      <tr><td><strong>Vibe-Code nuance</strong></td><td>The public URL/code scanner is free and requires no account. The paid product adds the repository review workspace. Be precise in sales: the free scanner is real; the paid module is the deeper repository workflow.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout warn">
+    <div class="label">Do not say</div>
+    <p>“All modules are free.” Only the free tier and the public Vibe-Code scanner are free. “Unlimited scans” means good-faith scans under fair-use limits, not unlimited third-party targets or resale.</p>
+  </div>
+</section>
+
+<!-- ================= 09 ================= -->
+<section class="section">
+  <div class="kicker">09 · Console</div>
+  <h2>The console, page by page</h2>
+  <p class="lead">Sixteen pages, grouped into Operate, Defend and Govern. Every page calls a real backend module or a real workspace API; the pages are not static mockups.</p>
+  <table>
+    <thead><tr><th style="width:16%">Page</th><th style="width:12%">Group</th><th style="width:12%">Plan</th><th>What the user does</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Overview</strong></td><td>Operate</td><td>Free</td><td>Security score, threats blocked/active, total scans, real scan-volume chart, open threat queue, active module strip and free tools.</td></tr>
+      <tr><td><strong>Scanner</strong></td><td>Operate</td><td>Page free; engines gated</td><td>Run profiles: full barrage, injection, exfiltration, content, advanced, wallet. Target an endpoint, watch the live report, queue a background sweep, keep session history.</td></tr>
+      <tr><td><strong>Verdicts</strong></td><td>Operate</td><td>Free</td><td>Severity-filtered verdict stream, search, detail drawer, resolve/acknowledge and paging.</td></tr>
+      <tr><td><strong>Wallet guard</strong></td><td>Operate</td><td>Wallet Guard</td><td>Enter session tokens, calls and cost; run the Denial-of-Wallet engine; review alerts and action.</td></tr>
+      <tr><td><strong>Models &amp; agents</strong></td><td>Operate</td><td>Agent Guard</td><td>Register model endpoints, pause/resume, run supply-chain verification, record scan results.</td></tr>
+      <tr><td><strong>Leakage guard</strong></td><td>Defend</td><td>Leakage Guard</td><td>Choose PII / credential / code detectors, scan text, see matches and the log/redact/block action.</td></tr>
+      <tr><td><strong>Anomalies</strong></td><td>Defend</td><td>Agent Guard</td><td>Turn an action list into a workflow payload; detect loops, spend, iteration and side-effect anomalies.</td></tr>
+      <tr><td><strong>Data flow</strong></td><td>Defend</td><td>Leakage Guard</td><td>Define pipeline destinations, trusted and blocked domains; see destinations, flags and risk.</td></tr>
+      <tr><td><strong>Content guard</strong></td><td>Defend</td><td>Content Guard</td><td>Screen input or output across the seven moderation categories; see verdict, findings and score.</td></tr>
+      <tr><td><strong>Agent behaviour</strong></td><td>Defend</td><td>Agent Guard</td><td>Behavioural drift plus MCP server/tool governance in one workspace.</td></tr>
+      <tr><td><strong>Vibe-Code Security</strong></td><td>Defend</td><td>Free scanner; repo paid</td><td>Free URL/code scan at the top; repository file/folder review for owners, with threat model, SARIF and remediation plan.</td></tr>
+      <tr><td><strong>Threat intel</strong></td><td>Defend</td><td>Free feed; advanced gated</td><td>Browse the attack-pattern catalogue and run the advanced threat-intelligence engine on a prompt or pattern.</td></tr>
+      <tr><td><strong>Proof of intent</strong></td><td>Govern</td><td>Proof of Intent</td><td>Issue a signed human-intent certificate; verify signature, expiry and action scope.</td></tr>
+      <tr><td><strong>Policies</strong></td><td>Govern</td><td>Agent Guard</td><td>Enable/disable guardrail packs, inspect YAML, test an action against the policy, promote a pack through approval.</td></tr>
+      <tr><td><strong>Agent escrow</strong></td><td>Govern</td><td>Agent Escrow</td><td>Create, verify/release, reject and inspect agent-fund holds with exactly-once transitions.</td></tr>
+      <tr><td><strong>Audit log</strong></td><td>Govern</td><td>Evidence Ledger</td><td>Seal a decision, search/filter entries, inspect hashes, verify the chain and export.</td></tr>
+    </tbody>
+  </table>
+  <h3>Free versus paid in the console</h3>
+  <p>Overview, Scanner, Verdicts and Threat Intel are reachable without a paid module. A paid engine still requires its product. Pages such as Leakage, Content, Wallet, Models, Policies, Escrow, Proof and Audit are gated by their product. The code page is not gated at the route level because its free scanner is public; the repository section only renders for a workspace that owns Vibe-Code.</p>
+</section>
+
+<!-- ================= 10 ================= -->
+<section class="section">
+  <div class="kicker">10 · Free scanner</div>
+  <h2>Vibe-Code Security, free and paid</h2>
+  <p class="lead">This is the lowest-friction product surface and one of the most important differentiators. A visitor can get a real security result without signing in, paying or reading documentation.</p>
+  <h3>10.1 The free public scanner</h3>
+  <p>URL: <strong>https://www.intellirity.com/free-scan</strong>. Two modes:</p>
+  <ul>
+    <li><strong>Website URL:</strong> resolves the host through the SSRF guard; refuses private, loopback, link-local and reserved addresses; does not follow redirects blindly; reads up to 300&nbsp;KB of HTML; checks transport, HSTS, CSP, X-Frame-Options, X-Content-Type-Options, X-Powered-By, CORS, cookie flags, mixed content, external scripts without SRI, inline-script code patterns and page-source secrets.</li>
+    <li><strong>Paste code:</strong> runs the same Vibe-Code detector registry on up to 50,000 characters. Findings include severity, CWE, line and a concrete fix.</li>
+  </ul>
+  <p>Limits are deliberate: a scan is not an exploit, does not authenticate, does not crawl the whole site and does not brute-force endpoints. The UI states this. The endpoint is rate-limited and records only activity metadata (type, risk, time), not the scanned URL or code.</p>
+
+  <h3>10.2 The paid repository review</h3>
+  <p>Inside <span class="mono">/console/code</span>, a workspace that owns Vibe-Code can choose a folder or files. The browser reads them locally and sends a bounded JSON snapshot:</p>
+  <table>
+    <thead><tr><th>Limit</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Maximum files</td><td>300</td></tr>
+      <tr><td>Maximum single file</td><td>200,000 characters</td></tr>
+      <tr><td>Maximum total snapshot</td><td>1,500,000 characters</td></tr>
+      <tr><td>Skipped files</td><td>Binaries, assets, duplicates, oversized files and exhausted budget are listed in coverage</td></tr>
+    </tbody>
+  </table>
+  <p>The review returns: per-file findings with line, rule ID, severity, CWE, confidence and fix effort; an ordered remediation plan; a threat model derived from routes, auth, uploads, outbound calls, shell execution, data stores and literal secrets; coverage with skipped-file reasons; and a SARIF 2.1.0 download for CI.</p>
+  <p>Repeated findings are grouped per rule and file, with a true occurrence count, and the report is capped at 300 groups. This prevents a repeated line from creating a 15&nbsp;MB response.</p>
+
+  <h3>10.3 Dependency and manifest review</h3>
+  <p>Package manifests are parsed for risky and unpinned dependencies. The current risky-package list includes vm2, node-serialize, event-stream, serialize-javascript, PyCrypto, request, node-sass, moment and left-pad. This is a review prompt, not a live CVE database; versions are reported as written and no lockfile resolution is performed.</p>
+
+  <h3>10.4 What it does not do</h3>
+  <ul>
+    <li>It does not launch a Docker sandbox or actively exploit a target.</li>
+    <li>It does not authenticate to the customer’s application or crawl behind a login.</li>
+    <li>It does not guarantee absence of vulnerabilities after a clean scan.</li>
+    <li>It does not replace a manual penetration test or a compliance audit.</li>
+  </ul>
+
+  <h3>10.5 The autonomous half</h3>
+  <p>The reference project behind the Vibe-Code concept includes an autonomous agent that plans tests, uses tools, runs a sandbox and writes exploit evidence. That requires a Docker-capable worker, outbound internet and an LLM API key. It cannot run inside a request-scoped Vercel function. Until that worker is deployed, do not sell “autonomous exploit validation”. The static scanner, repository review, threat model, coverage and SARIF are live.</p>
+</section>
+
+<!-- ================= 11 ================= -->
+<section class="section">
+  <div class="kicker">11 · Clients</div>
+  <h2>How we deal with clients, end to end</h2>
+  <p class="lead">The motion is self-serve. A client can evaluate, pay and activate without a sales call; higher-touch work is reserved for procurement, sovereign deployment and security review.</p>
+  <div class="flow">
+    <div class="flow-row"><div class="flow-box"><b>1 · Discover</b>Marketing site, blog, engine catalogue, free scanner, direct link.</div><div class="arrow">→</div><div class="flow-box"><b>2 · Evaluate</b>Free URL/code scan, free injection engine, threat feed.</div><div class="arrow">→</div><div class="flow-box"><b>3 · Sign in</b>Clerk account, personal or organisation workspace.</div></div>
+    <div class="flow-row"><div class="flow-box"><b>4 · Choose coverage</b>Toggle the modules; price is live and the bundle discount is applied.</div><div class="arrow">→</div><div class="flow-box"><b>5 · Pay</b>PayU hosted checkout; no card stored by Intellirity.</div><div class="arrow">→</div><div class="flow-box"><b>6 · Activate</b>Verified callback or recovery grants the modules for 30 days.</div></div>
+    <div class="flow-row"><div class="flow-box"><b>7 · Operate</b>Scanner, verdicts, leakage, agents, policies, models, audit.</div><div class="arrow">→</div><div class="flow-box"><b>8 · Prove</b>Ledger, proof of intent, escrow.</div><div class="arrow">→</div><div class="flow-box"><b>9 · Renew or stop</b>Manual renewal; no auto-charge; access runs to expiry.</div></div>
+  </div>
+
+  <h3>11.1 First contact</h3>
+  <p>Most clients arrive through search or a direct link. The free scanner is the shortest proof: they paste a URL or code and see a real result. The free injection engine on the landing page or scanner is the second proof. No sign-in is needed for either.</p>
+
+  <h3>11.2 Sign-in and workspace</h3>
+  <p>Clerk handles sign-in. A user without an organisation owns a private tenant. A user with an active Clerk organisation shares that organisation’s billing, models, policies and escrow. The console requires a session; machine clients use API keys. This distinction matters in a sales call: a team that wants shared billing must use a Clerk organisation, not just share a login.</p>
+
+  <h3>11.3 Purchase</h3>
+  <p>The pricing builder shows the live catalogue, selected modules, subtotal, bundle discount and total. Checkout collects name, email and phone for PayU, creates an order, persists it and returns a signed form. PayU hosts the payment page. On return, the server verifies the reverse hash; the modules are granted only on success. A recovery endpoint can reconcile a captured payment if the browser callback was lost.</p>
+
+  <h3>11.4 Onboarding after payment</h3>
+  <ul>
+    <li>Refresh the console; the “your modules” strip shows the active modules and renewal date.</li>
+    <li>Open the matching console page; the route unlocks when the entitlement is hydrated.</li>
+    <li>Register model endpoints under Models &amp; agents if using Agent Guard.</li>
+    <li>Inspect and enable policy packs under Policies.</li>
+    <li>Seal an audit record under Audit log if Evidence Ledger is purchased.</li>
+  </ul>
+
+  <h3>11.5 Support model</h3>
+  <table>
+    <thead><tr><th>Channel</th><th>Address</th><th>Use</th></tr></thead>
+    <tbody>
+      <tr><td>Sales and billing</td><td>security@intellirity.com</td><td>Modules, invoices, GST details, payment that needs attention.</td></tr>
+      <tr><td>Security reports</td><td>security@intellirity.com</td><td>Vulnerability reports, novel bypasses, coordinated disclosure.</td></tr>
+      <tr><td>Privacy</td><td>privacy@intellirity.com</td><td>Data-subject requests, retention, subprocessors.</td></tr>
+      <tr><td>Legal</td><td>legal@intellirity.com</td><td>Contracts, terms, DPAs, notices.</td></tr>
+    </tbody>
+  </table>
+  <p>Security reports are triaged first. The stated policy is acknowledgement within 24 hours, a fix or mitigation within 30 days, and public credit unless the researcher prefers anonymity. Billing messages are read by the founder; include the workspace email or order ID.</p>
+
+  <h3>11.6 Delivery, cancellation and refund</h3>
+  <ul>
+    <li><strong>Delivery:</strong> digital; modules activate in the workspace normally within seconds. If a confirmed payment has not activated access within 30 minutes, email with the order ID.</li>
+    <li><strong>Cancellation:</strong> no auto-renew. Cancel by not renewing. Access continues to the end of the paid 30 days.</li>
+    <li><strong>Refunds:</strong> duplicate/accidental charge, a successful payment that cannot be activated, an unauthorised transaction reported promptly, or a material outage proportional to the paid period. Not automatic for change of mind after use or an elapsed period.</li>
+    <li><strong>Process:</strong> email the order ID, workspace email and reason. Acknowledgement within two working days; decision within seven; approved refunds go back through PayU, typically 5–10 working days after approval.</li>
+  </ul>
+
+  <h3>11.7 Enterprise and sovereign</h3>
+  <p>The engine can run as a sidecar inside the customer’s VPC. That is the answer for a client who cannot send prompts to a hosted API. It is not a different detection engine; it is the same module registry deployed beside the workload. Pricing and support for that deployment are a separate commercial conversation, not the self-serve ₹79–₹399 list.</p>
+</section>
+
+<!-- ================= 12 ================= -->
+<section class="section">
+  <div class="kicker">12 · Payments</div>
+  <h2>Payments, settlement and refunds</h2>
+  <p class="lead">The checkout is a PayU hosted redirect. The code verifies payment; it does not move money. Settlement is a merchant-bank function inside PayU.</p>
+  <h3>12.1 Checkout flow</h3>
+  <ol>
+    <li>The signed-in buyer selects modules and enters name, email and a valid phone number.</li>
+    <li>The server prices the order from the catalogue and stores it in Postgres with status <span class="mono">pending-payment</span>.</li>
+    <li>The server builds a PayU form with a SHA-512 request hash: key, txnid, amount, productinfo, firstname, email, udf1–udf5 and salt.</li>
+    <li>The browser POSTs the form to PayU’s hosted checkout.</li>
+    <li>PayU posts the result to <span class="mono">/backend/billing/payu/callback</span>. The server verifies the reverse hash.</li>
+    <li>On success, the order becomes <span class="mono">active</span> and entitlements are written to Postgres. Replays are idempotent; an existing order is not granted twice.</li>
+    <li>If the callback is lost, the pricing page calls <span class="mono">/payu/sync</span>. The server asks PayU directly, checks the captured amount equals the order total, and grants the modules.</li>
+  </ol>
+  <h3>12.2 What the client must configure in PayU</h3>
+  <table>
+    <thead><tr><th>Setting</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Success URL</td><td><span class="mono">https://www.intellirity.com/backend/billing/payu/callback</span></td></tr>
+      <tr><td>Failure URL</td><td><span class="mono">https://www.intellirity.com/backend/billing/payu/callback</span></td></tr>
+      <tr><td>Webhook URL (optional)</td><td><span class="mono">https://www.intellirity.com/backend/billing/payu/webhook</span></td></tr>
+      <tr><td>Website / product URL</td><td><span class="mono">https://www.intellirity.com/pricing</span></td></tr>
+      <tr><td>Mode</td><td>Live, with the live merchant key/salt in the backend environment.</td></tr>
+    </tbody>
+  </table>
+  <p>The webhook is optional for this redirect flow. Opening the webhook URL in a browser returns a normal explanation page; it only accepts a signed server-to-server POST. The “enhance your customers’ checkout experience” prompt in the PayU dashboard is checkout customization, not settlement. It can be skipped.</p>
+
+  <h3>12.3 Settlement: why money may not reach the bank</h3>
+  <p>A PayU dashboard transaction can be successful while the money is still held or routed to a different bank account. The application cannot change this. The merchant account controls it.</p>
+  <table>
+    <thead><tr><th>Check</th><th>What to verify</th></tr></thead>
+    <tbody>
+      <tr><td>Merchant account</td><td>The dashboard MID and merchant key must match the key used by the backend. A different PayU account has a different bank account.</td></tr>
+      <tr><td>Live vs test</td><td>Test transactions show amounts but never settle. Confirm the transaction is in the live dashboard.</td></tr>
+      <tr><td>Bank details</td><td>A verified settlement bank account must exist on the MID: correct account holder, account number and IFSC, with penny-drop/verification complete.</td></tr>
+      <tr><td>KYC / activation</td><td>An account can accept transactions while settlement is on hold pending KYC, website verification or activation.</td></tr>
+      <tr><td>Settlement cycle</td><td>Usually T+1/T+2 business days. Weekends and bank holidays shift the date.</td></tr>
+      <tr><td>Minimum payout</td><td>Some merchant accounts have a minimum settlement amount. A single small payment can remain below the threshold.</td></tr>
+      <tr><td>UTR</td><td>If the transaction shows a UTR, PayU released the money; give the UTR to the bank. No UTR beyond the cycle means a PayU support case.</td></tr>
+      <tr><td>Reserve / hold</td><td>Rolling reserve, chargeback hold or risk review can delay settlement.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout warn">
+    <div class="label">Sales-safe answer</div>
+    <p>“PayU confirms the payment to us and we unlock the modules immediately. Settlement to your bank is handled by your PayU merchant account. If the dashboard shows a successful transaction but the bank has not received it, send the txnid, mihpayid and UTR (if any) to PayU support with your MID.”</p>
+  </div>
+
+  <h3>12.4 Refund mechanics</h3>
+  <p>Refunds are issued through PayU against the original transaction. Intellirity does not store card numbers or UPI credentials. A refund request needs the order ID, workspace email and reason; approval goes back to the original payment method.</p>
+</section>
+
+<!-- ================= 13 ================= -->
+<section class="section">
+  <div class="kicker">13 · Data and identity</div>
+  <h2>Data model, identity and tenancy</h2>
+  <p class="lead">The tenant is the unit of isolation. A user or organisation owns its records; a machine key owns its own service workspace.</p>
+  <table>
+    <thead><tr><th style="width:24%">Table</th><th>What it holds</th><th style="width:26%">Durability</th></tr></thead>
+    <tbody>
+      <tr><td><strong>users</strong></td><td>Human user records.</td><td>Postgres</td></tr>
+      <tr><td><strong>organizations</strong></td><td>Team tenant records.</td><td>Postgres / memory fallback</td></tr>
+      <tr><td><strong>security_scans</strong></td><td>Completed scan metadata and activity used by real charts.</td><td>Postgres</td></tr>
+      <tr><td><strong>threat_detections</strong></td><td>Schema exists for durable detections; current console threat store is in-process.</td><td>Table exists; store still memory-first</td></tr>
+      <tr><td><strong>ledger_records</strong></td><td>Hash-chained audit records, sequence and Merkle hash.</td><td>Postgres is authoritative</td></tr>
+      <tr><td><strong>escrow_holds</strong></td><td>Agent fund holds and state.</td><td>Postgres, restored across instances</td></tr>
+      <tr><td><strong>orders</strong></td><td>Checkout, modules, amount, status, provider txnid, paid time.</td><td>Postgres</td></tr>
+      <tr><td><strong>entitlements</strong></td><td>Owner, product, order and expiry.</td><td>Postgres</td></tr>
+      <tr><td><strong>contact_submissions</strong></td><td>Ticket, name, email, subject, message, notified flag.</td><td>Postgres before email</td></tr>
+    </tbody>
+  </table>
+  <h3>Identity paths</h3>
+  <ul>
+    <li><strong>Human:</strong> Clerk session JWT verified with RS256/JWKS (or HS256 fallback). Expired, forged or unsigned tokens are rejected.</li>
+    <li><strong>Machine:</strong> <span class="mono">X-API-Key</span>, matched by SHA-256 hash; no raw key stored.</li>
+    <li><strong>Open mode:</strong> only when no auth is configured and the environment is not production. Production without auth refuses to serve protected routes.</li>
+  </ul>
+  <h3>Tenant rules</h3>
+  <p>An active Clerk organisation owns the workspace. Without an organisation, the user owns a private tenant. A machine key owns its own service tenant and is never written to the user table. Cross-tenant reads are 404, not “forbidden” with an existence leak.</p>
+
+  <h3>Persistence caveat</h3>
+  <p>Orders, entitlements, scan activity, threats, model endpoints, policy packs, ledger, escrow and contacts are durable in Postgres. The in-process store remains a fast cache/fallback, but a serverless cold start no longer erases the tenant’s threat history or workspace configuration. The audit ledger remains the permanent evidence record.</p>
+</section>
+
+<!-- ================= 14 ================= -->
+<section class="section">
+  <div class="kicker">14 · Security</div>
+  <h2>The security model</h2>
+  <p class="lead">The product is sold as security software, so its own controls have to be explainable. This is what the deployed system actually enforces.</p>
+  <table>
+    <thead><tr><th style="width:28%">Control</th><th>Implementation</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Fail closed</strong></td><td>A screening-engine error denies rather than forwards. An invalid API key is 401 even in open mode. A bearer token presented to a deployment that cannot validate it is 503, not anonymous access.</td></tr>
+      <tr><td><strong>Tenant isolation</strong></td><td>Owner is derived per request; engine responses are private/no-store with <span class="mono">Vary: Authorization</span>; cross-tenant object reads are 404.</td></tr>
+      <tr><td><strong>Input bounds</strong></td><td>Text/code size caps, file-count and total-size caps for repository review, URL length caps, bounded public scan payloads.</td></tr>
+      <tr><td><strong>SSRF protection</strong></td><td>URL scans resolve DNS, reject private/loopback/link-local/reserved/multicast addresses, and do not follow redirects blindly.</td></tr>
+      <tr><td><strong>Evidence integrity</strong></td><td>Append-only hash chain with Merkle root; database-authoritative append lock; verification command detects a broken chain.</td></tr>
+      <tr><td><strong>Intent proof</strong></td><td>HMAC-SHA256 certificate over human ID, instruction hash, action scope, timestamp, expiry and nonce; forged/expired/out-of-scope certificates are denied.</td></tr>
+      <tr><td><strong>Escrow integrity</strong></td><td>Exactly-once state machine; unknown IDs and replays fail; holds persisted and restored.</td></tr>
+      <tr><td><strong>Web hardening</strong></td><td>CSP, HSTS with preload, X-Frame-Options DENY, nosniff, strict referrer, COOP/CORP, permissions policy, no <span class="mono">X-Powered-By</span>, interactive API docs disabled in production.</td></tr>
+      <tr><td><strong>Abuse control</strong></td><td>Per-IP request budget, tighter per-endpoint limits for contact/reasoning/jobs/demo scans, Turnstile on contact when configured.</td></tr>
+      <tr><td><strong>Privacy</strong></td><td>Prompt payloads are not retained by default; contacts are written before email attempt; analytics is consent-gated; no training on customer traffic.</td></tr>
+      <tr><td><strong>Secrets</strong></td><td>No live keys in tracked files; <span class="mono">.env</span> is ignored; API keys stored hashed; PayU salt stays server-side.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout">
+    <div class="label">Certification answer</div>
+    <p>Intellirity has <strong>not</strong> completed SOC 2 Type II or ISO/IEC 27001. We do not publish badges we cannot evidence. What we can show is the control implementation above, the policy pages, and the code-level tests.</p>
+  </div>
+</section>
+
+<!-- ================= 15 ================= -->
+<section class="section">
+  <div class="kicker">15 · Operations</div>
+  <h2>How the product is run and tested</h2>
+  <p class="lead">The project is small enough to operate without a large platform team, but it has real operational controls.</p>
+  <h3>15.1 Deployment</h3>
+  <ul>
+    <li>Frontend and API on Vercel; Postgres hosted (Neon-compatible); Clerk and PayU as SaaS.</li>
+    <li>Vercel rewrites <span class="mono">/backend/*</span> to the API service; the browser stays same-origin.</li>
+    <li>Canonical host is <span class="mono">www.intellirity.com</span>; apex redirects. Sitemap, robots and canonicals use www.</li>
+    <li>Cutover and rollback are Git-based; the latest tested commit is deployed through the repository.</li>
+  </ul>
+  <h3>15.2 Health and backup</h3>
+  <ul>
+    <li><span class="mono">GET /health</span> and <span class="mono">GET /backend/system/health</span> return 200 healthy / 503 when a production deployment cannot reach Postgres.</li>
+    <li>Operational scripts: ledger verification, database backup, database maintenance, ledger repair dry-run, engine catalogue export.</li>
+    <li>Backups are database-level; the policy states 35-day backup retention and 30-day account-data retention after closure.</li>
+  </ul>
+  <h3>15.3 Testing</h3>
+  <ul>
+    <li><strong>Backend:</strong> 104 tests pass, with database disabled in the test suite so tests cannot write to production.</li>
+    <li><strong>Frontend:</strong> TypeScript check and production Next.js build pass.</li>
+    <li><strong>Security dependency audit:</strong> <span class="mono">npm audit</span> 0 known vulnerabilities; <span class="mono">pip-audit</span> no known vulnerabilities at the time of writing.</li>
+    <li><strong>SDK suites:</strong> Python and JavaScript live tests exist against a running engine.</li>
+    <li><strong>Site checks:</strong> 94/94 live checks pass across public pages, canonicals, robots and sitemap.</li>
+  </ul>
+  <h3>15.4 What monitoring does not cover yet</h3>
+  <p>There is no external uptime pager in this document, no formal incident-response on-call rotation, no WAF in front of the app, and no SIEM export. Those are operational purchases/processes to add as the customer base grows.</p>
+</section>
+
+<!-- ================= 16 ================= -->
+<section class="section">
+  <div class="kicker">16 · Gaps</div>
+  <h2>Known limitations and how to fix them</h2>
+  <p class="lead">This section is deliberately blunt. A client will find these eventually; it is better to explain them correctly and price/position around them.</p>
+  <table>
+    <thead><tr><th style="width:24%">Gap</th><th style="width:12%">Impact</th><th style="width:32%">What is true today</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td><strong>PayU settlement</strong></td><td><span class="tag high">business-critical</span></td><td>The app verifies successful payments. The money is settled by PayU to the MID’s bank account.</td><td>Verify MID/key match, live mode, bank verification, KYC, cycle, minimum payout, UTR; raise PayU support with txnid/mihpayid.</td></tr>
+      <tr><td><strong>Advanced threat feed</strong></td><td><span class="tag low">low</span></td><td>The feed is a curated eight-pattern catalogue. Its public description now says “curated catalogue”, not “live feed”.</td><td>Add an ingestion pipeline with provenance and freshness dates if a live subscription is sold.</td></tr>
+      <tr><td><strong>Autonomous exploit validation</strong></td><td><span class="tag high">scope</span></td><td>Static URL/code/repo review only. No sandbox, no exploit proof.</td><td>Deploy a Docker-capable worker with an LLM key and a bounded job queue.</td></tr>
+      <tr><td><strong>General API rate limit</strong></td><td><span class="tag low">low</span></td><td>Costly routes (contact, reasoning, jobs, public scans) are now counted in Postgres across instances. The broad 60/min middleware still has an in-process fallback.</td><td>Move the broad counter to Redis/Upstash for a fully global limit.</td></tr>
+      <tr><td><strong>CSP unsafe-inline</strong></td><td><span class="tag low">low</span></td><td>Script-src allows inline scripts for the current Next/Clerk setup.</td><td>Nonce/hash-based CSP; test third-party scripts and Clerk.</td></tr>
+      <tr><td><strong>Email deliverability</strong></td><td><span class="tag med">medium</span></td><td>The published security/privacy/legal addresses are on a domain with no MX record in DNS checks. Contact-form outbound alerts are configured.</td><td>Add MX/SPF/DMARC and create the mailboxes, or route support through the contact form until then.</td></tr>
+      <tr><td><strong>Business details</strong></td><td><span class="tag low">low</span></td><td>The contact page shows “Available on request” for address/phone and no GSTIN when the environment variables are unset.</td><td>Set <span class="mono">NEXT_PUBLIC_COMPANY_ADDRESS</span>, <span class="mono">PHONE</span>, <span class="mono">GSTIN</span> and redeploy.</td></tr>
+      <tr><td><strong>Refund UI</strong></td><td><span class="tag low">low</span></td><td>Refunds are handled by email and the PayU dashboard; no in-app refund button.</td><td>Add an admin refund workflow if volume justifies it.</td></tr>
+      <tr><td><strong>Autonomous URL crawling</strong></td><td><span class="tag low">scope</span></td><td>Free URL scan reads one public page and headers; it does not crawl a whole site or authenticate.</td><td>Add a bounded crawler worker if clients need full-site coverage.</td></tr>
+      <tr><td><strong>Certifications</strong></td><td><span class="tag med">procurement</span></td><td>No SOC 2 Type II or ISO 27001.</td><td>Commission an audit when enterprise demand justifies it; do not imply certification before then.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout warn">
+    <div class="label">Most important remaining operational items</div>
+    <p>PayU settlement and bank verification are merchant-account tasks. Inbound support email needs MX/SPF/DMARC and real mailboxes. The autonomous exploit worker still needs a Docker host and an LLM key. The code-level durability and public-health issues are fixed.</p>
+  </div>
+</section>
+
+<!-- ================= 17 ================= -->
+<section class="section">
+  <div class="kicker">17 · Client conversations</div>
+  <h2>How to answer the questions you will actually get</h2>
+  <p class="lead">Short, accurate answers. Do not improvise beyond them.</p>
+  <div class="grid2">
+    <div class="card"><div class="num">Q1</div><h4>“What exactly do you sell?”</h4><p>Per-module AI security for 30 days. Nine modules from ₹79 to ₹399; free tier and free Vibe-Code scanner for evaluation. No seats, no platform fee, no auto-renew.</p></div>
+    <div class="card"><div class="num">Q2</div><h4>“Is this a WAF?”</h4><p>No. A WAF understands HTTP. Intellirity understands intent: semantic injection, jailbreaks, agent actions, data flow, code and evidence.</p></div>
+    <div class="card"><div class="num">Q3</div><h4>“Does it call an LLM to decide?”</h4><p>The core detection engines are deterministic regex/statistical/state-machine analysers. An LLM is used only for the optional reasoning/proxy features.</p></div>
+    <div class="card"><div class="num">Q4</div><h4>“Do you store our prompts?”</h4><p>No by default. We process to return a verdict and store metadata/evidence according to the workspace retention policy. Scan activity stores type, risk and time, not payload.</p></div>
+    <div class="card"><div class="num">Q5</div><h4>“Can it stop an agent?”</h4><p>It can evaluate the action, enforce policy, hold funds in escrow and require a signed human intent proof. It is a control layer, not a guarantee that the agent is correct.</p></div>
+    <div class="card"><div class="num">Q6</div><h4>“How fast is it?”</h4><p>Most deterministic scans complete in well under a second; a URL scan adds a bounded page fetch up to eight seconds; repository review is a few seconds depending on size.</p></div>
+    <div class="card"><div class="num">Q7</div><h4>“What if an engine crashes?”</h4><p>The screening path fails closed: deny rather than forward. The UI reports an error; it does not fabricate a clean verdict.</p></div>
+    <div class="card"><div class="num">Q8</div><h4>“Are you SOC 2 / ISO certified?”</h4><p>Not yet. We do not claim certifications we do not hold. We can show the security model, controls, tests and policies.</p></div>
+    <div class="card"><div class="num">Q9</div><h4>“Can we self-host?”</h4><p>Yes, as a sidecar inside your VPC. That is a separate deployment and commercial conversation.</p></div>
+    <div class="card"><div class="num">Q10</div><h4>“How do we pay?”</h4><p>PayU hosted checkout in INR. Each payment covers 30 days. No card is stored by us; settlement is to the PayU merchant account.</p></div>
+    <div class="card"><div class="num">Q11</div><h4>“What is free?”</h4><p>The injection engine, threat feed, free Vibe-Code URL/code scan and the free console pages. Paid modules unlock the deeper engines and repository workflow.</p></div>
+    <div class="card"><div class="num">Q12</div><h4>“What is missing?”</h4><p>Autonomous exploit validation, durable threat/model/policy state, external intelligence ingestion, SOC 2/ISO and in-app refunds. Section 16 lists them.</p></div>
+  </div>
+  <div class="quote">The strongest pitch is not “we stop every attack.” It is: “we put a deterministic control and a reconstructable record around the places where AI text becomes an action — and you only pay for the controls you run.”</div>
+</section>
+
+<!-- ================= 18 ================= -->
+<section class="section">
+  <div class="kicker">18 · Appendix</div>
+  <h2>API and configuration reference</h2>
+  <p class="lead">Enough to answer an integration question without opening the repository.</p>
+  <h3>18.1 Core API groups (prefix <span class="mono">/api/v1</span>)</h3>
+  <table>
+    <thead><tr><th style="width:18%">Group</th><th>Routes</th></tr></thead>
+    <tbody>
+      <tr><td><strong>System</strong></td><td>status, health, summary, public stats/feed, free Vibe-Code scan, demo prompt scan, contact.</td></tr>
+      <tr><td><strong>Modules</strong></td><td>list modules, get module, <span class="mono">POST /{engine}/scan</span>.</td></tr>
+      <tr><td><strong>Scans</strong></td><td>history, code-security, create, run sweep, activity, get by id.</td></tr>
+      <tr><td><strong>Threats</strong></td><td>list/filter, get, resolve.</td></tr>
+      <tr><td><strong>Billing</strong></td><td>products, checkout, entitlements, orders, PayU callback/webhook/sync/urls, dev activate.</td></tr>
+      <tr><td><strong>Workspace</strong></td><td>model endpoints, model status, scan result, policy packs, enable, promote.</td></tr>
+      <tr><td><strong>Identity / orgs</strong></td><td>me, stats, organisations.</td></tr>
+      <tr><td><strong>Jobs / realtime</strong></td><td>queue a sweep/reasoning job, job status, ingest/feed.</td></tr>
+      <tr><td><strong>Proxy / reasoning</strong></td><td>screened chat proxy and optional reasoning endpoint.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>18.2 Environment variables that matter in a client conversation</h3>
+  <table>
+    <thead><tr><th style="width:28%">Variable</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><span class="mono">DATABASE_URL</span></td><td>Postgres connection; blank means memory-only local mode.</td></tr>
+      <tr><td><span class="mono">CLERK_SECRET_KEY</span> / <span class="mono">NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</span></td><td>Human authentication and tenant context.</td></tr>
+      <tr><td><span class="mono">INTELLIRITY_API_KEY_HASHES</span></td><td>SHA-256 hashes of machine keys for SDK/MCP.</td></tr>
+      <tr><td><span class="mono">PAYU_KEY_ID</span> / <span class="mono">PAYU_KEY_SECRET</span> / <span class="mono">PAYU_MODE</span></td><td>PayU merchant credentials and live/test selection.</td></tr>
+      <tr><td><span class="mono">PUBLIC_SITE_URL</span></td><td>Fallback origin for payment return URLs.</td></tr>
+      <tr><td><span class="mono">SECRET_KEY</span> / <span class="mono">VPI_SIGNING_KEY</span></td><td>App signing and proof-of-intent HMAC key.</td></tr>
+      <tr><td><span class="mono">ALLOWED_ORIGINS</span></td><td>CORS allow-list; never <span class="mono">*</span> in production.</td></tr>
+      <tr><td><span class="mono">BILLING_ENFORCED</span></td><td>Turns module entitlements on.</td></tr>
+      <tr><td><span class="mono">TURNSTILE_SECRET</span></td><td>Contact-form bot protection.</td></tr>
+      <tr><td><span class="mono">NEXT_PUBLIC_SITE_URL</span> / <span class="mono">NEXT_PUBLIC_COMPANY_*</span></td><td>Canonical origin and legal business details.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>18.3 Glossary for client calls</h3>
+  <table>
+    <thead><tr><th style="width:23%">Term</th><th>Meaning in this product</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Prompt injection</strong></td><td>Text treated as data that the model follows as an instruction. Direct = user prompt; indirect = retrieved page/document/tool result.</td></tr>
+      <tr><td><strong>Jailbreak</strong></td><td>An attempt to override safety or policy behaviour, often through persona, roleplay, encoding or multi-turn framing.</td></tr>
+      <tr><td><strong>MCP</strong></td><td>Model Context Protocol — a standard way for an agent to discover and call tools/servers. Adds a supply-chain and confused-deputy surface.</td></tr>
+      <tr><td><strong>Confused deputy</strong></td><td>A trusted component is tricked into using its authority on behalf of an attacker.</td></tr>
+      <tr><td><strong>Denial of wallet</strong></td><td>An attack that burns API/token spend rather than taking the service down.</td></tr>
+      <tr><td><strong>Proof of intent</strong></td><td>A signed statement that a specific human authorised an instruction/action scope until an expiry.</td></tr>
+      <tr><td><strong>Escrow</strong></td><td>A hold on agent funds until an oracle verifies the deliverable; released or rejected exactly once.</td></tr>
+      <tr><td><strong>Ledger</strong></td><td>Append-only, hash-chained evidence of decisions; tampering breaks verification.</td></tr>
+      <tr><td><strong>SARIF</strong></td><td>Standard JSON format for static-analysis results, consumed by code-scanning/CI tools.</td></tr>
+      <tr><td><strong>Fail closed</strong></td><td>On error, deny rather than allow.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="footer-note">
+    <strong>Document status:</strong> based on the deployed codebase and live site as of 7 November 2026. Product claims in marketing copy should be checked against this document before publication. Known gaps in section 16 are part of the record, not omissions.
+  </div>
+</section>
+
+</body>
+</html>
